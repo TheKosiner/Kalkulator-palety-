@@ -72,6 +72,16 @@
     #legend .lr{display:flex;align-items:center;gap:7px;margin:3px 0}
     #legend .ls{width:13px;height:13px;border-radius:3px;flex-shrink:0}
 
+    /* CAM CONTROLS */
+    #camCtrls{position:absolute;right:10px;bottom:52px;display:flex;flex-direction:column;gap:7px;z-index:10}
+    .cam-btn{width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.86);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.22);color:#1a3c5e;font-weight:700;line-height:1}
+    .cam-btn:active{transform:scale(.88)}
+
+    /* PER-PKG ORIENT */
+    .pkg-orient-wrap{display:none;flex-shrink:0}
+    .pkg-orient{width:76px;padding:4px 3px;border:1.5px solid #dde2e8;border-radius:7px;font-size:.7rem;outline:none;background:#fff}
+    .pkg-orient:focus{border-color:var(--blue)}
+
     /* DESKTOP */
     @media(min-width:760px){
       html,body{overflow:auto}
@@ -103,6 +113,13 @@
   <div class="ov" id="warnBar"></div>
   <div class="ov" id="hintBar">Dotyk: obracaj · 2 palce: zoom</div>
   <div id="legend"></div>
+  <div id="camCtrls">
+    <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
+    <button class="cam-btn" title="Oddal" onclick="camZoomOut()">−</button>
+    <button class="cam-btn" title="Obróć lewo" onclick="camRotL()">◀</button>
+    <button class="cam-btn" title="Obróć prawo" onclick="camRotR()">▶</button>
+    <button class="cam-btn" title="Reset widoku" onclick="camReset()">⟳</button>
+  </div>
 </div>
 
 <div id="drawer">
@@ -141,13 +158,17 @@
       <label class="lbl">Max. wysokość palety (mm)</label>
       <input type="number" id="maxHMixed" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
     </div>
-    <div class="ctrl-full">
+    <div class="ctrl-full" id="globalOrientRow">
       <label class="lbl">Orientacja paczki</label>
       <select id="orient">
         <option value="auto">Auto (najlepsze upakowanie)</option>
         <option value="flat">Płasko (H = najmniejszy wym.)</option>
         <option value="upright">Pionowo (H = największy wym.)</option>
       </select>
+    </div>
+    <div class="ctrl-full">
+      <label class="lbl">Margines bezpieczeństwa (mm / stronę)</label>
+      <input type="number" id="margin" value="0" min="0" max="200" step="5" inputmode="numeric"/>
     </div>
 
     <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
@@ -182,11 +203,13 @@ function setMode(m) {
   document.getElementById('singleQtyRow').style.display  = m==='single' ? '' : 'none';
   document.getElementById('mixedMaxHRow').style.display  = m==='mixed'  ? '' : 'none';
   document.getElementById('sPerLayer').style.display     = m==='single' ? '' : 'none';
-  // update qty-inputs visibility
+  document.getElementById('globalOrientRow').style.display = m==='single' ? '' : 'none';
   document.querySelectorAll('.pkg-qty-wrap').forEach(el => {
     el.style.display = (m==='mixed' && el.closest('.pkg-item').classList.contains('selected')) ? 'flex' : 'none';
   });
-  // in single mode: only one selection allowed
+  document.querySelectorAll('.pkg-orient-wrap').forEach(el => {
+    el.style.display = (m==='mixed' && el.closest('.pkg-item').classList.contains('selected')) ? 'flex' : 'none';
+  });
   if (m==='single') enforeSingleSelect();
 }
 
@@ -220,15 +243,22 @@ PKGS.forEach(p => {
       <div class="pkg-name">${p.name}</div>
       <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div>
     </div>
+    <div class="pkg-orient-wrap" style="display:none">
+      <select class="pkg-orient" data-id="${p.id}">
+        <option value="auto">Auto</option>
+        <option value="flat">Płasko</option>
+        <option value="upright">Pionowo</option>
+      </select>
+    </div>
     <div class="pkg-qty-wrap" style="display:none">
       <label>szt.:</label>
-      <input class="pkg-qty" type="number" value="10" min="1" max="999" inputmode="numeric" data-id="${p.id}" onclick="e=>e.stopPropagation()" />
+      <input class="pkg-qty" type="number" value="10" min="1" max="999" inputmode="numeric" data-id="${p.id}" />
     </div>`;
   item.querySelector('.pkg-qty')?.addEventListener('click', e=>e.stopPropagation());
+  item.querySelector('.pkg-orient')?.addEventListener('click', e=>e.stopPropagation());
 
   item.addEventListener('click', () => {
     if (mode === 'single') {
-      // deselect all, select this one
       document.querySelectorAll('.pkg-item').forEach(i=>i.classList.remove('selected'));
       selectedIds.clear();
       item.classList.add('selected');
@@ -238,10 +268,12 @@ PKGS.forEach(p => {
         selectedIds.delete(p.id);
         item.classList.remove('selected');
         item.querySelector('.pkg-qty-wrap').style.display='none';
+        item.querySelector('.pkg-orient-wrap').style.display='none';
       } else {
         selectedIds.add(p.id);
         item.classList.add('selected');
         item.querySelector('.pkg-qty-wrap').style.display='flex';
+        item.querySelector('.pkg-orient-wrap').style.display='flex';
       }
     }
   });
@@ -256,6 +288,7 @@ function enforeSingleSelect() {
     const sel = selectedIds.has(item.dataset.id);
     item.classList.toggle('selected', sel);
     item.querySelector('.pkg-qty-wrap').style.display='none';
+    item.querySelector('.pkg-orient-wrap').style.display='none';
   });
 }
 
@@ -299,9 +332,11 @@ function bestOrientation(dims, orientMode) {
 }
 
 // SINGLE-TYPE pack
-function packSingle(pkg, qty, maxH, orientMode) {
+function packSingle(pkg, qty, maxH, orientMode, margin=0) {
+  const m2 = margin * 2;
   let best=null;
-  for(const [fw,fd,lh] of orientCandidates(pkg.dims, orientMode)){
+  for(const [fw0,fd0,lh0] of orientCandidates(pkg.dims, orientMode)){
+    const fw=fw0+m2, fd=fd0+m2, lh=lh0+m2; // effective dims with margin
     const [bfw,bfd]=bestFit(PAL.W,PAL.D,fw,fd);
     const nx=Math.floor(PAL.W/bfw), ny=Math.floor(PAL.D/bfd);
     const perLayer=nx*ny; if(!perLayer) continue;
@@ -314,14 +349,15 @@ function packSingle(pkg, qty, maxH, orientMode) {
       let rem=placed;
       for(let L=0;L<layers&&rem>0;L++){
         const yBase=PAL.H+L*lh;
-        groups[0].layers.push({layer:L,y:yBase,h:lh});
+        groups[0].layers.push({layer:L,y:yBase,h:lh0});
         for(let ix=0;ix<nx&&rem>0;ix++)
           for(let iy=0;iy<ny&&rem>0;iy++){
-            placements.push({x:ix*bfw,y:yBase,z:iy*bfd,w:bfw,h:lh,d:bfd,pkgId:pkg.id,color:pkg.color});
+            // render at original dims, offset by margin within the slot
+            placements.push({x:ix*bfw+margin,y:yBase+margin,z:iy*bfd+margin,w:fw0,h:lh0,d:fd0,pkgId:pkg.id,color:pkg.color});
             rem--;
           }
       }
-      best={count:placed,layers,placements,layerH:lh,perLayer,totalH,groups};
+      best={count:placed,layers,placements,layerH:lh0,perLayer,totalH,groups};
     }
   }
   return best;
@@ -397,41 +433,49 @@ function _findPos(fw, fd, lh, maxH) {
   return best;
 }
 
-function packMixed(entries, maxH, orientMode) {
+function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   _placed = [];
+  const m2 = margin * 2;
   const types = entries
     .map(({pkg, qty}) => ({ pkg, qty, vol: pkg.dims.reduce((a,b)=>a*b,1) }))
-    .sort((a,b) => b.vol - a.vol); // heaviest first → bottom
+    .sort((a,b) => b.vol - a.vol);
 
   const placements = [];
   const groupMap   = new Map();
   const leftover   = [];
 
   for (const {pkg, qty} of types) {
-    // Generate all (fw, fd, lh) + 90° rotation in footprint plane
+    const orientMode = pkgOrientMap.get(pkg.id) || 'auto';
     const cands = [];
-    for (const [fw,fd,lh] of orientCandidates(pkg.dims, orientMode)) {
-      cands.push([fw,fd,lh]);
-      if (fw !== fd) cands.push([fd,fw,lh]); // rotated 90° on pallet
+    for (const [fw0,fd0,lh0] of orientCandidates(pkg.dims, orientMode)) {
+      // effective dims include margin on all sides
+      const fw=fw0+m2, fd=fd0+m2, lh=lh0+m2;
+      cands.push([fw,fd,lh,fw0,fd0,lh0]);
+      if (fw0 !== fd0) cands.push([fd,fw,lh,fd0,fw0,lh0]);
     }
 
     let placedCount = 0;
     for (let q = 0; q < qty; q++) {
-      // Try every orientation, pick the one with lowest y (= best support)
-      let bestPos = null, bestLh, bestFw, bestFd;
-      for (const [fw,fd,lh] of cands) {
+      let bestPos = null, bestLh, bestFw, bestFd, bestLh0, bestFw0, bestFd0;
+      for (const [fw,fd,lh,fw0,fd0,lh0] of cands) {
         const pos = _findPos(fw, fd, lh, maxH);
         if (!pos) continue;
-        if (!bestPos || pos.y < bestPos.y
-            || (pos.y===bestPos.y && lh < bestLh)) { // tie-break: shorter box
+        if (!bestPos || pos.y < bestPos.y || (pos.y===bestPos.y && lh < bestLh)) {
           bestPos=pos; bestLh=lh; bestFw=fw; bestFd=fd;
+          bestLh0=lh0; bestFw0=fw0; bestFd0=fd0;
         }
       }
-      if (!bestPos) continue; // no valid position for this box
+      if (!bestPos) continue;
 
+      // _placed uses effective dims for collision detection
       const box = {x:bestPos.x, y:bestPos.y, z:bestPos.z, w:bestFw, h:bestLh, d:bestFd};
       _placed.push(box);
-      placements.push({...box, pkgId:pkg.id, color:pkg.color});
+      // visual placement uses original dims, inset by margin
+      placements.push({
+        x:bestPos.x+margin, y:bestPos.y+margin, z:bestPos.z+margin,
+        w:bestFw0, h:bestLh0, d:bestFd0,
+        pkgId:pkg.id, color:pkg.color
+      });
       if (!groupMap.has(pkg.id))
         groupMap.set(pkg.id, {color:pkg.color, name:pkg.name, placed:0, qty});
       groupMap.get(pkg.id).placed++;
@@ -459,6 +503,7 @@ let lastRes=null, lastMode=null;
 
 window.calculate=function(){
   const orientMode=document.getElementById('orient').value;
+  const margin=parseInt(document.getElementById('margin').value)||0;
   let res, warns=[];
 
   if(mode==='single'){
@@ -467,7 +512,7 @@ window.calculate=function(){
     const pkg=PKGS.find(p=>p.id===pkgId);
     const qty=parseInt(document.getElementById('qty').value)||1;
     const maxH=parseInt(document.getElementById('maxH').value)||1800;
-    res=packSingle(pkg,qty,maxH,orientMode);
+    res=packSingle(pkg,qty,maxH,orientMode,margin);
     if(!res||res.count===0) warns.push('Paczka nie mieści się w podanej wysokości!');
     else if(res.count<qty) warns.push(`Tylko ${res.count} z ${qty} paczek zmieściło się.`);
     document.getElementById('rTotal').textContent=res?res.count:0;
@@ -480,15 +525,18 @@ window.calculate=function(){
     if(!selectedIds.size){alert('Zaznacz przynajmniej jeden karton!');return;}
     const maxH=parseInt(document.getElementById('maxHMixed').value)||1800;
     const entries=[];
+    const pkgOrientMap=new Map();
     let totalReq=0;
     selectedIds.forEach(id=>{
       const pkg=PKGS.find(p=>p.id===id);
       const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
+      const orientEl=document.querySelector(`.pkg-orient[data-id="${id}"]`);
       const qty=parseInt(qtyEl?.value)||10;
+      pkgOrientMap.set(id, orientEl?.value||'auto');
       entries.push({pkg,qty});
       totalReq+=qty;
     });
-    res=packMixed(entries,maxH,orientMode);
+    res=packMixed(entries,maxH,pkgOrientMap,margin);
     document.getElementById('rTotal').textContent=res.count;
     document.getElementById('rLayers').textContent=res.layers;
     document.getElementById('rHeight').textContent=res.totalH;
@@ -647,7 +695,7 @@ function draw3D(res){
   ctx.fillStyle='#1a3c5e';ctx.font=`bold ${fs}px Segoe UI`;
   ctx.fillText(res.totalH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
 
-  document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: obracaj · 2 palce: zoom':'Mysz: obracaj · Scroll: zoom · PPM: przesuń';
+  document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: obracaj · 2 palce: zoom · przyciski: zoom/obrót':'Mysz: obracaj · Scroll: zoom · PPM: przesuń';
 }
 
 function buildLegend(res,mode){
@@ -680,6 +728,16 @@ function buildLegend(res,mode){
 })();
 
 window.addEventListener('resize',()=>{if(lastRes)draw3D(lastRes);});
+
+// Camera control buttons
+const CAM_DEF={theta:0.52,phi:0.45,dist:3800};
+function camZoomIn(){camDist=Math.max(600,camDist*0.8);if(lastRes)draw3D(lastRes);}
+function camZoomOut(){camDist=Math.min(10000,camDist*1.25);if(lastRes)draw3D(lastRes);}
+function camRotL(){camTheta-=0.18;if(lastRes)draw3D(lastRes);}
+function camRotR(){camTheta+=0.18;if(lastRes)draw3D(lastRes);}
+function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camDist=CAM_DEF.dist;panX=0;panY=0;if(lastRes)draw3D(lastRes);}
+window.camZoomIn=camZoomIn;window.camZoomOut=camZoomOut;
+window.camRotL=camRotL;window.camRotR=camRotR;window.camReset=camReset;
 </script>
 </body>
 </html>
