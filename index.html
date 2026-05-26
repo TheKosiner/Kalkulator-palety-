@@ -246,8 +246,9 @@ PKGS.forEach(p => {
     <div class="pkg-orient-wrap" style="display:none">
       <select class="pkg-orient" data-id="${p.id}">
         <option value="auto">Auto</option>
-        <option value="flat">Płasko</option>
-        <option value="upright">Pionowo</option>
+        <option value="0">${p.dims[0]}×${p.dims[1]} ↓ (wys.${p.dims[2]})</option>
+        <option value="1">${p.dims[0]}×${p.dims[2]} ↓ (wys.${p.dims[1]})</option>
+        <option value="2">${p.dims[1]}×${p.dims[2]} ↓ (wys.${p.dims[0]})</option>
       </select>
     </div>
     <div class="pkg-qty-wrap" style="display:none">
@@ -433,6 +434,20 @@ function _findPos(fw, fd, lh, maxH) {
   return best;
 }
 
+// Returns [fw, fd, lh] candidates for a given "face down" selection.
+// faceMode: 'auto' | '0' | '1' | '2'
+//   '0' → dims[0]×dims[1] on bottom, height = dims[2]
+//   '1' → dims[0]×dims[2] on bottom, height = dims[1]
+//   '2' → dims[1]×dims[2] on bottom, height = dims[0]
+function faceDownCandidates(dims) {
+  const [A,B,C] = dims;
+  return [
+    [A, B, C],
+    [A, C, B],
+    [B, C, A],
+  ];
+}
+
 function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   _placed = [];
   const m2 = margin * 2;
@@ -445,13 +460,18 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   const leftover   = [];
 
   for (const {pkg, qty} of types) {
-    const orientMode = pkgOrientMap.get(pkg.id) || 'auto';
+    const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
+    // Determine which face orientations to try
+    const allFaces = faceDownCandidates(pkg.dims); // [[fw0,fd0,lh0], ...]
+    const facesToTry = faceMode === 'auto'
+      ? allFaces
+      : [allFaces[parseInt(faceMode)]].filter(Boolean);
     const cands = [];
-    for (const [fw0,fd0,lh0] of orientCandidates(pkg.dims, orientMode)) {
+    for (const [fw0,fd0,lh0] of facesToTry) {
       // effective dims include margin on all sides
       const fw=fw0+m2, fd=fd0+m2, lh=lh0+m2;
       cands.push([fw,fd,lh,fw0,fd0,lh0]);
-      if (fw0 !== fd0) cands.push([fd,fw,lh,fd0,fw0,lh0]);
+      if (fw0 !== fd0) cands.push([fd,fw,lh,fd0,fw0,lh0]); // 90° footprint rotation
     }
 
     let placedCount = 0;
