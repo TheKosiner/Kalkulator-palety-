@@ -585,6 +585,7 @@ window.calculate=function(){
 const canvas=document.getElementById('canvas3d');
 const ctx=canvas.getContext('2d');
 let camTheta=0.52,camPhi=0.45,camDist=3800,panX=0,panY=0;
+let camTargetY=PAL.H/2; // vertical focal point; updated each draw
 
 // mouse
 let drag=false,lmx=0,lmy=0,rmb=false;
@@ -626,10 +627,11 @@ canvas.addEventListener('touchend',e=>{
   if(e.touches.length<2)pinch0=null;
 },{passive:true});
 
-// projection
+// projection — orbit centre is the geometric centre of the scene in all 3 axes
 function proj(x,y,z,cx,cy,sc){
-  // Rotate around pallet horizontal centre so the pallet stays centred when orbiting
-  x -= PAL.W/2; z -= PAL.D/2;
+  x -= PAL.W/2;      // centre on pallet X midpoint
+  z -= PAL.D/2;      // centre on pallet Z midpoint
+  y -= camTargetY;   // centre on vertical midpoint of scene
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
   const sP=Math.sin(camPhi),cP=Math.cos(camPhi);
   const rx=x*cT-z*sT,rz=x*sT+z*cT;
@@ -690,9 +692,11 @@ function draw3D(res){
 
   if(!res)return;
 
-  const maxDim=Math.max(PAL.W,PAL.D,res.totalH||PAL.H+100);
+  const totalH=res.totalH||PAL.H+100;
+  camTargetY=totalH/2; // camera looks at vertical midpoint of scene
+  const maxDim=Math.max(PAL.W,PAL.D,totalH);
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim;
-  const cx=W/2,cy=H/2+(res.totalH||0)*sc*.08;
+  const cx=W/2,cy=H/2; // screen centre; y is centred via camTargetY in proj
 
   // floor shadow
   const sh=[[0,0,0],[PAL.W,0,0],[PAL.W,0,PAL.D],[0,0,PAL.D]].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
@@ -757,7 +761,7 @@ function camZoomIn(){camDist=Math.max(600,camDist*0.8);if(lastRes)draw3D(lastRes
 function camZoomOut(){camDist=Math.min(10000,camDist*1.25);if(lastRes)draw3D(lastRes);}
 function camRotL(){camTheta-=0.18;if(lastRes)draw3D(lastRes);}
 function camRotR(){camTheta+=0.18;if(lastRes)draw3D(lastRes);}
-function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camDist=CAM_DEF.dist;panX=0;panY=0;if(lastRes)draw3D(lastRes);}
+function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camDist=CAM_DEF.dist;panX=0;panY=0;camTargetY=PAL.H/2;if(lastRes)draw3D(lastRes);}
 window.camZoomIn=camZoomIn;window.camZoomOut=camZoomOut;
 window.camRotL=camRotL;window.camRotR=camRotR;window.camReset=camReset;
 </script>
