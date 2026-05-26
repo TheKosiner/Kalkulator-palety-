@@ -2,669 +2,611 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Kalkulator Palety 3D</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--navy:#1a3c5e;--blue:#3a7bd5;--peek:44px}
+    html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#1a3c5e;color:#222}
 
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
-      color: #222;
-      min-height: 100vh;
-    }
+    /* HEADER */
+    header{position:fixed;top:0;left:0;right:0;height:50px;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 16px;gap:10px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+    header h1{font-size:1.05rem;font-weight:700;flex:1}
+    header .sub{font-size:.68rem;opacity:.6;white-space:nowrap}
 
-    header {
-      background: #1a3c5e;
-      color: #fff;
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.3);
-    }
-    header h1 { font-size: 1.4rem; font-weight: 700; }
-    header span { font-size: .85rem; opacity: .7; }
+    /* CANVAS */
+    #view3d{position:fixed;top:50px;left:0;right:0;bottom:0;background:#c0d2e4;touch-action:none}
+    #canvas3d{width:100%;height:100%;display:block;touch-action:none}
 
-    .layout {
-      display: flex;
-      gap: 0;
-      height: calc(100vh - 60px);
-    }
+    /* OVERLAYS */
+    .ov{position:absolute;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:10px}
+    #statsBar{top:10px;left:10px;right:10px;background:rgba(26,60,94,.83);color:#fff;padding:8px 12px;display:none;flex-wrap:wrap;gap:4px 14px;font-size:.76rem}
+    #statsBar .s{display:flex;flex-direction:column;align-items:center;min-width:50px}
+    #statsBar .s .v{font-size:1.1rem;font-weight:800;line-height:1.1}
+    #statsBar .s .l{font-size:.58rem;opacity:.72;text-transform:uppercase;letter-spacing:.04em}
+    #hintBar{bottom:10px;right:10px;background:rgba(255,255,255,.76);color:#444;padding:6px 10px;font-size:.63rem}
+    #warnBar{bottom:52px;left:10px;right:10px;background:rgba(192,57,43,.88);color:#fff;padding:7px 12px;font-size:.78rem;font-weight:600;display:none;text-align:center}
 
-    /* ── LEFT PANEL ── */
-    .panel {
-      width: 340px;
-      min-width: 280px;
-      background: #fff;
-      border-right: 1px solid #dde2e8;
-      overflow-y: auto;
-      padding: 20px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
+    /* DRAWER */
+    #drawer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.22);z-index:200;transition:transform .32s cubic-bezier(.4,0,.2,1);transform:translateY(calc(100% - var(--peek)))}
+    #drawer.open{transform:translateY(0)}
+    #handle{height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;gap:8px;color:#555;font-size:.82rem;font-weight:600;flex-shrink:0;position:relative}
+    #handle .pip{width:36px;height:4px;border-radius:2px;background:#ccc;position:absolute;top:10px}
+    #handle .chev{font-size:.9rem;transition:transform .25s}
+    #drawer.open #handle .chev{transform:rotate(180deg)}
+    #drawerContent{overflow-y:auto;padding:0 16px 32px;max-height:75vh}
 
-    .section-title {
-      font-size: .7rem;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: #7a8394;
-      margin-bottom: 6px;
-    }
+    /* PANEL ELEMENTS */
+    .stitle{font-size:.65rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#8a93a2;margin:12px 0 6px}
 
-    /* package cards */
-    .pkg-card {
-      border: 2px solid #e4e8ef;
-      border-radius: 10px;
-      padding: 12px 14px;
-      cursor: pointer;
-      transition: border-color .15s, box-shadow .15s;
-      position: relative;
-    }
-    .pkg-card:hover { border-color: #3a7bd5; box-shadow: 0 2px 8px rgba(58,123,213,.15); }
-    .pkg-card.selected { border-color: #1a3c5e; background: #f0f5ff; }
+    /* PACKAGE CARDS – stacked list on mobile, 2-col on desktop */
+    .pkg-item{border:2px solid #e4e8ef;border-radius:11px;padding:9px 10px;margin-bottom:7px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:10px}
+    .pkg-item:hover{border-color:var(--blue)}
+    .pkg-item.selected{border-color:var(--navy);background:#eef3ff}
+    .pkg-dot{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+    .pkg-info{flex:1;min-width:0}
+    .pkg-name{font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pkg-dim{font-size:.65rem;color:#7a8394}
+    .pkg-qty-wrap{display:none;align-items:center;gap:4px;flex-shrink:0}
+    .pkg-item.selected .pkg-qty-wrap{display:flex}
+    .pkg-qty-wrap label{font-size:.65rem;color:#555;white-space:nowrap;margin:0}
+    .pkg-qty{width:62px;padding:5px 6px;border:1.5px solid #dde2e8;border-radius:7px;font-size:.85rem;text-align:center;outline:none}
+    .pkg-qty:focus{border-color:var(--blue)}
 
-    .pkg-card .pkg-name { font-weight: 700; font-size: .92rem; margin-bottom: 2px; }
-    .pkg-card .pkg-dims { font-size: .78rem; color: #5a6272; }
-    .pkg-card .pkg-color {
-      width: 12px; height: 12px;
-      border-radius: 3px;
-      position: absolute; top: 12px; right: 12px;
-    }
+    /* CONTROLS */
+    .ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .ctrl-full{margin-bottom:10px}
+    label.lbl{font-size:.78rem;font-weight:600;color:#444;display:block;margin-bottom:3px}
+    input[type=number],select{width:100%;padding:9px 10px;border:1.5px solid #dde2e8;border-radius:8px;font-size:.9rem;outline:none}
+    input[type=number]:focus,select:focus{border-color:var(--blue)}
+    .btn-calc{background:var(--navy);color:#fff;border:none;border-radius:11px;padding:13px;font-size:1rem;font-weight:700;cursor:pointer;width:100%;margin-top:4px;letter-spacing:.02em}
+    .btn-calc:active{opacity:.85;transform:scale(.98)}
 
-    /* controls */
-    label { font-size: .82rem; font-weight: 600; color: #444; display: block; margin-bottom: 4px; }
+    /* MIXED MODE TOGGLE */
+    .mode-tabs{display:flex;border:1.5px solid #dde2e8;border-radius:9px;overflow:hidden;margin-bottom:12px}
+    .mode-tab{flex:1;padding:8px;text-align:center;font-size:.78rem;font-weight:600;cursor:pointer;background:#f7f9fc;color:#666;border:none;transition:background .15s,color .15s}
+    .mode-tab.active{background:var(--navy);color:#fff}
 
-    input[type=number], select {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1.5px solid #dde2e8;
-      border-radius: 7px;
-      font-size: .9rem;
-      outline: none;
-      transition: border-color .15s;
-    }
-    input[type=number]:focus, select:focus { border-color: #3a7bd5; }
+    /* LEGEND */
+    #legend{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.88);border-radius:10px;padding:8px 12px;font-size:.7rem;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(0,0,0,.12);display:none;max-width:220px}
+    #legend .lr{display:flex;align-items:center;gap:7px;margin:3px 0}
+    #legend .ls{width:13px;height:13px;border-radius:3px;flex-shrink:0}
 
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-    .btn-calc {
-      background: #1a3c5e;
-      color: #fff;
-      border: none;
-      border-radius: 9px;
-      padding: 12px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background .15s;
-      width: 100%;
-    }
-    .btn-calc:hover { background: #2a5a8e; }
-    .btn-calc:active { transform: scale(.98); }
-
-    /* results */
-    .results-box {
-      background: #f7f9fc;
-      border: 1.5px solid #dde2e8;
-      border-radius: 10px;
-      padding: 14px;
-    }
-    .results-box .stat {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      padding: 4px 0;
-      border-bottom: 1px solid #e8ecf1;
-      font-size: .85rem;
-    }
-    .results-box .stat:last-child { border-bottom: none; }
-    .results-box .stat .val { font-weight: 700; color: #1a3c5e; font-size: 1rem; }
-
-    .warn { color: #c0392b; font-size: .78rem; margin-top: 6px; font-style: italic; }
-
-    /* ── 3D VIEW ── */
-    .view3d {
-      flex: 1;
-      position: relative;
-      background: #e8ecf3;
-    }
-    #canvas3d {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .legend {
-      position: absolute;
-      bottom: 14px;
-      left: 14px;
-      background: rgba(255,255,255,.92);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: .75rem;
-      backdrop-filter: blur(4px);
-      box-shadow: 0 2px 8px rgba(0,0,0,.12);
-      min-width: 160px;
-    }
-    .legend .l-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-    .legend .l-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
-
-    .hint {
-      position: absolute;
-      top: 10px;
-      right: 14px;
-      background: rgba(255,255,255,.85);
-      border-radius: 7px;
-      padding: 7px 12px;
-      font-size: .73rem;
-      color: #555;
-      backdrop-filter: blur(4px);
-    }
-
-    .layer-info {
-      position: absolute;
-      top: 10px;
-      left: 14px;
-      background: rgba(26,60,94,.88);
-      color: #fff;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-size: .8rem;
-      display: none;
-    }
-
-    @media (max-width: 700px) {
-      .layout { flex-direction: column; height: auto; }
-      .panel { width: 100%; border-right: none; border-bottom: 1px solid #dde2e8; }
-      .view3d { height: 60vh; }
+    /* DESKTOP */
+    @media(min-width:760px){
+      html,body{overflow:auto}
+      #view3d{left:360px}
+      #drawer{position:fixed;left:0;top:50px;bottom:0;width:360px;border-radius:0;transform:none!important;box-shadow:2px 0 12px rgba(0,0,0,.12);display:flex;flex-direction:column}
+      #handle{display:none}
+      #drawerContent{flex:1;overflow-y:auto;max-height:none;padding:14px 16px 24px}
+      #statsBar{top:10px;left:10px;right:auto;min-width:260px}
+      #legend{bottom:10px;left:10px}
     }
   </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <h1>Kalkulator Palety</h1>
-    <span>Europaleta 1200 × 800 mm · wizualizacja 3D</span>
-  </div>
+  <h1>Kalkulator Palety 3D</h1>
+  <span class="sub">Europaleta 1200×800 mm</span>
 </header>
 
-<div class="layout">
-
-  <!-- LEFT PANEL -->
-  <div class="panel">
-
-    <div>
-      <div class="section-title">Wybierz karton</div>
-      <div id="pkgList" style="display:flex;flex-direction:column;gap:8px;"></div>
-    </div>
-
-    <div>
-      <div class="section-title">Parametry</div>
-
-      <div class="row2" style="margin-bottom:12px;">
-        <div>
-          <label>Ilość paczek</label>
-          <input type="number" id="qty" value="20" min="1" max="500" />
-        </div>
-        <div>
-          <label>Max. wys. (mm)</label>
-          <input type="number" id="maxH" value="1800" min="100" max="3000" step="50" />
-        </div>
-      </div>
-
-      <div style="margin-bottom:12px;">
-        <label>Orientacja paczki</label>
-        <select id="orient">
-          <option value="auto">Auto (najlepsze upakowanie)</option>
-          <option value="flat">Płasko (H = najm. wymiar)</option>
-          <option value="upright">Pionowo (H = najw. wymiar)</option>
-        </select>
-      </div>
-
-      <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
-    </div>
-
-    <div class="results-box" id="resultsBox" style="display:none;">
-      <div class="section-title" style="margin-bottom:8px;">Wyniki</div>
-      <div class="stat"><span>Paczek na palecie</span><span class="val" id="rCount">—</span></div>
-      <div class="stat"><span>Warstw</span><span class="val" id="rLayers">—</span></div>
-      <div class="stat"><span>Wys. załadunku</span><span class="val" id="rHeight">—</span></div>
-      <div class="stat"><span>Paczek w warstwie</span><span class="val" id="rPerLayer">—</span></div>
-      <div class="stat"><span>Pozostało (nie zmieściło)</span><span class="val" id="rLeft">—</span></div>
-      <div id="warnMsg" class="warn"></div>
-    </div>
-
+<div id="view3d">
+  <canvas id="canvas3d"></canvas>
+  <div class="ov" id="statsBar">
+    <div class="s"><span class="v" id="rTotal">—</span><span class="l">Paczek</span></div>
+    <div class="s"><span class="v" id="rLayers">—</span><span class="l">Warstw</span></div>
+    <div class="s"><span class="v" id="rHeight">—</span><span class="l">Wys. mm</span></div>
+    <div class="s" id="sPerLayer" style="display:none"><span class="v" id="rPerLayer">—</span><span class="l">/ warstwę</span></div>
+    <div class="s"><span class="v" id="rLeft">—</span><span class="l">Zostało</span></div>
   </div>
-
-  <!-- 3D VIEW -->
-  <div class="view3d">
-    <canvas id="canvas3d"></canvas>
-
-    <div class="hint">Mysz: obracaj · Scroll: zoom · PPM: przesuń</div>
-
-    <div class="layer-info" id="layerInfo"></div>
-
-    <div class="legend" id="legend3d" style="display:none;">
-      <div style="font-weight:700;margin-bottom:6px;">Legenda</div>
-    </div>
-  </div>
-
+  <div class="ov" id="warnBar"></div>
+  <div class="ov" id="hintBar">Dotyk: obracaj · 2 palce: zoom</div>
+  <div id="legend"></div>
 </div>
 
-<script type="module">
-// ─── DATA ────────────────────────────────────────────────────────────────────
-const PACKAGES = [
-  { id:'rf4',   name:'Karton do RF4',                dims:[770,380,533], color:'#e74c3c' },
-  { id:'rp',    name:'Karton RP',                    dims:[770,380,650], color:'#e67e22' },
-  { id:'st1',   name:'Karton do stojaka',            dims:[600,195,300], color:'#f1c40f' },
-  { id:'st2',   name:'Karton do stojaka (NOWY)',     dims:[770,195,380], color:'#2ecc71' },
-  { id:'hst',   name:'Karton do H-standów (NOWY)',   dims:[770,250,700], color:'#1abc9c' },
-  { id:'nos',   name:'Karton nosy/sterowniki (NOWY)',dims:[300,300,200], color:'#3498db' },
-  { id:'small', name:'Karton na małe części',        dims:[250,150,100], color:'#9b59b6' },
+<div id="drawer">
+  <div id="handle" onclick="toggleDrawer()">
+    <div class="pip"></div>
+    <span id="handleLabel">Wybierz kartony &amp; oblicz</span>
+    <span class="chev">▲</span>
+  </div>
+
+  <div id="drawerContent">
+
+    <!-- MODE TABS -->
+    <div class="stitle">Tryb</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tabSingle" onclick="setMode('single')">Jeden typ</button>
+      <button class="mode-tab"        id="tabMixed"  onclick="setMode('mixed')">Mieszane</button>
+    </div>
+
+    <!-- PACKAGES -->
+    <div class="stitle">Kartony</div>
+    <div id="pkgList"></div>
+
+    <!-- PARAMS -->
+    <div class="stitle">Parametry</div>
+    <div class="ctrl-row" id="singleQtyRow">
+      <div>
+        <label class="lbl">Ilość paczek</label>
+        <input type="number" id="qty" value="20" min="1" max="999" inputmode="numeric"/>
+      </div>
+      <div>
+        <label class="lbl">Max. wysokość (mm)</label>
+        <input type="number" id="maxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
+      </div>
+    </div>
+    <div class="ctrl-full" id="mixedMaxHRow" style="display:none">
+      <label class="lbl">Max. wysokość palety (mm)</label>
+      <input type="number" id="maxHMixed" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
+    </div>
+    <div class="ctrl-full">
+      <label class="lbl">Orientacja paczki</label>
+      <select id="orient">
+        <option value="auto">Auto (najlepsze upakowanie)</option>
+        <option value="flat">Płasko (H = najmniejszy wym.)</option>
+        <option value="upright">Pionowo (H = największy wym.)</option>
+      </select>
+    </div>
+
+    <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const PKGS = [
+  { id:'rf4',   name:'Karton do RF4',            dims:[770,380,533], color:'#e74c3c' },
+  { id:'rp',    name:'Karton RP',                dims:[770,380,650], color:'#e67e22' },
+  { id:'st1',   name:'Karton stojak',            dims:[600,195,300], color:'#c9a800' },
+  { id:'st2',   name:'Karton stojak (NOWY)',     dims:[770,195,380], color:'#27ae60' },
+  { id:'hst',   name:'Karton H-stand (NOWY)',    dims:[770,250,700], color:'#16a085' },
+  { id:'nos',   name:'Nosy/Sterowniki (NOWY)',   dims:[300,300,200], color:'#2980b9' },
+  { id:'small', name:'Karton małe części',       dims:[250,150,100], color:'#8e44ad' },
 ];
+const PAL = { W:1200, D:800, H:144 };
 
-// Euro pallet
-const PALLET = { W: 1200, D: 800, H: 144 }; // H = pallet board height (mm)
+// ═══════════════════════════════════════════════════════
+// MODE & DRAWER
+// ═══════════════════════════════════════════════════════
+let mode = 'single'; // 'single' | 'mixed'
+let drawerOpen = false;
 
-const COLORS = PACKAGES.reduce((o,p) => { o[p.id]=p.color; return o; }, {});
-
-// ─── BUILD PACKAGE CARDS ──────────────────────────────────────────────────────
-let selectedId = PACKAGES[0].id;
-
-const list = document.getElementById('pkgList');
-PACKAGES.forEach(p => {
-  const [w,d,h] = p.dims;
-  const card = document.createElement('div');
-  card.className = 'pkg-card' + (p.id===selectedId ? ' selected' : '');
-  card.dataset.id = p.id;
-  card.innerHTML = `
-    <div class="pkg-color" style="background:${p.color}"></div>
-    <div class="pkg-name">${p.name}</div>
-    <div class="pkg-dims">${w} × ${d} × ${h} mm</div>`;
-  card.addEventListener('click', () => {
-    document.querySelectorAll('.pkg-card').forEach(c=>c.classList.remove('selected'));
-    card.classList.add('selected');
-    selectedId = p.id;
+function setMode(m) {
+  mode = m;
+  document.getElementById('tabSingle').classList.toggle('active', m==='single');
+  document.getElementById('tabMixed').classList.toggle('active', m==='mixed');
+  document.getElementById('singleQtyRow').style.display  = m==='single' ? '' : 'none';
+  document.getElementById('mixedMaxHRow').style.display  = m==='mixed'  ? '' : 'none';
+  document.getElementById('sPerLayer').style.display     = m==='single' ? '' : 'none';
+  // update qty-inputs visibility
+  document.querySelectorAll('.pkg-qty-wrap').forEach(el => {
+    el.style.display = (m==='mixed' && el.closest('.pkg-item').classList.contains('selected')) ? 'flex' : 'none';
   });
-  list.appendChild(card);
-});
-
-// ─── PACKING ALGORITHM ───────────────────────────────────────────────────────
-// Returns { count, layers, placements:[{x,y,z,w,d,h}], layerH, perLayer, totalH }
-
-function bestFitInLayer(bw, bd, pw, pd) {
-  // Try both orientations and return the one fitting more boxes
-  const fit = (bw, bd, pw, pd) => Math.floor(bw/pw) * Math.floor(bd/pd);
-  const n1 = fit(bw,bd,pw,pd);
-  const n2 = fit(bw,bd,pd,pw); // rotate 90°
-  return n1 >= n2 ? [pw,pd] : [pd,pw];
+  // in single mode: only one selection allowed
+  if (m==='single') enforeSingleSelect();
 }
 
-function packPallet(pkg, qty, maxH, orientMode) {
-  const [ow, od, oh] = pkg.dims; // original dims
+function toggleDrawer() {
+  drawerOpen = !drawerOpen;
+  document.getElementById('drawer').classList.toggle('open', drawerOpen);
+}
+// swipe handle
+let sy0=null;
+document.getElementById('handle').addEventListener('touchstart',e=>{sy0=e.touches[0].clientY;},{passive:true});
+document.getElementById('handle').addEventListener('touchend',e=>{
+  if(sy0===null) return;
+  const dy=sy0-e.changedTouches[0].clientY;
+  if(Math.abs(dy)>20){ drawerOpen=dy>0; document.getElementById('drawer').classList.toggle('open',drawerOpen); }
+  sy0=null;
+},{passive:true});
 
-  // Generate candidate orientations: [footW, footD, layerH]
-  // Sorted by layerH ascending so bigger (heavier) are at bottom
-  let candidates = [];
-  if (orientMode === 'flat') {
-    // smallest dim as height
-    const sorted = [...pkg.dims].sort((a,b)=>a-b);
-    candidates = [[sorted[2], sorted[1], sorted[0]]];
-  } else if (orientMode === 'upright') {
-    const sorted = [...pkg.dims].sort((a,b)=>a-b);
-    candidates = [[sorted[0], sorted[1], sorted[2]]];
-  } else {
-    // Auto: try all 3 unique height choices
-    const d = pkg.dims;
-    const perms = [
-      [d[0],d[1],d[2]],
-      [d[0],d[2],d[1]],
-      [d[1],d[2],d[0]],
-    ];
-    // deduplicate
-    const seen = new Set();
-    perms.forEach(p => {
-      const k = p.join(',');
-      if (!seen.has(k)) { seen.add(k); candidates.push(p); }
-    });
+// ═══════════════════════════════════════════════════════
+// PACKAGE LIST
+// ═══════════════════════════════════════════════════════
+let selectedIds = new Set([PKGS[0].id]);
+
+const pkgList = document.getElementById('pkgList');
+PKGS.forEach(p => {
+  const item = document.createElement('div');
+  item.className = 'pkg-item' + (selectedIds.has(p.id) ? ' selected' : '');
+  item.dataset.id = p.id;
+  item.innerHTML = `
+    <div class="pkg-dot" style="background:${p.color}"></div>
+    <div class="pkg-info">
+      <div class="pkg-name">${p.name}</div>
+      <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div>
+    </div>
+    <div class="pkg-qty-wrap" style="display:none">
+      <label>szt.:</label>
+      <input class="pkg-qty" type="number" value="10" min="1" max="999" inputmode="numeric" data-id="${p.id}" onclick="e=>e.stopPropagation()" />
+    </div>`;
+  item.querySelector('.pkg-qty')?.addEventListener('click', e=>e.stopPropagation());
+
+  item.addEventListener('click', () => {
+    if (mode === 'single') {
+      // deselect all, select this one
+      document.querySelectorAll('.pkg-item').forEach(i=>i.classList.remove('selected'));
+      selectedIds.clear();
+      item.classList.add('selected');
+      selectedIds.add(p.id);
+    } else {
+      if (selectedIds.has(p.id)) {
+        selectedIds.delete(p.id);
+        item.classList.remove('selected');
+        item.querySelector('.pkg-qty-wrap').style.display='none';
+      } else {
+        selectedIds.add(p.id);
+        item.classList.add('selected');
+        item.querySelector('.pkg-qty-wrap').style.display='flex';
+      }
+    }
+  });
+  pkgList.appendChild(item);
+});
+
+function enforeSingleSelect() {
+  const first = [...selectedIds][0];
+  selectedIds.clear();
+  if (first) selectedIds.add(first);
+  document.querySelectorAll('.pkg-item').forEach(item => {
+    const sel = selectedIds.has(item.dataset.id);
+    item.classList.toggle('selected', sel);
+    item.querySelector('.pkg-qty-wrap').style.display='none';
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// PACKING ALGORITHM
+// ═══════════════════════════════════════════════════════
+function bestFit(palW, palD, fw, fd) {
+  const n1 = Math.floor(palW/fw)*Math.floor(palD/fd);
+  const n2 = Math.floor(palW/fd)*Math.floor(palD/fw);
+  return n1>=n2 ? [fw,fd] : [fd,fw];
+}
+
+function orientCandidates(dims, orientMode) {
+  const d=dims;
+  if (orientMode==='flat') {
+    const s=[...d].sort((a,b)=>a-b);
+    return [[s[2],s[1],s[0]]];
+  }
+  if (orientMode==='upright') {
+    const s=[...d].sort((a,b)=>a-b);
+    return [[s[0],s[1],s[2]]];
+  }
+  const seen=new Set(), out=[];
+  [[d[0],d[1],d[2]],[d[0],d[2],d[1]],[d[1],d[2],d[0]]].forEach(p=>{
+    const k=p.join(','); if(!seen.has(k)){seen.add(k);out.push(p);}
+  });
+  return out;
+}
+
+function bestOrientation(dims, orientMode) {
+  // returns {fw,fd,lh,nx,ny,perLayer} with maximum perLayer
+  let best=null;
+  for(const [fw,fd,lh] of orientCandidates(dims,orientMode)){
+    const [bfw,bfd]=bestFit(PAL.W,PAL.D,fw,fd);
+    const nx=Math.floor(PAL.W/bfw), ny=Math.floor(PAL.D/bfd);
+    const perLayer=nx*ny;
+    if(!best||perLayer>best.perLayer) best={fw:bfw,fd:bfd,lh,nx,ny,perLayer};
+  }
+  return best;
+}
+
+// SINGLE-TYPE pack
+function packSingle(pkg, qty, maxH, orientMode) {
+  let best=null;
+  for(const [fw,fd,lh] of orientCandidates(pkg.dims, orientMode)){
+    const [bfw,bfd]=bestFit(PAL.W,PAL.D,fw,fd);
+    const nx=Math.floor(PAL.W/bfw), ny=Math.floor(PAL.D/bfd);
+    const perLayer=nx*ny; if(!perLayer) continue;
+    const maxL=Math.floor((maxH-PAL.H)/lh); if(!maxL) continue;
+    const placed=Math.min(qty,maxL*perLayer);
+    const layers=Math.ceil(placed/perLayer);
+    const totalH=PAL.H+layers*lh;
+    if(!best||placed>best.count||(placed===best.count&&totalH<best.totalH)){
+      const placements=[], groups=[{pkgId:pkg.id,color:pkg.color,layers:[]}];
+      let rem=placed;
+      for(let L=0;L<layers&&rem>0;L++){
+        const yBase=PAL.H+L*lh;
+        groups[0].layers.push({layer:L,y:yBase,h:lh});
+        for(let ix=0;ix<nx&&rem>0;ix++)
+          for(let iy=0;iy<ny&&rem>0;iy++){
+            placements.push({x:ix*bfw,y:yBase,z:iy*bfd,w:bfw,h:lh,d:bfd,pkgId:pkg.id,color:pkg.color});
+            rem--;
+          }
+      }
+      best={count:placed,layers,placements,layerH:lh,perLayer,totalH,groups};
+    }
+  }
+  return best;
+}
+
+// MIXED-TYPE pack
+// Strategy: sort by volume desc (heaviest at bottom), pack each type's layers on top of previous
+function packMixed(entries, maxH, orientMode) {
+  // entries = [{pkg, qty}]
+  // sort by bounding-box volume desc → biggest/heaviest at bottom
+  const sorted=[...entries].sort((a,b)=>{
+    const va=a.pkg.dims.reduce((x,v)=>x*v,1);
+    const vb=b.pkg.dims.reduce((x,v)=>x*v,1);
+    return vb-va;
+  });
+
+  let currentY=PAL.H;
+  const placements=[];
+  const groups=[];
+  let totalLayers=0;
+  const leftover=[];
+
+  for(const {pkg,qty} of sorted){
+    const ori=bestOrientation(pkg.dims,orientMode);
+    if(!ori||!ori.perLayer){ leftover.push({pkg,qty}); continue; }
+    const {fw,fd,lh,nx,ny,perLayer}=ori;
+    const availH=maxH-currentY;
+    const maxL=Math.floor(availH/lh);
+    if(maxL===0){ leftover.push({pkg,qty}); continue; }
+    const placed=Math.min(qty,maxL*perLayer);
+    const layers=Math.ceil(placed/perLayer);
+    const grpLayers=[];
+    let rem=placed;
+    for(let L=0;L<layers&&rem>0;L++){
+      const yBase=currentY+L*lh;
+      grpLayers.push({layer:totalLayers+L,y:yBase,h:lh});
+      for(let ix=0;ix<nx&&rem>0;ix++)
+        for(let iy=0;iy<ny&&rem>0;iy++){
+          placements.push({x:ix*fw,y:yBase,z:iy*fd,w:fw,h:lh,d:fd,pkgId:pkg.id,color:pkg.color});
+          rem--;
+        }
+    }
+    groups.push({pkgId:pkg.id,color:pkg.color,name:pkg.name,placed,qty,layers:grpLayers});
+    totalLayers+=layers;
+    currentY+=layers*lh;
+    if(placed<qty) leftover.push({pkg,qty:qty-placed});
   }
 
-  let bestResult = null;
+  return {
+    count:placements.length,
+    layers:totalLayers,
+    placements,
+    totalH:currentY,
+    groups,
+    leftover
+  };
+}
 
-  for (const [fw, fd, lh] of candidates) {
-    // choose best footprint orientation for pallet
-    const [bfw, bfd] = bestFitInLayer(PALLET.W, PALLET.D, fw, fd);
-    const nx = Math.floor(PALLET.W / bfw);
-    const ny = Math.floor(PALLET.D / bfd);
-    const perLayer = nx * ny;
-    if (perLayer === 0) continue;
+// ═══════════════════════════════════════════════════════
+// CALCULATE
+// ═══════════════════════════════════════════════════════
+let lastRes=null, lastMode=null;
 
-    const maxLayers = Math.floor((maxH - PALLET.H) / lh);
-    if (maxLayers === 0) continue;
+window.calculate=function(){
+  const orientMode=document.getElementById('orient').value;
+  let res, warns=[];
 
-    const maxFit = maxLayers * perLayer;
-    const placed = Math.min(qty, maxFit);
-    const layers = Math.ceil(placed / perLayer);
-    const totalH = PALLET.H + layers * lh;
-
-    if (!bestResult || placed > bestResult.count || (placed===bestResult.count && totalH < bestResult.totalH)) {
-      // Build placements
-      const placements = [];
-      let remaining = placed;
-      for (let L = 0; L < layers && remaining > 0; L++) {
-        const zBase = PALLET.H + L * lh;
-        for (let ix = 0; ix < nx && remaining > 0; ix++) {
-          for (let iy = 0; iy < ny && remaining > 0; iy++) {
-            placements.push({
-              x: ix * bfw,
-              y: zBase,
-              z: iy * bfd,
-              w: bfw,
-              h: lh,
-              d: bfd,
-              layer: L,
-            });
-            remaining--;
-          }
-        }
-      }
-      bestResult = { count: placed, layers, placements, layerH: lh, perLayer, totalH, fw: bfw, fd: bfd };
+  if(mode==='single'){
+    if(!selectedIds.size){alert('Zaznacz karton!');return;}
+    const pkgId=[...selectedIds][0];
+    const pkg=PKGS.find(p=>p.id===pkgId);
+    const qty=parseInt(document.getElementById('qty').value)||1;
+    const maxH=parseInt(document.getElementById('maxH').value)||1800;
+    res=packSingle(pkg,qty,maxH,orientMode);
+    if(!res||res.count===0) warns.push('Paczka nie mieści się w podanej wysokości!');
+    else if(res.count<qty) warns.push(`Tylko ${res.count} z ${qty} paczek zmieściło się.`);
+    document.getElementById('rTotal').textContent=res?res.count:0;
+    document.getElementById('rLayers').textContent=res?res.layers:0;
+    document.getElementById('rHeight').textContent=res?res.totalH:'—';
+    document.getElementById('rPerLayer').textContent=res?res.perLayer:0;
+    document.getElementById('sPerLayer').style.display='';
+    document.getElementById('rLeft').textContent=res?(qty-res.count):qty;
+  } else {
+    if(!selectedIds.size){alert('Zaznacz przynajmniej jeden karton!');return;}
+    const maxH=parseInt(document.getElementById('maxHMixed').value)||1800;
+    const entries=[];
+    let totalReq=0;
+    selectedIds.forEach(id=>{
+      const pkg=PKGS.find(p=>p.id===id);
+      const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
+      const qty=parseInt(qtyEl?.value)||10;
+      entries.push({pkg,qty});
+      totalReq+=qty;
+    });
+    res=packMixed(entries,maxH,orientMode);
+    document.getElementById('rTotal').textContent=res.count;
+    document.getElementById('rLayers').textContent=res.layers;
+    document.getElementById('rHeight').textContent=res.totalH;
+    document.getElementById('sPerLayer').style.display='none';
+    document.getElementById('rLeft').textContent=totalReq-res.count;
+    if(res.leftover?.length){
+      warns.push('Nie zmieściło się: '+res.leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', '));
     }
   }
 
-  return bestResult;
-}
+  const sb=document.getElementById('statsBar');
+  sb.style.display='flex';
+  const wb=document.getElementById('warnBar');
+  if(warns.length){ wb.textContent=warns.join(' | '); wb.style.display='block'; }
+  else wb.style.display='none';
 
-// ─── CALCULATE ───────────────────────────────────────────────────────────────
-let lastResult = null;
-let lastPkg    = null;
-
-window.calculate = function() {
-  const pkg    = PACKAGES.find(p=>p.id===selectedId);
-  const qty    = parseInt(document.getElementById('qty').value)||1;
-  const maxH   = parseInt(document.getElementById('maxH').value)||1800;
-  const orient = document.getElementById('orient').value;
-
-  const res = packPallet(pkg, qty, maxH, orient);
-
-  lastResult = res;
-  lastPkg    = pkg;
-
-  // Show results
-  const box = document.getElementById('resultsBox');
-  box.style.display = '';
-  document.getElementById('rCount').textContent   = res ? res.count : 0;
-  document.getElementById('rLayers').textContent  = res ? res.layers : 0;
-  document.getElementById('rHeight').textContent  = res ? res.totalH + ' mm' : '—';
-  document.getElementById('rPerLayer').textContent= res ? res.perLayer : 0;
-  document.getElementById('rLeft').textContent    = res ? (qty - res.count) : qty;
-
-  const warn = document.getElementById('warnMsg');
-  if (!res || res.count===0) {
-    warn.textContent = 'Paczka nie mieści się w zadanej wysokości!';
-  } else if (res.count < qty) {
-    warn.textContent = `Tylko ${res.count} z ${qty} paczek zmieściło się w ${maxH} mm.`;
-  } else {
-    warn.textContent = '';
-  }
-
-  draw3D(pkg, res);
-  buildLegend(pkg);
+  lastRes=res; lastMode=mode;
+  buildLegend(res,mode);
+  if(window.innerWidth<760&&drawerOpen) toggleDrawer();
+  draw3D(res);
 };
 
-// ─── 3D RENDERER (pure canvas, no libs) ──────────────────────────────────────
-const canvas = document.getElementById('canvas3d');
-const ctx    = canvas.getContext('2d');
+// ═══════════════════════════════════════════════════════
+// 3D ENGINE
+// ═══════════════════════════════════════════════════════
+const canvas=document.getElementById('canvas3d');
+const ctx=canvas.getContext('2d');
+let camTheta=0.52,camPhi=0.45,camDist=3800,panX=0,panY=0;
 
-// Camera state
-let camTheta = 0.55;  // horizontal angle (rad)
-let camPhi   = 0.42;  // vertical angle (rad)
-let camDist  = 4500;
-let panX = 0, panY = 0;
-let dragging = false, lastMX=0, lastMY=0, isRMB=false;
-
-canvas.addEventListener('mousedown', e=>{
-  dragging=true; lastMX=e.clientX; lastMY=e.clientY;
-  isRMB = e.button===2;
+// mouse
+let drag=false,lmx=0,lmy=0,rmb=false;
+canvas.addEventListener('mousedown',e=>{drag=true;lmx=e.clientX;lmy=e.clientY;rmb=e.button===2;});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
+  if(rmb){panX+=dx*1.8;panY+=dy*1.8;}
+  else{camTheta-=dx*.007;camPhi=Math.max(.05,Math.min(1.5,camPhi-dy*.007));}
+  if(lastRes)draw3D(lastRes);
 });
-canvas.addEventListener('contextmenu', e=>e.preventDefault());
-canvas.addEventListener('mousemove', e=>{
-  if(!dragging) return;
-  const dx=e.clientX-lastMX, dy=e.clientY-lastMY;
-  lastMX=e.clientX; lastMY=e.clientY;
-  if(isRMB){ panX+=dx*2; panY+=dy*2; }
-  else { camTheta-=dx*0.007; camPhi=Math.max(0.05,Math.min(1.5,camPhi-dy*0.007)); }
-  if(lastResult) draw3D(lastPkg, lastResult);
-});
-canvas.addEventListener('mouseup',   ()=>dragging=false);
-canvas.addEventListener('mouseleave',()=>dragging=false);
-canvas.addEventListener('wheel', e=>{
-  camDist = Math.max(800, Math.min(12000, camDist + e.deltaY*4));
-  if(lastResult) draw3D(lastPkg, lastResult);
-},{passive:true});
+canvas.addEventListener('mouseup',()=>drag=false);
+canvas.addEventListener('mouseleave',()=>drag=false);
+canvas.addEventListener('wheel',e=>{camDist=Math.max(600,Math.min(10000,camDist+e.deltaY*3.5));if(lastRes)draw3D(lastRes);},{passive:true});
 
 // touch
-let t0=null;
-canvas.addEventListener('touchstart',e=>{ if(e.touches.length===1){ t0={x:e.touches[0].clientX,y:e.touches[0].clientY}; dragging=true; isRMB=false; }});
+let tpts={},pinch0=null;
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  Array.from(e.changedTouches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
+  if(e.touches.length===2){const[a,b]=[e.touches[0],e.touches[1]];pinch0=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);}
+},{passive:false});
 canvas.addEventListener('touchmove',e=>{
-  if(!dragging||!t0) return;
-  const dx=e.touches[0].clientX-t0.x, dy=e.touches[0].clientY-t0.y;
-  t0={x:e.touches[0].clientX,y:e.touches[0].clientY};
-  camTheta-=dx*0.007; camPhi=Math.max(0.05,Math.min(1.5,camPhi-dy*0.007));
-  if(lastResult) draw3D(lastPkg, lastResult);
+  e.preventDefault();
+  if(e.touches.length===2){
+    const[a,b]=[e.touches[0],e.touches[1]];
+    const d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
+    if(pinch0){camDist=Math.max(600,Math.min(10000,camDist*(pinch0/d)));pinch0=d;}
+  } else if(e.touches.length===1){
+    const t=e.touches[0],pr=tpts[t.identifier];
+    if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;camTheta-=dx*.007;camPhi=Math.max(.05,Math.min(1.5,camPhi-dy*.007));}
+    tpts[t.identifier]={x:t.clientX,y:t.clientY};
+  }
+  if(lastRes)draw3D(lastRes);
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  Array.from(e.changedTouches).forEach(t=>delete tpts[t.identifier]);
+  if(e.touches.length<2)pinch0=null;
 },{passive:true});
-canvas.addEventListener('touchend',()=>{ dragging=false; t0=null; });
 
-// ── projection ─────────────────────────────────────────────────────────────
-function project(x, y, z, cx, cy, scale) {
-  // isometric-like perspective using spherical camera
-  const sinT = Math.sin(camTheta), cosT = Math.cos(camTheta);
-  const sinP = Math.sin(camPhi),   cosP = Math.cos(camPhi);
-
-  // rotate around Y axis (theta)
-  const rx = x * cosT - z * sinT;
-  const ry = y;
-  const rz = x * sinT + z * cosT;
-
-  // tilt (phi)
-  const fx = rx;
-  const fy = ry * cosP - rz * sinP;
-  const fz = ry * sinP + rz * cosP;
-
-  // simple perspective
-  const fov = camDist;
-  const pz  = fz + fov;
-  const px  = (fx / pz) * fov * scale + cx + panX;
-  const py  = (-fy / pz) * fov * scale + cy + panY;
-  return [px, py, fz];
+// projection
+function proj(x,y,z,cx,cy,sc){
+  const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
+  const sP=Math.sin(camPhi),cP=Math.cos(camPhi);
+  const rx=x*cT-z*sT,rz=x*sT+z*cT;
+  const fx=rx,fy=y*cP-rz*sP,fz=y*sP+rz*cP;
+  const pz=fz+camDist;
+  return[(fx/pz)*camDist*sc+cx+panX,(-fy/pz)*camDist*sc+cy+panY,fz];
 }
 
-function drawFace(pts3, fillColor, strokeColor) {
-  if(pts3.length<3) return;
-  ctx.beginPath();
-  ctx.moveTo(pts3[0][0], pts3[0][1]);
-  for(let i=1;i<pts3.length;i++) ctx.lineTo(pts3[i][0], pts3[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = fillColor;
-  ctx.fill();
-  ctx.strokeStyle = strokeColor;
-  ctx.lineWidth = 0.8;
-  ctx.stroke();
+function col(hex,f){
+  const c=parseInt(hex.replace('#',''),16);
+  let r=(c>>16)&255,g=(c>>8)&255,b=c&255;
+  if(f>=0){r=Math.min(255,r+(255-r)*f);g=Math.min(255,g+(255-g)*f);b=Math.min(255,b+(255-b)*f);}
+  else{r=Math.max(0,r*(1+f));g=Math.max(0,g*(1+f));b=Math.max(0,b*(1+f));}
+  return`rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
 }
 
-function lighten(hex, pct) {
-  let c = parseInt(hex.slice(1),16);
-  let r=(c>>16)&255, g=(c>>8)&255, b=c&255;
-  r=Math.min(255,Math.round(r+(255-r)*pct));
-  g=Math.min(255,Math.round(g+(255-g)*pct));
-  b=Math.min(255,Math.round(b+(255-b)*pct));
-  return `rgb(${r},${g},${b})`;
-}
-function darken(hex, pct) {
-  let c = parseInt(hex.slice(1),16);
-  let r=(c>>16)&255, g=(c>>8)&255, b=c&255;
-  r=Math.round(r*(1-pct));
-  g=Math.round(g*(1-pct));
-  b=Math.round(b*(1-pct));
-  return `rgb(${r},${g},${b})`;
+function drawFace(verts,fill,stroke){
+  ctx.beginPath();ctx.moveTo(verts[0][0],verts[0][1]);
+  verts.slice(1).forEach(v=>ctx.lineTo(v[0],v[1]));
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=.7;ctx.stroke();
 }
 
-function drawBox(x,y,z,w,h,d,color,scale,cx,cy,alpha=1) {
-  // 8 corners
-  const pts = [
-    [x,   y,   z  ],[x+w, y,   z  ],[x+w, y+h, z  ],[x,   y+h, z  ],
-    [x,   y,   z+d],[x+w, y,   z+d],[x+w, y+h, z+d],[x,   y+h, z+d],
-  ].map(([px,py,pz])=>project(px,py,pz,cx,cy,scale));
-
-  const faceTop    = [pts[3],pts[2],pts[6],pts[7]];
-  const faceLeft   = [pts[0],pts[3],pts[7],pts[4]];
-  const faceRight  = [pts[1],pts[2],pts[6],pts[5]];
-  const faceFront  = [pts[4],pts[5],pts[6],pts[7]];
-  const faceBack   = [pts[0],pts[1],pts[2],pts[3]];
-  const faceBottom = [pts[0],pts[1],pts[5],pts[4]];
-
-  // sort faces by avg depth
-  const avgZ = f => f.reduce((s,p)=>s+p[2],0)/f.length;
-  const faces = [
-    { pts:faceTop,    fill:lighten(color,.35), stroke:'rgba(0,0,0,.25)' },
-    { pts:faceLeft,   fill:lighten(color,.05), stroke:'rgba(0,0,0,.25)' },
-    { pts:faceRight,  fill:darken(color,.15),  stroke:'rgba(0,0,0,.25)' },
-    { pts:faceFront,  fill:lighten(color,.18), stroke:'rgba(0,0,0,.25)' },
-    { pts:faceBack,   fill:darken(color,.25),  stroke:'rgba(0,0,0,.25)' },
-    { pts:faceBottom, fill:darken(color,.35),  stroke:'rgba(0,0,0,.25)' },
-  ].sort((a,b)=>avgZ(b.pts)-avgZ(a.pts));
-
-  if(alpha<1) ctx.globalAlpha = alpha;
-  faces.forEach(f=>drawFace(f.pts,f.fill,f.stroke));
-  if(alpha<1) ctx.globalAlpha = 1;
+function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
+  const p=[
+    [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
+    [x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]
+  ].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
+  const avgZ=f=>f.reduce((s,v)=>s+v[2],0)/f.length;
+  [
+    {v:[p[3],p[2],p[6],p[7]],f:col(color,.38),s:'rgba(0,0,0,.18)'},
+    {v:[p[4],p[5],p[6],p[7]],f:col(color,.16),s:'rgba(0,0,0,.18)'},
+    {v:[p[0],p[3],p[7],p[4]],f:col(color,.06),s:'rgba(0,0,0,.18)'},
+    {v:[p[1],p[2],p[6],p[5]],f:col(color,-.14),s:'rgba(0,0,0,.18)'},
+    {v:[p[0],p[1],p[2],p[3]],f:col(color,-.26),s:'rgba(0,0,0,.18)'},
+    {v:[p[0],p[1],p[5],p[4]],f:col(color,-.38),s:'rgba(0,0,0,.18)'},
+  ].sort((a,b)=>avgZ(b.v)-avgZ(a.v)).forEach(f=>drawFace(f.v,f.f,f.s));
 }
 
-// ── pallet mesh ─────────────────────────────────────────────────────────────
-function drawPallet(scale,cx,cy){
-  const pw=PALLET.W, pd=PALLET.D, ph=PALLET.H;
-  const slat=120, gap=60, slath=22;
-  const beam=100, beamh=70;
-
-  // top slats
-  for(let i=0;i<6;i++){
-    drawBox(i*(slat+gap),ph-slath,0,slat,slath,pd,'#c8a86a',scale,cx,cy);
-  }
-  // bottom boards
-  for(let i=0;i<3;i++){
-    const bz=[0,pd/2-beam/2,pd-beam];
-    drawBox(0,0,bz[i],pw,slath,beam,'#b8965a',scale,cx,cy);
-  }
-  // blocks
-  for(let bi=0;bi<3;bi++){
-    const bx=[0,pw/2-50,pw-100];
-    const bz=[0,pd/2-50,pd-100];
-    drawBox(bx[bi], slath, bz[bi], 100, beamh, 100,'#a07840',scale,cx,cy);
-  }
-  // long beams
-  for(let i=0;i<3;i++){
-    const bz=[0,pd/2-40,pd-80];
-    drawBox(0, slath+beamh, bz[i], pw, slath, 80, '#b8965a',scale,cx,cy);
-  }
+function drawPallet(sc,cx,cy){
+  const {W,D,H}=PAL;
+  for(let i=0;i<6;i++) drawBox(i*200,H-22,0,120,22,D,'#c8a86a',sc,cx,cy);
+  [0,D/2-50,D-100].forEach(bz=>drawBox(0,0,bz,W,20,100,'#b8965a',sc,cx,cy));
+  [0,W/2-50,W-100].forEach(bx=>[0,D/2-50,D-100].forEach(bz=>drawBox(bx,20,bz,100,72,100,'#9a6e38',sc,cx,cy)));
+  [0,D/2-40,D-80].forEach(bz=>drawBox(0,92,bz,W,20,80,'#b8965a',sc,cx,cy));
 }
 
-// ── main draw ────────────────────────────────────────────────────────────────
-function draw3D(pkg, res) {
-  const W = canvas.parentElement.clientWidth;
-  const H = canvas.parentElement.clientHeight;
-  canvas.width  = W;
-  canvas.height = H;
+function draw3D(res){
+  const vw=document.getElementById('view3d');
+  const W=vw.clientWidth,H=vw.clientHeight;
+  const dpr=Math.min(devicePixelRatio,2);
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);
 
-  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#c8d8ea');g.addColorStop(1,'#8faec8');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
 
-  // gradient bg
-  const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'#dce5f0'); grad.addColorStop(1,'#b8c8dc');
-  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+  if(!res)return;
 
-  if(!res) return;
+  const maxDim=Math.max(PAL.W,PAL.D,res.totalH||PAL.H+100);
+  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim;
+  const cx=W/2,cy=H/2+(res.totalH||0)*sc*.08;
 
-  // scale: fit pallet+load in ~70% of canvas width
-  const maxDim = Math.max(PALLET.W, PALLET.D, res.totalH);
-  const scale  = (Math.min(W,H)*0.55) / maxDim;
-  const cx = W/2, cy = H/2 + res.totalH*scale*0.1;
+  // floor shadow
+  const sh=[[0,0,0],[PAL.W,0,0],[PAL.W,0,PAL.D],[0,0,PAL.D]].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
+  ctx.beginPath();sh.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
 
-  // draw floor shadow
-  const shadow = [
-    [0,0,0],[PALLET.W,0,0],[PALLET.W,0,PALLET.D],[0,0,PALLET.D]
-  ].map(([px,py,pz])=>project(px,py,pz,cx,cy,scale));
-  ctx.beginPath();
-  ctx.moveTo(shadow[0][0],shadow[0][1]);
-  shadow.forEach(p=>ctx.lineTo(p[0],p[1]));
-  ctx.closePath();
-  ctx.fillStyle='rgba(0,0,0,.15)';
-  ctx.fill();
+  drawPallet(sc,cx,cy);
 
-  drawPallet(scale,cx,cy);
+  // sort all boxes back→front
+  [...res.placements].sort((a,b)=>
+    proj(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2,cx,cy,sc)[2]-
+    proj(a.x+a.w/2,a.y+a.h/2,a.z+a.d/2,cx,cy,sc)[2]
+  ).forEach(p=>drawBox(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy));
 
-  // sort boxes back-to-front
-  const sorted = [...res.placements].sort((a,b)=>{
-    const [ax,,az]=project(a.x+a.w/2,a.y+a.h/2,a.z+a.d/2,cx,cy,scale);
-    const [bx,,bz]=project(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2,cx,cy,scale);
-    return bz - az;
+  // height line
+  const [lx0,ly0]=proj(PAL.W+90,0,PAL.D/2,cx,cy,sc);
+  const [lx1,ly1]=proj(PAL.W+90,res.totalH,PAL.D/2,cx,cy,sc);
+  ctx.beginPath();ctx.moveTo(lx0,ly0);ctx.lineTo(lx1,ly1);
+  ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
+  [[lx0,ly0],[lx1,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
+  const fs=Math.max(11,Math.min(15,W/28));
+  ctx.fillStyle='#1a3c5e';ctx.font=`bold ${fs}px Segoe UI`;
+  ctx.fillText(res.totalH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
+
+  document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: obracaj · 2 palce: zoom':'Mysz: obracaj · Scroll: zoom · PPM: przesuń';
+}
+
+function buildLegend(res,mode){
+  const leg=document.getElementById('legend');
+  const usedIds=new Set(res.placements.map(p=>p.pkgId));
+  let html='<div style="font-weight:700;margin-bottom:5px;">Legenda</div>';
+  html+=`<div class="lr"><div class="ls" style="background:#c8a86a"></div>Europaleta 1200×800 mm</div>`;
+  PKGS.filter(p=>usedIds.has(p.id)).forEach(p=>{
+    const grp=res.groups?.find(g=>g.pkgId===p.id);
+    const cnt=grp?grp.placed:res.count;
+    html+=`<div class="lr"><div class="ls" style="background:${p.color}"></div>${p.name} ×${cnt}</div>`;
   });
-
-  sorted.forEach((p,i) => {
-    drawBox(p.x,p.y,p.z,p.w,p.h,p.d,pkg.color,scale,cx,cy);
-  });
-
-  // pallet outline (wireframe on top)
-  const corners=[
-    [0,PALLET.H,0],[PALLET.W,PALLET.H,0],[PALLET.W,PALLET.H,PALLET.D],[0,PALLET.H,PALLET.D]
-  ].map(([px,py,pz])=>project(px,py,pz,cx,cy,scale));
-  ctx.beginPath();
-  corners.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
-  ctx.closePath();
-  ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=1; ctx.stroke();
-
-  // height arrow
-  const arrowX = PALLET.W + 80;
-  const [ax0,,] = project(arrowX, 0, PALLET.D/2, cx, cy, scale);
-  const [ay0]   = project(arrowX, 0, PALLET.D/2, cx, cy, scale);
-  const [ax1, ay1] = project(arrowX, res.totalH, PALLET.D/2, cx, cy, scale);
-  ctx.beginPath();
-  ctx.moveTo(ax0, ay0); ctx.lineTo(ax1, ay1);
-  ctx.strokeStyle='#1a3c5e'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle='#1a3c5e';
-  ctx.font='bold 13px Segoe UI';
-  ctx.fillText(res.totalH+' mm', ax1+6, (ay0+ay1)/2+5);
-
-  // layer info overlay
-  const li = document.getElementById('layerInfo');
-  li.style.display='block';
-  li.textContent = `Warstwy: ${res.layers} × ${res.layerH} mm = ${res.layers*res.layerH} mm ładunku`;
-}
-
-function buildLegend(pkg) {
-  const leg = document.getElementById('legend3d');
+  leg.innerHTML=html;
   leg.style.display='block';
-  leg.innerHTML=`<div style="font-weight:700;margin-bottom:6px;">Legenda</div>
-    <div class="l-row"><div class="l-swatch" style="background:#c8a86a"></div> Europaleta 1200×800×144 mm</div>
-    <div class="l-row"><div class="l-swatch" style="background:${pkg.color}"></div> ${pkg.name} (${pkg.dims.join('×')} mm)</div>`;
 }
 
-// initial empty draw
-(function init(){
-  const W=canvas.parentElement.clientWidth||800;
-  const H=canvas.parentElement.clientHeight||600;
-  canvas.width=W; canvas.height=H;
-  const grad=ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'#dce5f0'); grad.addColorStop(1,'#b8c8dc');
-  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#7a8394';
-  ctx.font='16px Segoe UI';
-  ctx.textAlign='center';
-  ctx.fillText('Wybierz karton i kliknij „Oblicz i wizualizuj"', W/2, H/2);
+// INIT
+(function(){
+  const vw=document.getElementById('view3d');
+  const W=vw.clientWidth||window.innerWidth,H=vw.clientHeight||(window.innerHeight-50);
+  canvas.width=W;canvas.height=H;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#c8d8ea');g.addColorStop(1,'#8faec8');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(26,60,94,.7)';
+  const fs=Math.max(13,Math.min(17,W/24));
+  ctx.font=`${fs}px Segoe UI`;ctx.textAlign='center';
+  ctx.fillText('Wybierz karton i naciśnij „Oblicz i wizualizuj"',W/2,H/2);
   ctx.textAlign='start';
 })();
+
+window.addEventListener('resize',()=>{if(lastRes)draw3D(lastRes);});
 </script>
 </body>
 </html>
