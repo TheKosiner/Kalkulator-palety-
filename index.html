@@ -608,6 +608,8 @@ canvas.addEventListener('touchend',e=>{
 
 // projection
 function proj(x,y,z,cx,cy,sc){
+  // Rotate around pallet horizontal centre so the pallet stays centred when orbiting
+  x -= PAL.W/2; z -= PAL.D/2;
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
   const sP=Math.sin(camPhi),cP=Math.cos(camPhi);
   const rx=x*cT-z*sT,rz=x*sT+z*cT;
