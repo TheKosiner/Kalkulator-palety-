@@ -82,6 +82,19 @@
     .pkg-orient{width:76px;padding:4px 3px;border:1.5px solid #dde2e8;border-radius:7px;font-size:.7rem;outline:none;background:#fff}
     .pkg-orient:focus{border-color:var(--blue)}
 
+    /* MANUAL MODE */
+    #manualPanel .pkg-item{cursor:pointer}
+    #manualPanel .pkg-item.selected{border-color:var(--navy);background:#eef3ff}
+    .man-face-btns{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+    .man-face-btn{padding:7px 10px;border:1.5px solid #dde2e8;border-radius:8px;font-size:.72rem;cursor:pointer;background:#f7f9fc;color:#444;text-align:left;width:100%}
+    .man-face-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+    .man-face-btn:active{opacity:.8}
+    .man-action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .btn-man{border:none;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;width:100%}
+    .btn-undo{background:#e8edf4;color:#1a3c5e}
+    .btn-clear{background:#fdecea;color:#c0392b}
+    #manHint{position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(26,60,94,.82);color:#fff;padding:6px 14px;border-radius:20px;font-size:.75rem;font-weight:600;pointer-events:none;white-space:nowrap;display:none}
+
     /* DESKTOP */
     @media(min-width:760px){
       html,body{overflow:auto}
@@ -113,6 +126,7 @@
   <div class="ov" id="warnBar"></div>
   <div class="ov" id="hintBar">Dotyk: obracaj · 2 palce: zoom</div>
   <div id="legend"></div>
+  <div id="manHint">Dotknij palety aby postawić karton</div>
   <div id="camCtrls">
     <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
     <button class="cam-btn" title="Oddal" onclick="camZoomOut()">−</button>
@@ -136,13 +150,34 @@
     <div class="mode-tabs">
       <button class="mode-tab active" id="tabSingle" onclick="setMode('single')">Jeden typ</button>
       <button class="mode-tab"        id="tabMixed"  onclick="setMode('mixed')">Mieszane</button>
+      <button class="mode-tab"        id="tabManual" onclick="setMode('manual')">Ręcznie</button>
     </div>
 
-    <!-- PACKAGES -->
-    <div class="stitle">Kartony</div>
-    <div id="pkgList"></div>
+    <!-- AUTO PACKAGES (single / mixed) -->
+    <div id="autoPanel">
+      <div class="stitle">Kartony</div>
+      <div id="pkgList"></div>
+    </div>
 
-    <!-- PARAMS -->
+    <!-- MANUAL PANEL -->
+    <div id="manualPanel" style="display:none">
+      <div class="stitle">Karton do ułożenia</div>
+      <div id="manPkgList"></div>
+      <div class="stitle">Ściana na dole</div>
+      <div class="man-face-btns" id="manFaceBtns"></div>
+      <div class="stitle">Parametry</div>
+      <div class="ctrl-full">
+        <label class="lbl">Max. wysokość (mm)</label>
+        <input type="number" id="manMaxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
+      </div>
+      <div class="man-action-row">
+        <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
+        <button class="btn-man btn-clear" onclick="manClear()">🗑 Wyczyść</button>
+      </div>
+    </div>
+
+    <!-- PARAMS (auto modes) -->
+    <div id="autoParams">
     <div class="stitle">Parametry</div>
     <div class="ctrl-row" id="singleQtyRow">
       <div>
@@ -172,6 +207,7 @@
     </div>
 
     <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
+    </div><!-- /autoParams -->
   </div>
 </div>
 
@@ -193,13 +229,18 @@ const PAL = { W:1200, D:800, H:144 };
 // ═══════════════════════════════════════════════════════
 // MODE & DRAWER
 // ═══════════════════════════════════════════════════════
-let mode = 'single'; // 'single' | 'mixed'
+let mode = 'single'; // 'single' | 'mixed' | 'manual'
 let drawerOpen = false;
 
 function setMode(m) {
   mode = m;
-  document.getElementById('tabSingle').classList.toggle('active', m==='single');
-  document.getElementById('tabMixed').classList.toggle('active', m==='mixed');
+  ['Single','Mixed','Manual'].forEach(t =>
+    document.getElementById('tab'+t).classList.toggle('active', m===t.toLowerCase()));
+  const isMan = m==='manual';
+  document.getElementById('autoPanel').style.display  = isMan ? 'none' : '';
+  document.getElementById('autoParams').style.display = isMan ? 'none' : '';
+  document.getElementById('manualPanel').style.display = isMan ? '' : 'none';
+  document.getElementById('manHint').style.display = isMan ? 'block' : 'none';
   document.getElementById('singleQtyRow').style.display  = m==='single' ? '' : 'none';
   document.getElementById('mixedMaxHRow').style.display  = m==='mixed'  ? '' : 'none';
   document.getElementById('sPerLayer').style.display     = m==='single' ? '' : 'none';
@@ -211,6 +252,14 @@ function setMode(m) {
     el.style.display = (m==='mixed' && el.closest('.pkg-item').classList.contains('selected')) ? 'flex' : 'none';
   });
   if (m==='single') enforeSingleSelect();
+  if (isMan) {
+    manRefreshFaceBtns();
+    const r = buildManualRes();
+    lastRes=r; lastMode='manual';
+    buildLegend(r,'manual');
+    updateManStats(r);
+    draw3D(r);
+  }
 }
 
 function toggleDrawer() {
@@ -291,6 +340,153 @@ function enforeSingleSelect() {
     item.querySelector('.pkg-qty-wrap').style.display='none';
     item.querySelector('.pkg-orient-wrap').style.display='none';
   });
+}
+
+// ═══════════════════════════════════════════════════════
+// MANUAL MODE
+// ═══════════════════════════════════════════════════════
+let manBoxes  = [];          // placed boxes {x,y,z,w,h,d,pkgId,color}
+let manSelPkg = PKGS[0];     // box type selected for placement
+let manFaceIdx = 0;          // 0‥2  which face is on the floor
+let manFlipped = false;      // 90° footprint rotation
+let manGhostX  = null;       // world-x of ghost preview
+let manGhostZ  = null;
+
+// Build the pkg selector list for manual mode
+const manPkgList = document.getElementById('manPkgList');
+PKGS.forEach(p => {
+  const item = document.createElement('div');
+  item.className = 'pkg-item' + (p===manSelPkg ? ' selected' : '');
+  item.dataset.id = p.id;
+  item.innerHTML = `<div class="pkg-dot" style="background:${p.color}"></div>
+    <div class="pkg-info"><div class="pkg-name">${p.name}</div>
+    <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div></div>`;
+  item.addEventListener('click', () => {
+    manSelPkg = p; manFaceIdx = 0; manFlipped = false;
+    document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
+    item.classList.add('selected');
+    manRefreshFaceBtns();
+  });
+  manPkgList.appendChild(item);
+});
+
+function manRefreshFaceBtns() {
+  const [A,B,C] = manSelPkg.dims;
+  const faces = [[A,B,C],[A,C,B],[B,C,A]];
+  const btns = document.getElementById('manFaceBtns');
+  let html = '';
+  faces.forEach(([a,b,c], i) => {
+    const act = i===manFaceIdx && !manFlipped;
+    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},false)">${a}×${b} na dole (wys. ${c})</button>`;
+  });
+  // rotated versions
+  faces.forEach(([a,b,c], i) => {
+    if (a===b) return; // rotation identical
+    const act = i===manFaceIdx && manFlipped;
+    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},true)">${b}×${a} na dole (wys. ${c}) ↔</button>`;
+  });
+  btns.innerHTML = html;
+}
+window.manSetFace = (i,fl) => { manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns(); if(lastRes)draw3D(lastRes); };
+
+function manGetDims() {
+  const [A,B,C] = manSelPkg.dims;
+  const faces = [[A,B,C],[A,C,B],[B,C,A]];
+  let [fw,fd,lh] = faces[manFaceIdx];
+  if (manFlipped) [fw,fd] = [fd,fw];
+  return {fw,fd,lh};
+}
+
+function manSurfAt(x,z,fw,fd) {
+  let h=PAL.H;
+  for(const b of manBoxes)
+    if(b.x<x+fw&&b.x+b.w>x&&b.z<z+fd&&b.z+b.d>z) h=Math.max(h,b.y+b.h);
+  return h;
+}
+
+function manPlace(wx,wz) {
+  const {fw,fd,lh} = manGetDims();
+  const maxH = parseInt(document.getElementById('manMaxH').value)||1800;
+  const GRID = 50;
+  wx = Math.round(wx/GRID)*GRID;
+  wz = Math.round(wz/GRID)*GRID;
+  wx = Math.max(0, Math.min(PAL.W-fw, wx));
+  wz = Math.max(0, Math.min(PAL.D-fd, wz));
+  const wy = manSurfAt(wx,wz,fw,fd);
+  if (wy+lh > maxH) return;
+  manBoxes.push({x:wx,y:wy,z:wz,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color});
+  const r=buildManualRes(); lastRes=r; lastMode='manual';
+  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
+}
+window.manUndo = () => {
+  manBoxes.pop();
+  const r=buildManualRes(); lastRes=r; lastMode='manual';
+  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
+};
+window.manClear = () => {
+  manBoxes=[]; manGhostX=manGhostZ=null;
+  const r=buildManualRes(); lastRes=r; lastMode='manual';
+  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
+};
+
+function buildManualRes() {
+  const pl=[...manBoxes];
+  const totalH=pl.reduce((m,b)=>Math.max(m,b.y+b.h),PAL.H);
+  const gm=new Map();
+  pl.forEach(b=>{
+    if(!gm.has(b.pkgId)){const p=PKGS.find(q=>q.id===b.pkgId);gm.set(b.pkgId,{color:b.color,name:p?.name||b.pkgId,placed:0,qty:0});}
+    gm.get(b.pkgId).placed++;
+  });
+  return {placements:pl,totalH,count:pl.length,layers:new Set(pl.map(b=>b.y)).size,
+          groups:[...gm.entries()].map(([id,g])=>({pkgId:id,...g,layers:[]})),leftover:[]};
+}
+function updateManStats(r) {
+  document.getElementById('statsBar').style.display='flex';
+  document.getElementById('rTotal').textContent=r.count;
+  document.getElementById('rLayers').textContent=r.layers;
+  document.getElementById('rHeight').textContent=r.totalH;
+  document.getElementById('rLeft').textContent=0;
+  document.getElementById('sPerLayer').style.display='none';
+  document.getElementById('warnBar').style.display='none';
+}
+
+// Inverse perspective projection — screen (sx,sy) → world (x,z) on plane y=y0
+function unprojectY(sx, sy, y0, W, H, sc) {
+  const p   = camDist*sc, cx=W/2, cy=H/2;
+  const dx  = sx - cx - panX;
+  const dy  = -(sy - cy - panY);
+  const Y   = y0 - camTargetY;
+  const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
+  const sP=Math.sin(camPhi),  cP=Math.cos(camPhi);
+  if(Math.abs(sP)<0.01) return null;
+  const denom = 1 + dy*cP/(p*sP);
+  if(Math.abs(denom)<1e-4) return null;
+  const pz  = (Y/sP + camDist) / denom;
+  const fy  = dy*pz/p;
+  const Rz  = (Y*cP - fy)/sP;
+  const Rx  = dx*pz/p;
+  return { x: Rx*cT + Rz*sT + PAL.W/2,
+           z:-Rx*sT + Rz*cT + PAL.D/2 };
+}
+
+function manEventToWorld(e) {
+  const vw=document.getElementById('view3d');
+  const W=vw.clientWidth, H=vw.clientHeight;
+  const totalH=lastRes?.totalH||PAL.H+200;
+  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
+  const rect=canvas.getBoundingClientRect();
+  const cl=e.changedTouches?e.changedTouches[0]:e;
+  const sx=cl.clientX-rect.left, sy=cl.clientY-rect.top;
+  return unprojectY(sx,sy,PAL.H,W,H,sc);
+}
+function manHoverToWorld(e) {
+  const vw=document.getElementById('view3d');
+  const W=vw.clientWidth, H=vw.clientHeight;
+  const totalH=lastRes?.totalH||PAL.H+200;
+  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
+  const rect=canvas.getBoundingClientRect();
+  const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
+  return unprojectY(sx,sy,PAL.H,W,H,sc);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -620,25 +816,43 @@ let camTheta=0.52,camPhi=0.45,camDist=3800,panX=0,panY=0;
 let camTargetY=PAL.H/2; // vertical focal point; updated each draw
 
 // mouse
-let drag=false,lmx=0,lmy=0,rmb=false;
-canvas.addEventListener('mousedown',e=>{drag=true;lmx=e.clientX;lmy=e.clientY;rmb=e.button===2;});
+let drag=false,lmx=0,lmy=0,rmb=false,tapStart=null;
+canvas.addEventListener('mousedown',e=>{
+  drag=true;lmx=e.clientX;lmy=e.clientY;rmb=e.button===2;
+  tapStart={x:e.clientX,y:e.clientY};
+});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('mousemove',e=>{
+  if(mode==='manual' && !drag){
+    const w=manHoverToWorld(e);
+    if(w){const {fw,fd}=manGetDims();const G=50;
+      manGhostX=Math.max(0,Math.min(PAL.W-fw,Math.round(w.x/G)*G));
+      manGhostZ=Math.max(0,Math.min(PAL.D-fd,Math.round(w.z/G)*G));
+    } else { manGhostX=null; }
+    if(lastRes)draw3D(lastRes); return;
+  }
   if(!drag)return;
   const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
   if(rmb){panX+=dx*1.8;panY+=dy*1.8;}
   else{camTheta-=dx*.007;camPhi=Math.max(.05,Math.min(1.5,camPhi-dy*.007));}
   if(lastRes)draw3D(lastRes);
 });
-canvas.addEventListener('mouseup',()=>drag=false);
-canvas.addEventListener('mouseleave',()=>drag=false);
+canvas.addEventListener('mouseup',e=>{
+  if(mode==='manual' && tapStart && !rmb){
+    const moved=Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y);
+    if(moved<6){ const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
+  }
+  drag=false; tapStart=null;
+});
+canvas.addEventListener('mouseleave',()=>{drag=false; if(mode==='manual'){manGhostX=null;if(lastRes)draw3D(lastRes);}});
 canvas.addEventListener('wheel',e=>{camDist=Math.max(600,Math.min(10000,camDist+e.deltaY*3.5));if(lastRes)draw3D(lastRes);},{passive:true});
 
 // touch
-let tpts={},pinch0=null;
+let tpts={},pinch0=null,tTapStart=null;
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();
   Array.from(e.changedTouches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
+  if(e.touches.length===1) tTapStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
   if(e.touches.length===2){const[a,b]=[e.touches[0],e.touches[1]];pinch0=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);}
 },{passive:false});
 canvas.addEventListener('touchmove',e=>{
@@ -649,14 +863,24 @@ canvas.addEventListener('touchmove',e=>{
     if(pinch0){camDist=Math.max(600,Math.min(10000,camDist*(pinch0/d)));pinch0=d;}
   } else if(e.touches.length===1){
     const t=e.touches[0],pr=tpts[t.identifier];
-    if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;camTheta-=dx*.007;camPhi=Math.max(.05,Math.min(1.5,camPhi-dy*.007));}
+    if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;
+      camTheta-=dx*.007;camPhi=Math.max(.05,Math.min(1.5,camPhi-dy*.007));
+    }
     tpts[t.identifier]={x:t.clientX,y:t.clientY};
   }
   if(lastRes)draw3D(lastRes);
 },{passive:false});
 canvas.addEventListener('touchend',e=>{
+  if(mode==='manual' && e.touches.length===0 && tTapStart){
+    const t=e.changedTouches[0];
+    const moved=Math.hypot(t.clientX-tTapStart.x,t.clientY-tTapStart.y);
+    if(moved<12){ const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
+  } else if(mode!=='manual') {
+    // allow rotate for non-manual mode from touchmove above
+  }
   Array.from(e.changedTouches).forEach(t=>delete tpts[t.identifier]);
   if(e.touches.length<2)pinch0=null;
+  if(e.touches.length===0)tTapStart=null;
 },{passive:true});
 
 // projection — orbit centre is the geometric centre of the scene in all 3 axes
@@ -742,6 +966,15 @@ function draw3D(res){
     proj(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2,cx,cy,sc)[2]-
     proj(a.x+a.w/2,a.y+a.h/2,a.z+a.d/2,cx,cy,sc)[2]
   ).forEach(p=>drawBox(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy));
+
+  // ghost box (manual mode hover preview)
+  if(mode==='manual' && manGhostX!==null){
+    const {fw,fd,lh}=manGetDims();
+    const gy=manSurfAt(manGhostX,manGhostZ,fw,fd);
+    ctx.globalAlpha=0.38;
+    drawBox(manGhostX,gy,manGhostZ,fw,lh,fd,manSelPkg.color,sc,cx,cy);
+    ctx.globalAlpha=1;
+  }
 
   // height line
   const [lx0,ly0]=proj(PAL.W+90,0,PAL.D/2,cx,cy,sc);
