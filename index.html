@@ -448,12 +448,11 @@ function faceDownCandidates(dims) {
   ];
 }
 
+// Pack in the exact order given – caller is responsible for ordering.
 function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   _placed = [];
   const m2 = margin * 2;
-  const types = entries
-    .map(({pkg, qty}) => ({ pkg, qty, vol: pkg.dims.reduce((a,b)=>a*b,1) }))
-    .sort((a,b) => b.vol - a.vol);
+  const types = entries.map(({pkg, qty}) => ({ pkg, qty }));
 
   const placements = [];
   const groupMap   = new Map();
@@ -516,6 +515,54 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   };
 }
 
+// Generate all permutations of an array.
+function _perms(arr) {
+  if (arr.length <= 1) return [arr];
+  const out = [];
+  arr.forEach((item, i) => {
+    const rest = arr.filter((_,j) => j !== i);
+    _perms(rest).forEach(p => out.push([item, ...p]));
+  });
+  return out;
+}
+
+// Run packMixed with many different type orderings and return the best result
+// (most boxes placed; tie-break: lowest total height).
+function packMixedOptimal(entries, maxH, pkgOrientMap, margin) {
+  const aug = entries.map(e => ({
+    ...e,
+    vol:      e.pkg.dims.reduce((a,b)=>a*b,1),
+    tallest:  Math.max(...e.pkg.dims),
+    shortest: Math.min(...e.pkg.dims),
+    foot:     e.pkg.dims[0]*e.pkg.dims[1],
+  }));
+
+  let orderings;
+  if (aug.length <= 4) {
+    orderings = _perms(aug); // ≤4 types → try all N! orders (max 24)
+  } else {
+    const s = (fn) => [...aug].sort(fn);
+    orderings = [
+      s((a,b) => b.vol - a.vol),
+      s((a,b) => a.vol - b.vol),
+      s((a,b) => b.tallest - a.tallest),
+      s((a,b) => a.tallest - b.tallest),
+      s((a,b) => b.foot - a.foot),
+      s((a,b) => a.foot - b.foot),
+      s((a,b) => b.shortest - a.shortest),
+      s((a,b) => a.shortest - b.shortest),
+    ];
+  }
+
+  let best = null;
+  for (const order of orderings) {
+    const res = packMixed(order.map(({pkg, qty}) => ({pkg, qty})), maxH, pkgOrientMap, margin);
+    if (!best || res.count > best.count || (res.count === best.count && res.totalH < best.totalH))
+      best = res;
+  }
+  return best;
+}
+
 // ═══════════════════════════════════════════════════════
 // CALCULATE
 // ═══════════════════════════════════════════════════════
@@ -556,7 +603,7 @@ window.calculate=function(){
       entries.push({pkg,qty});
       totalReq+=qty;
     });
-    res=packMixed(entries,maxH,pkgOrientMap,margin);
+    res=packMixedOptimal(entries,maxH,pkgOrientMap,margin);
     document.getElementById('rTotal').textContent=res.count;
     document.getElementById('rLayers').textContent=res.layers;
     document.getElementById('rHeight').textContent=res.totalH;
