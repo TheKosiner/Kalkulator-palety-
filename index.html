@@ -410,15 +410,16 @@ function _isFlat(x, z, fw, fd, reqH) {
   return true;
 }
 
-// Find the lowest flat position for a box fw×fd×lh within maxH
-// Candidate positions are at x=0/z=0 and at every edge of placed boxes.
-// Prefers: lowest y, then smallest x, then smallest z (back-left-bottom packing).
+// Find the lowest flat position for a box fw×fd×lh within maxH.
+// Primary sort: lowest y (fill bottom first).
+// Secondary sort: box centre closest to pallet centre (avoid edge towers).
 function _findPos(fw, fd, lh, maxH) {
   const xs = new Set([0]), zs = new Set([0]);
   for (const b of _placed) {
     xs.add(b.x); xs.add(b.x+b.w);
     zs.add(b.z); zs.add(b.z+b.d);
   }
+  const pcx = PAL.W/2, pcz = PAL.D/2;
   let best = null;
   for (const x of xs) {
     if (x + fw > PAL.W) continue;
@@ -427,8 +428,9 @@ function _findPos(fw, fd, lh, maxH) {
       const y = _maxSurf(x, z, fw, fd);
       if (y + lh > maxH) continue;
       if (!_isFlat(x, z, fw, fd, y)) continue;
-      if (!best || y < best.y || (y===best.y && x < best.x) || (y===best.y && x===best.x && z < best.z))
-        best = {x, y, z};
+      const dc = Math.hypot(x + fw/2 - pcx, z + fd/2 - pcz);
+      if (!best || y < best.y || (y === best.y && dc < best.dc))
+        best = {x, y, z, dc};
     }
   }
   return best;
@@ -515,49 +517,30 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   };
 }
 
-// Generate all permutations of an array.
-function _perms(arr) {
-  if (arr.length <= 1) return [arr];
-  const out = [];
-  arr.forEach((item, i) => {
-    const rest = arr.filter((_,j) => j !== i);
-    _perms(rest).forEach(p => out.push([item, ...p]));
-  });
-  return out;
-}
-
-// Run packMixed with many different type orderings and return the best result
-// (most boxes placed; tie-break: lowest total height).
+// Run packMixed with several large-first orderings and return the best result.
+// All orderings put larger/heavier boxes earlier so they land on the bottom.
+// "Best" = most boxes placed; tie-break: lowest total height.
 function packMixedOptimal(entries, maxH, pkgOrientMap, margin) {
   const aug = entries.map(e => ({
     ...e,
-    vol:      e.pkg.dims.reduce((a,b)=>a*b,1),
-    tallest:  Math.max(...e.pkg.dims),
-    shortest: Math.min(...e.pkg.dims),
-    foot:     e.pkg.dims[0]*e.pkg.dims[1],
+    vol:  e.pkg.dims.reduce((a,b)=>a*b,1),
+    tall: Math.max(...e.pkg.dims),
+    foot: e.pkg.dims[0]*e.pkg.dims[1],
+    thick:Math.min(...e.pkg.dims),
   }));
-
-  let orderings;
-  if (aug.length <= 4) {
-    orderings = _perms(aug); // ≤4 types → try all N! orders (max 24)
-  } else {
-    const s = (fn) => [...aug].sort(fn);
-    orderings = [
-      s((a,b) => b.vol - a.vol),
-      s((a,b) => a.vol - b.vol),
-      s((a,b) => b.tallest - a.tallest),
-      s((a,b) => a.tallest - b.tallest),
-      s((a,b) => b.foot - a.foot),
-      s((a,b) => a.foot - b.foot),
-      s((a,b) => b.shortest - a.shortest),
-      s((a,b) => a.shortest - b.shortest),
-    ];
-  }
-
+  const s = fn => [...aug].sort(fn);
+  const orderings = [
+    s((a,b) => b.vol  - a.vol),             // biggest volume first
+    s((a,b) => b.tall - a.tall),            // tallest first
+    s((a,b) => b.foot - a.foot),            // biggest footprint first
+    s((a,b) => b.thick- a.thick),           // thickest (widest min-side) first
+    s((a,b) => b.vol*b.qty - a.vol*a.qty),  // most total volume first
+    s((a,b) => b.qty  - a.qty),             // most pieces first
+  ];
   let best = null;
   for (const order of orderings) {
-    const res = packMixed(order.map(({pkg, qty}) => ({pkg, qty})), maxH, pkgOrientMap, margin);
-    if (!best || res.count > best.count || (res.count === best.count && res.totalH < best.totalH))
+    const res = packMixed(order.map(({pkg,qty})=>({pkg,qty})), maxH, pkgOrientMap, margin);
+    if (!best || res.count > best.count || (res.count===best.count && res.totalH < best.totalH))
       best = res;
   }
   return best;
