@@ -440,9 +440,11 @@ function packMixed(entries, maxH, orientMode) {
     if (placedCount < qty) leftover.push({pkg, qty: qty-placedCount});
   }
 
+  const totalH = placements.reduce((m,p) => Math.max(m, p.y+p.h), PAL.H);
+
   return {
     count: placements.length,
-    layers: new Set(placements.map(p=>p.y)).size, // distinct Y levels ≈ layers
+    layers: new Set(placements.map(p=>p.y)).size,
     placements,
     totalH,
     groups: [...groupMap.entries()].map(([pkgId,g]) => ({pkgId,...g, layers:[]})),
