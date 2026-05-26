@@ -327,107 +327,125 @@ function packSingle(pkg, qty, maxH, orientMode) {
   return best;
 }
 
-// MIXED-TYPE pack — no-levitation, minimum height
+// MIXED-TYPE pack — 3D heightmap bin-packing
 //
-// Rule: a box may only rest on another box (or the pallet surface) directly
-// below it. This means every layer except the topmost must be 100% filled.
-// Partial layers are only allowed as the very last layer of the entire pallet.
-//
-// Algorithm:
-//   Pass 1 – pack COMPLETE layers for each type (floor, not ceil).
-//             Sort by volume desc so heaviest blocks go to the bottom.
-//   Pass 2 – one optional partial top layer from the type with the most
-//             remaining boxes (maximises total boxes placed).
-//   All other remainders → leftover list.
-function packMixed(entries, maxH, orientMode) {
-  // Prepare orientations
-  const types = entries.map(({pkg, qty}) => {
-    const ori = bestOrientation(pkg.dims, orientMode);
-    if (!ori || !ori.perLayer) return null;
-    const vol = pkg.dims.reduce((a,b)=>a*b, 1);
-    return { pkg, qty, ori, vol, rem: qty };
-  }).filter(Boolean);
+// Uses a surface height map so boxes can sit NEXT TO each other (not just
+// stacked in uniform layers). No-levitation guaranteed: a box is only placed
+// where its entire footprint has a flat, uniformly supported surface below it.
+// Sorts by volume desc so the heaviest/largest types go to the bottom first.
 
-  if (!types.length) return { count:0, layers:0, placements:[], totalH:PAL.H, groups:[], leftover:[] };
+let _placed = []; // working set: {x,y,z,w,h,d}
 
-  // Heaviest (largest volume) at the bottom
-  types.sort((a,b) => b.vol - a.vol);
+// Maximum surface height under footprint (x..x+fw, z..z+fd)
+function _maxSurf(x, z, fw, fd) {
+  let h = PAL.H;
+  for (const b of _placed)
+    if (b.x < x+fw && b.x+b.w > x && b.z < z+fd && b.z+b.d > z)
+      h = Math.max(h, b.y + b.h);
+  return h;
+}
 
-  let currentY = PAL.H;
-  const placements = [];
-  const groupMap  = new Map(); // pkgId → {color,name,placed,qty,layers:[]}
-  let totalLayers = 0;
-  const leftover  = [];
-
-  // ── Pass 1: complete layers only ──────────────────────────────────────────
-  for (const t of types) {
-    const {fw,fd,lh,nx,ny,perLayer} = t.ori;
-    const availH    = maxH - currentY;
-    const maxL      = Math.floor(availH / lh);
-    const completeL = Math.min(Math.floor(t.qty / perLayer), maxL);
-    const placed    = completeL * perLayer;
-    t.rem = t.qty - placed;                   // boxes remaining after complete layers
-
-    if (completeL === 0) continue;            // nothing to place in pass 1
-
-    if (!groupMap.has(t.pkg.id))
-      groupMap.set(t.pkg.id, {color:t.pkg.color, name:t.pkg.name, placed:0, qty:t.qty, layers:[]});
-    const grp = groupMap.get(t.pkg.id);
-
-    let rem = placed;
-    for (let L = 0; L < completeL; L++) {
-      const yBase = currentY + L * lh;
-      grp.layers.push({layer: totalLayers + L, y: yBase, h: lh});
-      for (let ix = 0; ix < nx && rem > 0; ix++)
-        for (let iy = 0; iy < ny && rem > 0; iy++) {
-          placements.push({x:ix*fw, y:yBase, z:iy*fd, w:fw, h:lh, d:fd, pkgId:t.pkg.id, color:t.pkg.color});
-          rem--;
-        }
+// True iff every sub-rectangle under the footprint has surface height === reqH
+// (i.e., the footprint is fully supported and flat at reqH – no floating)
+function _isFlat(x, z, fw, fd, reqH) {
+  if (x + fw > PAL.W || z + fd > PAL.D) return false;
+  // Build breakpoints from overlapping box edges to avoid sampling inside a box
+  const xs = new Set([x, x+fw]);
+  const zs = new Set([z, z+fd]);
+  for (const b of _placed) {
+    if (b.x < x+fw && b.x+b.w > x && b.z < z+fd && b.z+b.d > z) {
+      [b.x, b.x+b.w].forEach(v => { if (v > x && v < x+fw) xs.add(v); });
+      [b.z, b.z+b.d].forEach(v => { if (v > z && v < z+fd) zs.add(v); });
     }
-    grp.placed  += placed;
-    totalLayers += completeL;
-    currentY    += completeL * lh;
   }
+  const sX = [...xs].sort((a,b)=>a-b);
+  const sZ = [...zs].sort((a,b)=>a-b);
+  for (let i = 0; i < sX.length-1; i++)
+    for (let j = 0; j < sZ.length-1; j++) {
+      // Check midpoint of each sub-rectangle
+      let ph = PAL.H;
+      const px = (sX[i]+sX[i+1])/2, pz = (sZ[j]+sZ[j+1])/2;
+      for (const b of _placed)
+        if (px >= b.x && px < b.x+b.w && pz >= b.z && pz < b.z+b.d)
+          ph = Math.max(ph, b.y+b.h);
+      if (ph !== reqH) return false;
+    }
+  return true;
+}
 
-  // ── Pass 2: one partial top layer ─────────────────────────────────────────
-  // Pick the type with the most remaining boxes (or smallest lh on tie) that
-  // still fits in the available height.
-  const candidates = types
-    .filter(t => t.rem > 0)
-    .filter(t => (maxH - currentY) >= t.ori.lh)
-    .sort((a,b) => b.rem - a.rem || a.ori.lh - b.ori.lh);
+// Find the lowest flat position for a box fw×fd×lh within maxH
+// Candidate positions are at x=0/z=0 and at every edge of placed boxes.
+// Prefers: lowest y, then smallest x, then smallest z (back-left-bottom packing).
+function _findPos(fw, fd, lh, maxH) {
+  const xs = new Set([0]), zs = new Set([0]);
+  for (const b of _placed) {
+    xs.add(b.x); xs.add(b.x+b.w);
+    zs.add(b.z); zs.add(b.z+b.d);
+  }
+  let best = null;
+  for (const x of xs) {
+    if (x + fw > PAL.W) continue;
+    for (const z of zs) {
+      if (z + fd > PAL.D) continue;
+      const y = _maxSurf(x, z, fw, fd);
+      if (y + lh > maxH) continue;
+      if (!_isFlat(x, z, fw, fd, y)) continue;
+      if (!best || y < best.y || (y===best.y && x < best.x) || (y===best.y && x===best.x && z < best.z))
+        best = {x, y, z};
+    }
+  }
+  return best;
+}
 
-  if (candidates.length > 0) {
-    const t = candidates[0];
-    const {fw,fd,lh,nx,ny} = t.ori;
-    const yBase = currentY;
+function packMixed(entries, maxH, orientMode) {
+  _placed = [];
+  const types = entries
+    .map(({pkg, qty}) => ({ pkg, qty, vol: pkg.dims.reduce((a,b)=>a*b,1) }))
+    .sort((a,b) => b.vol - a.vol); // heaviest first → bottom
 
-    if (!groupMap.has(t.pkg.id))
-      groupMap.set(t.pkg.id, {color:t.pkg.color, name:t.pkg.name, placed:0, qty:t.qty, layers:[]});
-    const grp = groupMap.get(t.pkg.id);
-    grp.layers.push({layer: totalLayers, y: yBase, h: lh});
+  const placements = [];
+  const groupMap   = new Map();
+  const leftover   = [];
 
-    let rem = t.rem;
-    for (let ix = 0; ix < nx && rem > 0; ix++)
-      for (let iy = 0; iy < ny && rem > 0; iy++) {
-        placements.push({x:ix*fw, y:yBase, z:iy*fd, w:fw, h:lh, d:fd, pkgId:t.pkg.id, color:t.pkg.color});
-        rem--;
+  for (const {pkg, qty} of types) {
+    // Generate all (fw, fd, lh) + 90° rotation in footprint plane
+    const cands = [];
+    for (const [fw,fd,lh] of orientCandidates(pkg.dims, orientMode)) {
+      cands.push([fw,fd,lh]);
+      if (fw !== fd) cands.push([fd,fw,lh]); // rotated 90° on pallet
+    }
+
+    let placedCount = 0;
+    for (let q = 0; q < qty; q++) {
+      // Try every orientation, pick the one with lowest y (= best support)
+      let bestPos = null, bestLh, bestFw, bestFd;
+      for (const [fw,fd,lh] of cands) {
+        const pos = _findPos(fw, fd, lh, maxH);
+        if (!pos) continue;
+        if (!bestPos || pos.y < bestPos.y
+            || (pos.y===bestPos.y && lh < bestLh)) { // tie-break: shorter box
+          bestPos=pos; bestLh=lh; bestFw=fw; bestFd=fd;
+        }
       }
-    grp.placed  += t.rem;
-    totalLayers += 1;
-    currentY    += lh;
-    t.rem = 0;
-  }
+      if (!bestPos) continue; // no valid position for this box
 
-  // Collect all leftover
-  types.filter(t => t.rem > 0).forEach(t => leftover.push({pkg:t.pkg, qty:t.rem}));
+      const box = {x:bestPos.x, y:bestPos.y, z:bestPos.z, w:bestFw, h:bestLh, d:bestFd};
+      _placed.push(box);
+      placements.push({...box, pkgId:pkg.id, color:pkg.color});
+      if (!groupMap.has(pkg.id))
+        groupMap.set(pkg.id, {color:pkg.color, name:pkg.name, placed:0, qty});
+      groupMap.get(pkg.id).placed++;
+      placedCount++;
+    }
+    if (placedCount < qty) leftover.push({pkg, qty: qty-placedCount});
+  }
 
   return {
     count: placements.length,
-    layers: totalLayers,
+    layers: new Set(placements.map(p=>p.y)).size, // distinct Y levels ≈ layers
     placements,
-    totalH: currentY,
-    groups: [...groupMap.entries()].map(([pkgId,g]) => ({pkgId,...g})),
+    totalH,
+    groups: [...groupMap.entries()].map(([pkgId,g]) => ({pkgId,...g, layers:[]})),
     leftover,
   };
 }
