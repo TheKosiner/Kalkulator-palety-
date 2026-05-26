@@ -477,13 +477,14 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
 
     let placedCount = 0;
     for (let q = 0; q < qty; q++) {
-      let bestPos = null, bestLh, bestFw, bestFd, bestLh0, bestFw0, bestFd0;
+      let bestPos = null, bestLh, bestFw, bestFd, bestLh0, bestFw0, bestFd0, bestTop = Infinity;
       for (const [fw,fd,lh,fw0,fd0,lh0] of cands) {
         const pos = _findPos(fw, fd, lh, maxH);
         if (!pos) continue;
-        if (!bestPos || pos.y < bestPos.y || (pos.y===bestPos.y && lh < bestLh)) {
+        const top = pos.y + lh; // top of the placed box — minimise this
+        if (top < bestTop || (top === bestTop && lh < bestLh)) {
           bestPos=pos; bestLh=lh; bestFw=fw; bestFd=fd;
-          bestLh0=lh0; bestFw0=fw0; bestFd0=fd0;
+          bestLh0=lh0; bestFw0=fw0; bestFd0=fd0; bestTop=top;
         }
       }
       if (!bestPos) continue;
@@ -581,7 +582,8 @@ window.calculate=function(){
       const pkg=PKGS.find(p=>p.id===id);
       const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
       const orientEl=document.querySelector(`.pkg-orient[data-id="${id}"]`);
-      const qty=parseInt(qtyEl?.value)||10;
+      const qty=parseInt(qtyEl?.value)||0;
+      if(qty<=0) return; // skip types with 0 quantity
       pkgOrientMap.set(id, orientEl?.value||'auto');
       entries.push({pkg,qty});
       totalReq+=qty;
