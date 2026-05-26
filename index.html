@@ -286,13 +286,14 @@ function orientCandidates(dims, orientMode) {
 }
 
 function bestOrientation(dims, orientMode) {
-  // returns {fw,fd,lh,nx,ny,perLayer} with maximum perLayer
+  // Optimise for perLayer/lh (boxes per mm of height) → minimum stack height
   let best=null;
   for(const [fw,fd,lh] of orientCandidates(dims,orientMode)){
     const [bfw,bfd]=bestFit(PAL.W,PAL.D,fw,fd);
     const nx=Math.floor(PAL.W/bfw), ny=Math.floor(PAL.D/bfd);
-    const perLayer=nx*ny;
-    if(!best||perLayer>best.perLayer) best={fw:bfw,fd:bfd,lh,nx,ny,perLayer};
+    const perLayer=nx*ny; if(!perLayer) continue;
+    const density=perLayer/lh;
+    if(!best||density>best.density) best={fw:bfw,fd:bfd,lh,nx,ny,perLayer,density};
   }
   return best;
 }
@@ -326,56 +327,108 @@ function packSingle(pkg, qty, maxH, orientMode) {
   return best;
 }
 
-// MIXED-TYPE pack
-// Strategy: sort by volume desc (heaviest at bottom), pack each type's layers on top of previous
+// MIXED-TYPE pack — no-levitation, minimum height
+//
+// Rule: a box may only rest on another box (or the pallet surface) directly
+// below it. This means every layer except the topmost must be 100% filled.
+// Partial layers are only allowed as the very last layer of the entire pallet.
+//
+// Algorithm:
+//   Pass 1 – pack COMPLETE layers for each type (floor, not ceil).
+//             Sort by volume desc so heaviest blocks go to the bottom.
+//   Pass 2 – one optional partial top layer from the type with the most
+//             remaining boxes (maximises total boxes placed).
+//   All other remainders → leftover list.
 function packMixed(entries, maxH, orientMode) {
-  // entries = [{pkg, qty}]
-  // sort by bounding-box volume desc → biggest/heaviest at bottom
-  const sorted=[...entries].sort((a,b)=>{
-    const va=a.pkg.dims.reduce((x,v)=>x*v,1);
-    const vb=b.pkg.dims.reduce((x,v)=>x*v,1);
-    return vb-va;
-  });
+  // Prepare orientations
+  const types = entries.map(({pkg, qty}) => {
+    const ori = bestOrientation(pkg.dims, orientMode);
+    if (!ori || !ori.perLayer) return null;
+    const vol = pkg.dims.reduce((a,b)=>a*b, 1);
+    return { pkg, qty, ori, vol, rem: qty };
+  }).filter(Boolean);
 
-  let currentY=PAL.H;
-  const placements=[];
-  const groups=[];
-  let totalLayers=0;
-  const leftover=[];
+  if (!types.length) return { count:0, layers:0, placements:[], totalH:PAL.H, groups:[], leftover:[] };
 
-  for(const {pkg,qty} of sorted){
-    const ori=bestOrientation(pkg.dims,orientMode);
-    if(!ori||!ori.perLayer){ leftover.push({pkg,qty}); continue; }
-    const {fw,fd,lh,nx,ny,perLayer}=ori;
-    const availH=maxH-currentY;
-    const maxL=Math.floor(availH/lh);
-    if(maxL===0){ leftover.push({pkg,qty}); continue; }
-    const placed=Math.min(qty,maxL*perLayer);
-    const layers=Math.ceil(placed/perLayer);
-    const grpLayers=[];
-    let rem=placed;
-    for(let L=0;L<layers&&rem>0;L++){
-      const yBase=currentY+L*lh;
-      grpLayers.push({layer:totalLayers+L,y:yBase,h:lh});
-      for(let ix=0;ix<nx&&rem>0;ix++)
-        for(let iy=0;iy<ny&&rem>0;iy++){
-          placements.push({x:ix*fw,y:yBase,z:iy*fd,w:fw,h:lh,d:fd,pkgId:pkg.id,color:pkg.color});
+  // Heaviest (largest volume) at the bottom
+  types.sort((a,b) => b.vol - a.vol);
+
+  let currentY = PAL.H;
+  const placements = [];
+  const groupMap  = new Map(); // pkgId → {color,name,placed,qty,layers:[]}
+  let totalLayers = 0;
+  const leftover  = [];
+
+  // ── Pass 1: complete layers only ──────────────────────────────────────────
+  for (const t of types) {
+    const {fw,fd,lh,nx,ny,perLayer} = t.ori;
+    const availH    = maxH - currentY;
+    const maxL      = Math.floor(availH / lh);
+    const completeL = Math.min(Math.floor(t.qty / perLayer), maxL);
+    const placed    = completeL * perLayer;
+    t.rem = t.qty - placed;                   // boxes remaining after complete layers
+
+    if (completeL === 0) continue;            // nothing to place in pass 1
+
+    if (!groupMap.has(t.pkg.id))
+      groupMap.set(t.pkg.id, {color:t.pkg.color, name:t.pkg.name, placed:0, qty:t.qty, layers:[]});
+    const grp = groupMap.get(t.pkg.id);
+
+    let rem = placed;
+    for (let L = 0; L < completeL; L++) {
+      const yBase = currentY + L * lh;
+      grp.layers.push({layer: totalLayers + L, y: yBase, h: lh});
+      for (let ix = 0; ix < nx && rem > 0; ix++)
+        for (let iy = 0; iy < ny && rem > 0; iy++) {
+          placements.push({x:ix*fw, y:yBase, z:iy*fd, w:fw, h:lh, d:fd, pkgId:t.pkg.id, color:t.pkg.color});
           rem--;
         }
     }
-    groups.push({pkgId:pkg.id,color:pkg.color,name:pkg.name,placed,qty,layers:grpLayers});
-    totalLayers+=layers;
-    currentY+=layers*lh;
-    if(placed<qty) leftover.push({pkg,qty:qty-placed});
+    grp.placed  += placed;
+    totalLayers += completeL;
+    currentY    += completeL * lh;
   }
 
+  // ── Pass 2: one partial top layer ─────────────────────────────────────────
+  // Pick the type with the most remaining boxes (or smallest lh on tie) that
+  // still fits in the available height.
+  const candidates = types
+    .filter(t => t.rem > 0)
+    .filter(t => (maxH - currentY) >= t.ori.lh)
+    .sort((a,b) => b.rem - a.rem || a.ori.lh - b.ori.lh);
+
+  if (candidates.length > 0) {
+    const t = candidates[0];
+    const {fw,fd,lh,nx,ny} = t.ori;
+    const yBase = currentY;
+
+    if (!groupMap.has(t.pkg.id))
+      groupMap.set(t.pkg.id, {color:t.pkg.color, name:t.pkg.name, placed:0, qty:t.qty, layers:[]});
+    const grp = groupMap.get(t.pkg.id);
+    grp.layers.push({layer: totalLayers, y: yBase, h: lh});
+
+    let rem = t.rem;
+    for (let ix = 0; ix < nx && rem > 0; ix++)
+      for (let iy = 0; iy < ny && rem > 0; iy++) {
+        placements.push({x:ix*fw, y:yBase, z:iy*fd, w:fw, h:lh, d:fd, pkgId:t.pkg.id, color:t.pkg.color});
+        rem--;
+      }
+    grp.placed  += t.rem;
+    totalLayers += 1;
+    currentY    += lh;
+    t.rem = 0;
+  }
+
+  // Collect all leftover
+  types.filter(t => t.rem > 0).forEach(t => leftover.push({pkg:t.pkg, qty:t.rem}));
+
   return {
-    count:placements.length,
-    layers:totalLayers,
+    count: placements.length,
+    layers: totalLayers,
     placements,
-    totalH:currentY,
-    groups,
-    leftover
+    totalH: currentY,
+    groups: [...groupMap.entries()].map(([pkgId,g]) => ({pkgId,...g})),
+    leftover,
   };
 }
 
