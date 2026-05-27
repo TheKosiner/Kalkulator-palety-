@@ -712,101 +712,156 @@ function faceDownCandidates(dims) {
   ];
 }
 
-// Pack in the exact order given – caller is responsible for ordering.
-function packMixed(entries, maxH, pkgOrientMap, margin=0) {
-  _placed = [];
-  const m2 = margin * 2;
-  const types = entries.map(({pkg, qty}) => ({ pkg, qty }));
+// Generate all unique orientations for a package (up to 6):
+// 3 face-down choices × 2 footprint rotations.
+// Returns [[fw, fd, lh, fw0, fd0, lh0], ...]
+// fw/fd/lh = effective dims (with 2*margin padding); fw0/fd0/lh0 = visual dims.
+function genOrients(dims, faceMode, margin) {
+  const m2 = (margin || 0) * 2;
+  const allFaces = faceDownCandidates(dims);
+  const facesToTry = faceMode === 'auto'
+    ? allFaces
+    : [allFaces[parseInt(faceMode)]].filter(Boolean);
+  const seen = new Set(), out = [];
+  for (const [fw0, fd0, lh0] of facesToTry) {
+    for (const [w, d] of [[fw0, fd0], [fd0, fw0]]) {
+      const key = `${w},${d},${lh0}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push([w + m2, d + m2, lh0 + m2, w, d, lh0]);
+    }
+  }
+  return out;
+}
 
+// Guillotine-Cut bin-packing for a single horizontal layer (2-D problem on palW × palD).
+// items : [{fw, fd, lh, fw0, fd0, lh0, pkgId, color}, ...]  — all same effective lh
+// qtysLeft : Map<pkgId, remaining_qty>  — read-only; a local copy is used internally
+// Returns array of placements {x, z, fw, fd, lh, fw0, fd0, lh0, pkgId, color}.
+function _guillotineLayer(palW, palD, items, qtysLeft) {
+  let freeRects = [{x: 0, z: 0, w: palW, d: palD}];
+  const placements = [];
+  const layerQty = new Map(qtysLeft); // local copy — never mutates the caller's map
+
+  while (true) {
+    // Best Area Fit: find (item, free-rect) pair with minimum leftover area
+    let bestScore = Infinity, bestItem = null, bestRectIdx = -1;
+    for (const item of items) {
+      if ((layerQty.get(item.pkgId) || 0) <= 0) continue;
+      for (let ri = 0; ri < freeRects.length; ri++) {
+        const r = freeRects[ri];
+        if (item.fw <= r.w && item.fd <= r.d) {
+          const score = r.w * r.d - item.fw * item.fd;
+          if (score < bestScore) { bestScore = score; bestItem = item; bestRectIdx = ri; }
+        }
+      }
+    }
+    if (bestItem === null) break; // nothing fits
+
+    const r = freeRects[bestRectIdx];
+    placements.push({
+      x: r.x, z: r.z,
+      fw: bestItem.fw, fd: bestItem.fd, lh: bestItem.lh,
+      fw0: bestItem.fw0, fd0: bestItem.fd0, lh0: bestItem.lh0,
+      pkgId: bestItem.pkgId, color: bestItem.color
+    });
+    layerQty.set(bestItem.pkgId, layerQty.get(bestItem.pkgId) - 1);
+
+    // Guillotine split: try both H-split and V-split; keep the one whose
+    // larger resulting piece is bigger (maximises usable space).
+    const fw = bestItem.fw, fd = bestItem.fd;
+    const hR = {x: r.x+fw, z: r.z,    w: r.w-fw, d: fd      }; // H-split: right of item
+    const hT = {x: r.x,    z: r.z+fd, w: r.w,    d: r.d-fd  }; // H-split: above item
+    const vR = {x: r.x+fw, z: r.z,    w: r.w-fw, d: r.d     }; // V-split: right of item
+    const vT = {x: r.x,    z: r.z+fd, w: fw,     d: r.d-fd  }; // V-split: above item
+    const hMax = Math.max(hR.w*hR.d, hT.w*hT.d);
+    const vMax = Math.max(vR.w*vR.d, vT.w*vT.d);
+    freeRects.splice(bestRectIdx, 1,
+      ...((hMax >= vMax) ? [hR, hT] : [vR, vT]).filter(rec => rec.w > 0 && rec.d > 0));
+  }
+  return placements;
+}
+
+// Layer-based mixed-type packing using Guillotine Cut.
+//
+// Each layer has a single, uniform height. For every iteration we:
+//   1. Collect all 6 orientations of every remaining package type.
+//   2. For each candidate layer height, simulate a Guillotine layer.
+//   3. Pick the height that maximises (total box volume) / (layer height mm) —
+//      this metric naturally puts larger/heavier boxes at the bottom.
+//   4. Commit the chosen layer and advance currentY.
+//
+// Signature and return value are identical to the old packMixed so nothing
+// else in the project needs to change.
+function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   const placements = [];
   const groupMap   = new Map();
   const leftover   = [];
+  const qtysLeft   = new Map(entries.map(({pkg, qty}) => [pkg.id, qty]));
 
-  for (const {pkg, qty} of types) {
-    const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
-    // Determine which face orientations to try
-    const allFaces = faceDownCandidates(pkg.dims); // [[fw0,fd0,lh0], ...]
-    const facesToTry = faceMode === 'auto'
-      ? allFaces
-      : [allFaces[parseInt(faceMode)]].filter(Boolean);
-    const cands = [];
-    for (const [fw0,fd0,lh0] of facesToTry) {
-      // effective dims include margin on all sides
-      const fw=fw0+m2, fd=fd0+m2, lh=lh0+m2;
-      cands.push([fw,fd,lh,fw0,fd0,lh0]);
-      if (fw0 !== fd0) cands.push([fd,fw,lh,fd0,fw0,lh0]); // 90° footprint rotation
+  for (const {pkg, qty} of entries)
+    groupMap.set(pkg.id, {color: pkg.color, name: pkg.name, placed: 0, qty});
+
+  let currentY = PAL.H;
+
+  while (currentY < maxH) {
+    // Build orientation list for all package types with remaining quantity
+    const allOrients = [];
+    for (const {pkg} of entries) {
+      if ((qtysLeft.get(pkg.id) || 0) <= 0) continue;
+      const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
+      for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin))
+        allOrients.push({fw, fd, lh, fw0, fd0, lh0, pkgId: pkg.id, color: pkg.color});
     }
+    if (allOrients.length === 0) break;
 
-    let placedCount = 0;
-    for (let q = 0; q < qty; q++) {
-      let bestPos = null, bestLh, bestFw, bestFd, bestLh0, bestFw0, bestFd0, bestTop = Infinity;
-      for (const [fw,fd,lh,fw0,fd0,lh0] of cands) {
-        const pos = _findPos(fw, fd, lh, maxH);
-        if (!pos) continue;
-        const top = pos.y + lh; // top of the placed box — minimise this
-        if (top < bestTop || (top === bestTop && lh < bestLh)) {
-          bestPos=pos; bestLh=lh; bestFw=fw; bestFd=fd;
-          bestLh0=lh0; bestFw0=fw0; bestFd0=fd0; bestTop=top;
-        }
-      }
-      if (!bestPos) continue;
+    // Unique effective heights that still fit within maxH
+    const heights = [...new Set(allOrients.map(o => o.lh))].filter(h => currentY + h <= maxH);
+    if (heights.length === 0) break;
 
-      // _placed uses effective dims for collision detection
-      const box = {x:bestPos.x, y:bestPos.y, z:bestPos.z, w:bestFw, h:bestLh, d:bestFd};
-      _placed.push(box);
-      // visual placement uses original dims, inset by margin
+    // Evaluate each candidate height; choose best by volume-per-mm density
+    let bestLh = null, bestResult = null, bestDensity = -1;
+    for (const lh of heights) {
+      const layerItems = allOrients.filter(o => o.lh === lh);
+      const placed = _guillotineLayer(PAL.W, PAL.D, layerItems, qtysLeft);
+      if (placed.length === 0) continue;
+      const vol = placed.reduce((s, p) => s + p.fw0 * p.fd0 * p.lh0, 0);
+      const density = vol / lh; // mm²  — bigger boxes → higher score → placed first
+      if (density > bestDensity) { bestDensity = density; bestLh = lh; bestResult = placed; }
+    }
+    if (!bestResult) break;
+
+    // Commit the chosen layer
+    for (const p of bestResult) {
       placements.push({
-        x:bestPos.x+margin, y:bestPos.y+margin, z:bestPos.z+margin,
-        w:bestFw0, h:bestLh0, d:bestFd0,
-        pkgId:pkg.id, color:pkg.color
+        x: p.x + margin, y: currentY + margin, z: p.z + margin,
+        w: p.fw0, h: p.lh0, d: p.fd0, pkgId: p.pkgId, color: p.color
       });
-      if (!groupMap.has(pkg.id))
-        groupMap.set(pkg.id, {color:pkg.color, name:pkg.name, placed:0, qty});
-      groupMap.get(pkg.id).placed++;
-      placedCount++;
+      qtysLeft.set(p.pkgId, (qtysLeft.get(p.pkgId) || 0) - 1);
+      groupMap.get(p.pkgId).placed++;
     }
-    if (placedCount < qty) leftover.push({pkg, qty: qty-placedCount});
+    currentY += bestLh;
   }
 
-  const totalH = placements.reduce((m,p) => Math.max(m, p.y+p.h), PAL.H);
+  for (const {pkg} of entries) {
+    const rem = qtysLeft.get(pkg.id) || 0;
+    if (rem > 0) leftover.push({pkg, qty: rem});
+  }
 
+  const totalH = placements.reduce((m, p) => Math.max(m, p.y + p.h), PAL.H);
   return {
     count: placements.length,
-    layers: new Set(placements.map(p=>p.y)).size,
-    placements,
-    totalH,
-    groups: [...groupMap.entries()].map(([pkgId,g]) => ({pkgId,...g, layers:[]})),
+    layers: new Set(placements.map(p => p.y)).size,
+    placements, totalH,
+    groups: [...groupMap.entries()].map(([pkgId, g]) => ({pkgId, ...g, layers: []})),
     leftover,
   };
 }
 
-// Run packMixed with several large-first orderings and return the best result.
-// All orderings put larger/heavier boxes earlier so they land on the bottom.
-// "Best" = most boxes placed; tie-break: lowest total height.
+// packMixed is now self-optimising (tries all 6 orientations, all heights, Guillotine).
+// packMixedOptimal is kept for call-site compatibility.
 function packMixedOptimal(entries, maxH, pkgOrientMap, margin) {
-  const aug = entries.map(e => ({
-    ...e,
-    vol:  e.pkg.dims.reduce((a,b)=>a*b,1),
-    tall: Math.max(...e.pkg.dims),
-    foot: e.pkg.dims[0]*e.pkg.dims[1],
-    thick:Math.min(...e.pkg.dims),
-  }));
-  const s = fn => [...aug].sort(fn);
-  const orderings = [
-    s((a,b) => b.vol  - a.vol),             // biggest volume first
-    s((a,b) => b.tall - a.tall),            // tallest first
-    s((a,b) => b.foot - a.foot),            // biggest footprint first
-    s((a,b) => b.thick- a.thick),           // thickest (widest min-side) first
-    s((a,b) => b.vol*b.qty - a.vol*a.qty),  // most total volume first
-    s((a,b) => b.qty  - a.qty),             // most pieces first
-  ];
-  let best = null;
-  for (const order of orderings) {
-    const res = packMixed(order.map(({pkg,qty})=>({pkg,qty})), maxH, pkgOrientMap, margin);
-    if (!best || res.count > best.count || (res.count===best.count && res.totalH < best.totalH))
-      best = res;
-  }
-  return best;
+  return packMixed(entries, maxH, pkgOrientMap, margin);
 }
 
 // ═══════════════════════════════════════════════════════
