@@ -98,6 +98,33 @@
     .btn-remove{background:#fdecea;color:#c0392b}
     .btn-remove.active{background:#c0392b;color:#fff}
 
+    /* PKG EDIT / ADD */
+    .pkg-edit-btn{background:none;border:none;cursor:pointer;color:#c0c8d4;font-size:.92rem;padding:3px 5px;flex-shrink:0;border-radius:5px;line-height:1}
+    .pkg-edit-btn:hover{color:var(--navy);background:#eef3ff}
+    .btn-add-pkg{display:block;width:100%;margin-top:5px;padding:9px 10px;border:1.5px dashed #c5ccd8;border-radius:10px;background:none;color:#5a7ea0;font-size:.8rem;font-weight:600;cursor:pointer;letter-spacing:.02em;text-align:center}
+    .btn-add-pkg:hover{border-color:var(--blue);color:var(--blue);background:#f4f8ff}
+
+    /* PACKAGE EDIT MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:500;display:flex;align-items:flex-end;justify-content:center}
+    .modal-overlay.hidden{display:none}
+    .modal-box{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:22px 20px 36px;animation:slideUp .2s ease}
+    @keyframes slideUp{from{transform:translateY(50px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .modal-title{font-size:1rem;font-weight:800;color:var(--navy);margin-bottom:15px}
+    .modal-row{margin-bottom:11px}
+    .modal-row label{font-size:.75rem;font-weight:600;color:#555;display:block;margin-bottom:4px}
+    .modal-row input[type=text],.modal-row input[type=number]{width:100%;padding:9px 10px;border:1.5px solid #dde2e8;border-radius:8px;font-size:.9rem;outline:none}
+    .modal-row input:focus{border-color:var(--blue)}
+    .modal-dims{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .modal-color-row{display:flex;align-items:center;gap:12px}
+    .modal-color-row input[type=color]{width:44px;height:38px;padding:2px 3px;border:1.5px solid #dde2e8;border-radius:8px;cursor:pointer;background:#fff;flex-shrink:0}
+    .modal-btns{display:flex;gap:8px;margin-top:16px}
+    .btn-modal-save{flex:1;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:12px;font-size:.93rem;font-weight:700;cursor:pointer}
+    .btn-modal-del{background:#fdecea;color:#c0392b;border:none;border-radius:10px;padding:12px;font-size:.93rem;font-weight:700;cursor:pointer}
+    .btn-modal-del.hidden{display:none}
+    .btn-modal-cancel{background:#f0f2f5;color:#555;border:none;border-radius:10px;padding:12px;font-size:.93rem;font-weight:600;cursor:pointer}
+    .modal-restore{font-size:.7rem;color:#8a93a2;margin-top:10px;text-align:center;cursor:pointer;text-decoration:underline}
+    @media(min-width:760px){.modal-overlay{align-items:center}.modal-box{border-radius:16px;max-width:400px}}
+
     /* DESKTOP */
     @media(min-width:760px){
       html,body{overflow:auto}
@@ -160,6 +187,7 @@
     <div id="autoPanel">
       <div class="stitle">Kartony</div>
       <div id="pkgList"></div>
+      <button class="btn-add-pkg" onclick="openPkgModal(null)">+ Dodaj nowy karton</button>
     </div>
 
     <!-- MANUAL PANEL -->
@@ -201,11 +229,9 @@
       <input type="number" id="maxHMixed" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
     </div>
     <div class="ctrl-full" id="globalOrientRow">
-      <label class="lbl">Orientacja paczki</label>
+      <label class="lbl">Bok zawsze na górze</label>
       <select id="orient">
         <option value="auto">Auto (najlepsze upakowanie)</option>
-        <option value="flat">Płasko (H = najmniejszy wym.)</option>
-        <option value="upright">Pionowo (H = największy wym.)</option>
       </select>
     </div>
     <div class="ctrl-full">
@@ -218,11 +244,45 @@
   </div>
 </div>
 
+<!-- PACKAGE EDIT / CREATE MODAL -->
+<div class="modal-overlay hidden" id="pkgModal" onclick="modalBgClick(event)">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">Nowy karton</div>
+    <div class="modal-row">
+      <label>Nazwa</label>
+      <input type="text" id="mName" placeholder="np. Karton XL" maxlength="48"/>
+    </div>
+    <div class="modal-row">
+      <label>Wymiary (mm) &mdash; Długość &times; Szerokość &times; Wysokość</label>
+      <div class="modal-dims">
+        <input type="number" id="mDimA" placeholder="Dług." min="1" max="9999" inputmode="numeric"/>
+        <input type="number" id="mDimB" placeholder="Szer." min="1" max="9999" inputmode="numeric"/>
+        <input type="number" id="mDimC" placeholder="Wys."  min="1" max="9999" inputmode="numeric"/>
+      </div>
+    </div>
+    <div class="modal-row">
+      <label>Kolor etykiety</label>
+      <div class="modal-color-row">
+        <input type="color" id="mColor" value="#3498db"
+               oninput="document.getElementById('mColorHex').textContent=this.value"/>
+        <span id="mColorHex" style="font-size:.82rem;color:#555;font-family:monospace">#3498db</span>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-modal-save"            onclick="modalSave()">Zapisz</button>
+      <button class="btn-modal-del hidden" id="modalDelBtn" onclick="modalDelete()">Usuń</button>
+      <button class="btn-modal-cancel"          onclick="modalClose()">Anuluj</button>
+    </div>
+    <div class="modal-restore" id="modalRestoreRow" style="display:none"
+         onclick="modalRestoreDefaults()">Przywróć domyślne kartony</div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════
-const PKGS = [
+const DEFAULT_PKGS = [
   { id:'rf4',   name:'Karton do RF4',            dims:[770,380,533], color:'#e74c3c' },
   { id:'rp',    name:'Karton RP',                dims:[770,380,650], color:'#e67e22' },
   { id:'st1',   name:'Karton stojak',            dims:[600,195,300], color:'#c9a800' },
@@ -231,6 +291,17 @@ const PKGS = [
   { id:'nos',   name:'Nosy/Sterowniki (NOWY)',   dims:[300,300,200], color:'#2980b9' },
   { id:'small', name:'Karton małe części',       dims:[250,150,100], color:'#8e44ad' },
 ];
+const BUILTIN_IDS = new Set(DEFAULT_PKGS.map(p=>p.id));
+
+function savePkgs() { try{localStorage.setItem('pkgs',JSON.stringify(PKGS));}catch(e){} }
+function loadPkgsFromStorage() {
+  try {
+    const raw = localStorage.getItem('pkgs');
+    if (raw) { const p=JSON.parse(raw); if(Array.isArray(p)&&p.length) return p; }
+  } catch(e) {}
+  return DEFAULT_PKGS.map(p=>({...p, dims:[...p.dims]}));
+}
+let PKGS = loadPkgsFromStorage();
 const PAL = { W:1200, D:800, H:144 };
 
 // ═══════════════════════════════════════════════════════
@@ -244,21 +315,20 @@ function setMode(m) {
   ['Single','Mixed','Manual'].forEach(t =>
     document.getElementById('tab'+t).classList.toggle('active', m===t.toLowerCase()));
   const isMan = m==='manual';
-  document.getElementById('autoPanel').style.display  = isMan ? 'none' : '';
-  document.getElementById('autoParams').style.display = isMan ? 'none' : '';
+  document.getElementById('autoPanel').style.display   = isMan ? 'none' : '';
+  document.getElementById('autoParams').style.display  = isMan ? 'none' : '';
   document.getElementById('manualPanel').style.display = isMan ? '' : 'none';
-  document.getElementById('manHint').style.display = isMan ? 'block' : 'none';
-  document.getElementById('singleQtyRow').style.display  = m==='single' ? '' : 'none';
-  document.getElementById('mixedMaxHRow').style.display  = m==='mixed'  ? '' : 'none';
-  document.getElementById('sPerLayer').style.display     = m==='single' ? '' : 'none';
+  document.getElementById('manHint').style.display     = isMan ? 'block' : 'none';
+  document.getElementById('singleQtyRow').style.display   = m==='single' ? '' : 'none';
+  document.getElementById('mixedMaxHRow').style.display   = m==='mixed'  ? '' : 'none';
+  document.getElementById('sPerLayer').style.display      = m==='single' ? '' : 'none';
   document.getElementById('globalOrientRow').style.display = m==='single' ? '' : 'none';
-  document.querySelectorAll('.pkg-qty-wrap').forEach(el => {
-    el.style.display = (m==='mixed' && el.closest('.pkg-item').classList.contains('selected')) ? 'flex' : 'none';
-  });
-  document.querySelectorAll('.pkg-orient-wrap').forEach(el => {
-    el.style.display = (m==='mixed' && el.closest('.pkg-item').classList.contains('selected')) ? 'flex' : 'none';
-  });
-  if (m==='single') enforeSingleSelect();
+  // Rebuild pkg list so qty/orient wrap visibility matches the new mode
+  buildPkgList();
+  if (m==='single') {
+    const pkg = PKGS.find(p=>selectedIds.has(p.id));
+    if (pkg) rebuildOrientSelect(pkg);
+  }
   if (isMan) {
     manRefreshFaceBtns();
     const r = buildManualRes();
@@ -284,70 +354,107 @@ document.getElementById('handle').addEventListener('touchend',e=>{
 },{passive:true});
 
 // ═══════════════════════════════════════════════════════
-// PACKAGE LIST
+// PACKAGE LIST  (rebuilt whenever PKGS changes or mode switches)
 // ═══════════════════════════════════════════════════════
-let selectedIds = new Set([PKGS[0].id]);
+let selectedIds = new Set([PKGS[0]?.id || '']);
 
-const pkgList = document.getElementById('pkgList');
-PKGS.forEach(p => {
-  const item = document.createElement('div');
-  item.className = 'pkg-item' + (selectedIds.has(p.id) ? ' selected' : '');
-  item.dataset.id = p.id;
-  item.innerHTML = `
-    <div class="pkg-dot" style="background:${p.color}"></div>
-    <div class="pkg-info">
-      <div class="pkg-name">${p.name}</div>
-      <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div>
-    </div>
-    <div class="pkg-orient-wrap" style="display:none">
-      <select class="pkg-orient" data-id="${p.id}">
-        <option value="auto">Auto</option>
-        <option value="0">${p.dims[0]}×${p.dims[1]} ↓ (wys.${p.dims[2]})</option>
-        <option value="1">${p.dims[0]}×${p.dims[2]} ↓ (wys.${p.dims[1]})</option>
-        <option value="2">${p.dims[1]}×${p.dims[2]} ↓ (wys.${p.dims[0]})</option>
-      </select>
-    </div>
-    <div class="pkg-qty-wrap" style="display:none">
-      <label>szt.:</label>
-      <input class="pkg-qty" type="number" value="10" min="1" max="999" inputmode="numeric" data-id="${p.id}" />
-    </div>`;
-  item.querySelector('.pkg-qty')?.addEventListener('click', e=>e.stopPropagation());
-  item.querySelector('.pkg-orient')?.addEventListener('click', e=>e.stopPropagation());
+// Rebuild the auto-mode package list from scratch.
+function buildPkgList() {
+  const list = document.getElementById('pkgList');
+  list.innerHTML = '';
+  // Preserve qty/orient values across rebuilds
+  const savedQtys   = new Map();
+  const savedOrients = new Map();
+  document.querySelectorAll('.pkg-qty').forEach(el   => savedQtys.set(el.dataset.id,   el.value));
+  document.querySelectorAll('.pkg-orient').forEach(el => savedOrients.set(el.dataset.id, el.value));
 
-  item.addEventListener('click', () => {
-    if (mode === 'single') {
-      document.querySelectorAll('.pkg-item').forEach(i=>i.classList.remove('selected'));
-      selectedIds.clear();
-      item.classList.add('selected');
-      selectedIds.add(p.id);
-    } else {
-      if (selectedIds.has(p.id)) {
-        selectedIds.delete(p.id);
-        item.classList.remove('selected');
-        item.querySelector('.pkg-qty-wrap').style.display='none';
-        item.querySelector('.pkg-orient-wrap').style.display='none';
-      } else {
-        selectedIds.add(p.id);
+  PKGS.forEach(p => {
+    const isSel  = selectedIds.has(p.id);
+    const showMixed = mode==='mixed' && isSel;
+    const [A,B,C] = p.dims;
+    const item = document.createElement('div');
+    item.className = 'pkg-item' + (isSel ? ' selected' : '');
+    item.dataset.id = p.id;
+    item.innerHTML = `
+      <div class="pkg-dot" style="background:${p.color}"></div>
+      <div class="pkg-info">
+        <div class="pkg-name">${p.name}</div>
+        <div class="pkg-dim">${A}×${B}×${C} mm</div>
+      </div>
+      <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
+      <div class="pkg-orient-wrap" style="display:${showMixed?'flex':'none'}">
+        <select class="pkg-orient" data-id="${p.id}">
+          <option value="auto">Auto</option>
+          <option value="0">${A}×${B} ↑ wys.${C}</option>
+          <option value="1">${A}×${C} ↑ wys.${B}</option>
+          <option value="2">${B}×${C} ↑ wys.${A}</option>
+        </select>
+      </div>
+      <div class="pkg-qty-wrap" style="display:${showMixed?'flex':'none'}">
+        <label>szt.:</label>
+        <input class="pkg-qty" type="number" value="10" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
+      </div>`;
+
+    // restore saved values
+    if (savedQtys.has(p.id))    item.querySelector('.pkg-qty').value    = savedQtys.get(p.id);
+    if (savedOrients.has(p.id)) item.querySelector('.pkg-orient').value = savedOrients.get(p.id);
+
+    item.querySelector('.pkg-qty')?.addEventListener('click',    e=>e.stopPropagation());
+    item.querySelector('.pkg-orient')?.addEventListener('click', e=>e.stopPropagation());
+    item.querySelector('.pkg-edit-btn')?.addEventListener('click', e=>{
+      e.stopPropagation(); openPkgModal(p.id);
+    });
+
+    item.addEventListener('click', () => {
+      if (mode === 'single') {
+        document.querySelectorAll('#pkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
+        selectedIds.clear();
         item.classList.add('selected');
-        item.querySelector('.pkg-qty-wrap').style.display='flex';
-        item.querySelector('.pkg-orient-wrap').style.display='flex';
+        selectedIds.add(p.id);
+        rebuildOrientSelect(p);
+      } else {
+        if (selectedIds.has(p.id)) {
+          selectedIds.delete(p.id);
+          item.classList.remove('selected');
+          item.querySelector('.pkg-qty-wrap').style.display   = 'none';
+          item.querySelector('.pkg-orient-wrap').style.display = 'none';
+        } else {
+          selectedIds.add(p.id);
+          item.classList.add('selected');
+          item.querySelector('.pkg-qty-wrap').style.display   = 'flex';
+          item.querySelector('.pkg-orient-wrap').style.display = 'flex';
+        }
       }
-    }
+    });
+    list.appendChild(item);
   });
-  pkgList.appendChild(item);
-});
+}
+
+// Rebuild the #orient select for single mode to show top-face options of pkg.
+function rebuildOrientSelect(pkg) {
+  const sel = document.getElementById('orient');
+  const cur = sel.value;
+  const [A,B,C] = pkg.dims;
+  sel.innerHTML = `
+    <option value="auto">Auto (najlepsze upakowanie)</option>
+    <option value="0">${A}×${B} zawsze na górze (wys. ${C})</option>
+    <option value="1">${A}×${C} zawsze na górze (wys. ${B})</option>
+    <option value="2">${B}×${C} zawsze na górze (wys. ${A})</option>`;
+  if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+}
 
 function enforeSingleSelect() {
   const first = [...selectedIds][0];
   selectedIds.clear();
-  if (first) selectedIds.add(first);
-  document.querySelectorAll('.pkg-item').forEach(item => {
-    const sel = selectedIds.has(item.dataset.id);
-    item.classList.toggle('selected', sel);
-    item.querySelector('.pkg-qty-wrap').style.display='none';
-    item.querySelector('.pkg-orient-wrap').style.display='none';
-  });
+  if (first && PKGS.find(p=>p.id===first)) selectedIds.add(first);
+  buildPkgList();
+  const pkg = PKGS.find(p=>selectedIds.has(p.id));
+  if (pkg) rebuildOrientSelect(pkg);
 }
+
+buildPkgList();
+// Set initial orient options for the first package
+{ const p = PKGS.find(p=>selectedIds.has(p.id)); if(p) rebuildOrientSelect(p); }
 
 // ═══════════════════════════════════════════════════════
 // MANUAL MODE
@@ -359,23 +466,28 @@ let manFlipped = false;      // 90° footprint rotation
 let manGhostX  = null;       // world-x of ghost preview
 let manGhostZ  = null;
 
-// Build the pkg selector list for manual mode
-const manPkgList = document.getElementById('manPkgList');
-PKGS.forEach(p => {
-  const item = document.createElement('div');
-  item.className = 'pkg-item' + (p===manSelPkg ? ' selected' : '');
-  item.dataset.id = p.id;
-  item.innerHTML = `<div class="pkg-dot" style="background:${p.color}"></div>
-    <div class="pkg-info"><div class="pkg-name">${p.name}</div>
-    <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div></div>`;
-  item.addEventListener('click', () => {
-    manSelPkg = p; manFaceIdx = 0; manFlipped = false;
-    document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
-    item.classList.add('selected');
-    manRefreshFaceBtns();
+// Build the manual-mode package selector list (rebuilds when PKGS changes).
+function buildManPkgList() {
+  const list = document.getElementById('manPkgList');
+  list.innerHTML = '';
+  // If current manSelPkg was removed, fall back to first available
+  if (!PKGS.find(p=>p.id===manSelPkg?.id)) manSelPkg = PKGS[0];
+  PKGS.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'pkg-item' + (p.id===manSelPkg?.id ? ' selected' : '');
+    item.dataset.id = p.id;
+    item.innerHTML = `<div class="pkg-dot" style="background:${p.color}"></div>
+      <div class="pkg-info"><div class="pkg-name">${p.name}</div>
+      <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div></div>`;
+    item.addEventListener('click', () => {
+      manSelPkg = p; manFaceIdx = 0; manFlipped = false;
+      document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
+      item.classList.add('selected');
+      manRefreshFaceBtns();
+    });
+    list.appendChild(item);
   });
-  manPkgList.appendChild(item);
-});
+}
 
 function manRefreshFaceBtns() {
   const [A,B,C] = manSelPkg.dims;
@@ -384,16 +496,17 @@ function manRefreshFaceBtns() {
   let html = '';
   faces.forEach(([a,b,c], i) => {
     const act = i===manFaceIdx && !manFlipped;
-    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},false)">${a}×${b} na dole (wys. ${c})</button>`;
+    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},false)">${a}×${b} na górze (wys. ${c})</button>`;
   });
-  // rotated versions
   faces.forEach(([a,b,c], i) => {
-    if (a===b) return; // rotation identical
+    if (a===b) return;
     const act = i===manFaceIdx && manFlipped;
-    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},true)">${b}×${a} na dole (wys. ${c}) ↔</button>`;
+    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},true)">${b}×${a} na górze (wys. ${c}) ↔</button>`;
   });
   btns.innerHTML = html;
 }
+
+buildManPkgList();
 window.manSetFace = (i,fl) => { manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns(); if(lastRes)draw3D(lastRes); };
 
 function manGetDims() {
@@ -574,6 +687,11 @@ function orientCandidates(dims, orientMode) {
     const s=[...d].sort((a,b)=>a-b);
     return [[s[0],s[1],s[2]]];
   }
+  // '0','1','2' = fix top/bottom face (same as face-down since faces are parallel)
+  const fi = parseInt(orientMode);
+  if (!isNaN(fi) && fi>=0 && fi<=2)
+    return [[[d[0],d[1],d[2]],[d[0],d[2],d[1]],[d[1],d[2],d[0]]][fi]];
+  // 'auto': try all unique orientations
   const seen=new Set(), out=[];
   [[d[0],d[1],d[2]],[d[0],d[2],d[1]],[d[1],d[2],d[0]]].forEach(p=>{
     const k=p.join(','); if(!seen.has(k)){seen.add(k);out.push(p);}
@@ -862,6 +980,111 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
 // packMixedOptimal is kept for call-site compatibility.
 function packMixedOptimal(entries, maxH, pkgOrientMap, margin) {
   return packMixed(entries, maxH, pkgOrientMap, margin);
+}
+
+// ═══════════════════════════════════════════════════════
+// PACKAGE MODAL (add / edit)
+// ═══════════════════════════════════════════════════════
+let _modalEditId = null; // null = new package, string = editing existing
+
+function openPkgModal(id) {
+  _modalEditId = id || null;
+  const isNew = !id;
+  const pkg = id ? PKGS.find(p=>p.id===id) : null;
+
+  document.getElementById('modalTitle').textContent = isNew ? 'Nowy karton' : 'Edytuj karton';
+  document.getElementById('mName').value  = pkg?.name  || '';
+  document.getElementById('mDimA').value  = pkg?.dims[0] || '';
+  document.getElementById('mDimB').value  = pkg?.dims[1] || '';
+  document.getElementById('mDimC').value  = pkg?.dims[2] || '';
+  const color = pkg?.color || '#3498db';
+  document.getElementById('mColor').value    = color;
+  document.getElementById('mColorHex').textContent = color;
+
+  // Show delete button only for custom (non-built-in) packages
+  const delBtn = document.getElementById('modalDelBtn');
+  delBtn.classList.toggle('hidden', isNew || BUILTIN_IDS.has(id));
+
+  // Show "restore defaults" hint when editing
+  document.getElementById('modalRestoreRow').style.display = isNew ? 'none' : 'block';
+
+  document.getElementById('pkgModal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('mName').focus(), 50);
+}
+
+function modalClose() {
+  document.getElementById('pkgModal').classList.add('hidden');
+  _modalEditId = null;
+}
+
+function modalBgClick(e) {
+  if (e.target === document.getElementById('pkgModal')) modalClose();
+}
+
+function modalSave() {
+  const name = document.getElementById('mName').value.trim();
+  const A = parseInt(document.getElementById('mDimA').value);
+  const B = parseInt(document.getElementById('mDimB').value);
+  const C = parseInt(document.getElementById('mDimC').value);
+  const color = document.getElementById('mColor').value;
+
+  if (!name)          { alert('Podaj nazwę kartonu.'); return; }
+  if (!A||!B||!C||A<=0||B<=0||C<=0) { alert('Podaj prawidłowe wymiary (mm > 0).'); return; }
+
+  if (_modalEditId) {
+    // Edit existing
+    const pkg = PKGS.find(p=>p.id===_modalEditId);
+    if (pkg) { pkg.name=name; pkg.dims=[A,B,C]; pkg.color=color; }
+  } else {
+    // New custom package
+    PKGS.push({ id:'pkg_'+Date.now(), name, dims:[A,B,C], color });
+  }
+  savePkgs();
+  modalClose();
+  _afterPkgsChanged();
+}
+
+function modalDelete() {
+  const id = _modalEditId;
+  if (!id || BUILTIN_IDS.has(id)) return;
+  if (!confirm('Usunąć ten karton?')) return;
+  PKGS = PKGS.filter(p=>p.id!==id);
+  selectedIds.delete(id);
+  if (!selectedIds.size && PKGS.length) selectedIds.add(PKGS[0].id);
+  savePkgs();
+  modalClose();
+  _afterPkgsChanged();
+}
+
+function modalRestoreDefaults() {
+  if (!confirm('Przywrócić wszystkie domyślne kartony i usunąć własne?')) return;
+  PKGS = DEFAULT_PKGS.map(p=>({...p, dims:[...p.dims]}));
+  selectedIds = new Set([PKGS[0].id]);
+  savePkgs();
+  modalClose();
+  _afterPkgsChanged();
+}
+
+// Called after any mutation of PKGS — rebuilds all UI lists
+function _afterPkgsChanged() {
+  buildPkgList();
+  buildManPkgList();
+  // Make sure manSelPkg is still valid
+  if (!PKGS.find(p=>p.id===manSelPkg?.id)) {
+    manSelPkg = PKGS[0];
+    manFaceIdx = 0; manFlipped = false;
+  }
+  manRefreshFaceBtns();
+  // Refresh orient select if in single mode
+  if (mode==='single') {
+    const pkg = PKGS.find(p=>selectedIds.has(p.id));
+    if (pkg) rebuildOrientSelect(pkg);
+  }
+  // Re-render if there's an active result
+  if (lastRes && lastMode==='manual') {
+    const r=buildManualRes(); lastRes=r;
+    buildLegend(r,'manual'); updateManStats(r); draw3D(r);
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1180,6 +1403,9 @@ function camRotR(){camTheta+=0.18;if(lastRes)draw3D(lastRes);}
 function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camDist=CAM_DEF.dist;panX=0;panY=0;camTargetY=PAL.H/2;if(lastRes)draw3D(lastRes);}
 window.camZoomIn=camZoomIn;window.camZoomOut=camZoomOut;
 window.camRotL=camRotL;window.camRotR=camRotR;window.camReset=camReset;
+window.openPkgModal=openPkgModal;window.modalSave=modalSave;
+window.modalDelete=modalDelete;window.modalClose=modalClose;
+window.modalBgClick=modalBgClick;window.modalRestoreDefaults=modalRestoreDefaults;
 </script>
 </body>
 </html>
