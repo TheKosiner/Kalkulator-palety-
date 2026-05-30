@@ -874,125 +874,63 @@ function genOrients(dims, faceMode, margin) {
   return out;
 }
 
-// Guillotine-Cut bin-packing for a single horizontal layer (2-D problem on palW × palD).
-// items : [{fw, fd, lh, fw0, fd0, lh0, pkgId, color}, ...]  — all same effective lh
-// qtysLeft : Map<pkgId, remaining_qty>  — read-only; a local copy is used internally
-// Returns array of placements {x, z, fw, fd, lh, fw0, fd0, lh0, pkgId, color}.
-function _guillotineLayer(palW, palD, items, qtysLeft) {
-  let freeRects = [{x: 0, z: 0, w: palW, d: palD}];
-  const placements = [];
-  const layerQty = new Map(qtysLeft); // local copy — never mutates the caller's map
 
-  while (true) {
-    // Best Area Fit: find (item, free-rect) pair with minimum leftover area
-    let bestScore = Infinity, bestItem = null, bestRectIdx = -1;
-    for (const item of items) {
-      if ((layerQty.get(item.pkgId) || 0) <= 0) continue;
-      for (let ri = 0; ri < freeRects.length; ri++) {
-        const r = freeRects[ri];
-        if (item.fw <= r.w && item.fd <= r.d) {
-          const score = r.w * r.d - item.fw * item.fd;
-          if (score < bestScore) { bestScore = score; bestItem = item; bestRectIdx = ri; }
-        }
-      }
-    }
-    if (bestItem === null) break; // nothing fits
-
-    const r = freeRects[bestRectIdx];
-    placements.push({
-      x: r.x, z: r.z,
-      fw: bestItem.fw, fd: bestItem.fd, lh: bestItem.lh,
-      fw0: bestItem.fw0, fd0: bestItem.fd0, lh0: bestItem.lh0,
-      pkgId: bestItem.pkgId, color: bestItem.color
-    });
-    layerQty.set(bestItem.pkgId, layerQty.get(bestItem.pkgId) - 1);
-
-    // Guillotine split: try both H-split and V-split; keep the one whose
-    // larger resulting piece is bigger (maximises usable space).
-    const fw = bestItem.fw, fd = bestItem.fd;
-    const hR = {x: r.x+fw, z: r.z,    w: r.w-fw, d: fd      }; // H-split: right of item
-    const hT = {x: r.x,    z: r.z+fd, w: r.w,    d: r.d-fd  }; // H-split: above item
-    const vR = {x: r.x+fw, z: r.z,    w: r.w-fw, d: r.d     }; // V-split: right of item
-    const vT = {x: r.x,    z: r.z+fd, w: fw,     d: r.d-fd  }; // V-split: above item
-    const hMax = Math.max(hR.w*hR.d, hT.w*hT.d);
-    const vMax = Math.max(vR.w*vR.d, vT.w*vT.d);
-    freeRects.splice(bestRectIdx, 1,
-      ...((hMax >= vMax) ? [hR, hT] : [vR, vT]).filter(rec => rec.w > 0 && rec.d > 0));
-  }
-  return placements;
-}
-
-// Layer-based mixed-type packing using Guillotine Cut.
+// Mixed-type packing using the shared heightmap (_placed / _findPos / _isFlat).
+// Boxes of any type and height are placed wherever they fit on the growing surface,
+// so different types naturally share the same physical layer — no type segregation.
 //
-// Each layer has a single, uniform height. For every iteration we:
-//   1. Collect all 6 orientations of every remaining package type.
-//   2. For each candidate layer height, simulate a Guillotine layer.
-//   3. Pick the height that maximises (total box volume) / (layer height mm) —
-//      this metric naturally puts larger/heavier boxes at the bottom.
-//   4. Commit the chosen layer and advance currentY.
-//
-// Signature and return value are identical to the old packMixed so nothing
-// else in the project needs to change.
+// Strategy: one placement round per loop iteration; each round tries to place one
+// box of each type (sorted large-first). Repeats until a full round produces nothing.
 function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   const placements = [];
   const groupMap   = new Map();
   const leftover   = [];
   const qtysLeft   = new Map(entries.map(({pkg, qty}) => [pkg.id, qty]));
-
   for (const {pkg, qty} of entries)
     groupMap.set(pkg.id, {color: pkg.color, name: pkg.name, placed: 0, qty});
 
-  let currentY = PAL.H;
+  // Borrow the shared heightmap; restore when done
+  const savedPlaced = _placed;
+  _placed = [];
 
-  while (currentY < maxH) {
-    // Build orientation list for all package types with remaining quantity
-    const allOrients = [];
-    for (const {pkg} of entries) {
-      if ((qtysLeft.get(pkg.id) || 0) <= 0) continue;
+  // Large boxes first → stable base, lower overall pallet height
+  const sorted = [...entries].sort((a, b) =>
+    b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2] - a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2]
+  );
+
+  let progress = true;
+  while (progress) {
+    progress = false;
+    for (const {pkg} of sorted) {
+      const qty = qtysLeft.get(pkg.id) || 0;
+      if (qty <= 0) continue;
       const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
-      for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin))
-        allOrients.push({fw, fd, lh, fw0, fd0, lh0, pkgId: pkg.id, color: pkg.color});
-    }
-    if (allOrients.length === 0) break;
 
-    // Unique effective heights that still fit within maxH
-    const heights = [...new Set(allOrients.map(o => o.lh))].filter(h => currentY + h <= maxH);
-    if (heights.length === 0) break;
-
-    // Evaluate each candidate height; choose best by volume-per-mm density.
-    // For each height, pre-select the single best orientation per box type
-    // (the one that fits the most boxes in a uniform grid) so the Guillotine
-    // Cut never gets confused by equal-area ties between two footprint rotations.
-    let bestLh = null, bestResult = null, bestDensity = -1;
-    for (const lh of heights) {
-      const bestOrientPerPkg = new Map();
-      for (const orient of allOrients) {
-        if (orient.lh !== lh) continue;
-        const gridCount = Math.floor(PAL.W / orient.fw) * Math.floor(PAL.D / orient.fd);
-        const prev = bestOrientPerPkg.get(orient.pkgId);
-        if (!prev || gridCount > prev.gridCount)
-          bestOrientPerPkg.set(orient.pkgId, {...orient, gridCount});
+      // Try every orientation; keep the one with the lowest placement y
+      // (then closest to pallet centre as tiebreak)
+      let bestPos = null, bestOrient = null;
+      for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
+        const pos = _findPos(fw, fd, lh, maxH);
+        if (!pos) continue;
+        if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
+          { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
       }
-      const layerItems = [...bestOrientPerPkg.values()];
-      const placed = _guillotineLayer(PAL.W, PAL.D, layerItems, qtysLeft);
-      if (placed.length === 0) continue;
-      const vol = placed.reduce((s, p) => s + p.fw0 * p.fd0 * p.lh0, 0);
-      const density = vol / lh;
-      if (density > bestDensity) { bestDensity = density; bestLh = lh; bestResult = placed; }
-    }
-    if (!bestResult) break;
+      if (!bestPos) continue;
 
-    // Commit the chosen layer
-    for (const p of bestResult) {
+      _placed.push({x: bestPos.x, y: bestPos.y, z: bestPos.z,
+                    w: bestOrient.fw, h: bestOrient.lh, d: bestOrient.fd});
       placements.push({
-        x: p.x + margin, y: currentY + margin, z: p.z + margin,
-        w: p.fw0, h: p.lh0, d: p.fd0, pkgId: p.pkgId, color: p.color
+        x: bestPos.x + margin, y: bestPos.y + margin, z: bestPos.z + margin,
+        w: bestOrient.fw0, h: bestOrient.lh0, d: bestOrient.fd0,
+        pkgId: pkg.id, color: pkg.color
       });
-      qtysLeft.set(p.pkgId, (qtysLeft.get(p.pkgId) || 0) - 1);
-      groupMap.get(p.pkgId).placed++;
+      qtysLeft.set(pkg.id, qty - 1);
+      groupMap.get(pkg.id).placed++;
+      progress = true;
     }
-    currentY += bestLh;
   }
+
+  _placed = savedPlaced;
 
   for (const {pkg} of entries) {
     const rem = qtysLeft.get(pkg.id) || 0;
