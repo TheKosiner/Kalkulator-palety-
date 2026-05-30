@@ -123,7 +123,15 @@
     .btn-modal-del.hidden{display:none}
     .btn-modal-cancel{background:#f0f2f5;color:#555;border:none;border-radius:10px;padding:12px;font-size:.93rem;font-weight:600;cursor:pointer}
     .modal-restore{font-size:.7rem;color:#8a93a2;margin-top:10px;text-align:center;cursor:pointer;text-decoration:underline}
-    @media(min-width:760px){.modal-overlay{align-items:center}.modal-box{border-radius:16px;max-width:400px}}
+    /* preview layout inside modal */
+    .modal-layout{display:flex;gap:14px;align-items:flex-start}
+    .modal-form{flex:1;min-width:0}
+    .modal-preview{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:0}
+    #previewCanvas{border-radius:10px;cursor:pointer;background:#eef2f7;display:block;touch-action:none;border:1.5px solid #dde2e8}
+    .preview-hint{font-size:.62rem;color:#8a93a2;margin-top:5px;text-align:center;line-height:1.4;max-width:130px}
+    .preview-hint b{color:var(--navy);font-weight:700}
+    @media(max-width:440px){.modal-layout{flex-direction:column-reverse}.modal-preview{flex-direction:row;align-items:center;gap:12px;width:100%}.preview-hint{max-width:none}}
+    @media(min-width:760px){.modal-overlay{align-items:center}.modal-box{border-radius:16px;max-width:440px}}
 
     /* DESKTOP */
     @media(min-width:760px){
@@ -248,24 +256,37 @@
 <div class="modal-overlay hidden" id="pkgModal" onclick="modalBgClick(event)">
   <div class="modal-box">
     <div class="modal-title" id="modalTitle">Nowy karton</div>
-    <div class="modal-row">
-      <label>Nazwa</label>
-      <input type="text" id="mName" placeholder="np. Karton XL" maxlength="48"/>
-    </div>
-    <div class="modal-row">
-      <label>Wymiary (mm) &mdash; Długość &times; Szerokość &times; Wysokość</label>
-      <div class="modal-dims">
-        <input type="number" id="mDimA" placeholder="Dług." min="1" max="9999" inputmode="numeric"/>
-        <input type="number" id="mDimB" placeholder="Szer." min="1" max="9999" inputmode="numeric"/>
-        <input type="number" id="mDimC" placeholder="Wys."  min="1" max="9999" inputmode="numeric"/>
+    <div class="modal-layout">
+      <!-- left: form fields -->
+      <div class="modal-form">
+        <div class="modal-row">
+          <label>Nazwa</label>
+          <input type="text" id="mName" placeholder="np. Karton XL" maxlength="48"/>
+        </div>
+        <div class="modal-row">
+          <label>Wymiary mm — Dł &times; Szer &times; Wys</label>
+          <div class="modal-dims">
+            <input type="number" id="mDimA" placeholder="Dług." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+            <input type="number" id="mDimB" placeholder="Szer." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+            <input type="number" id="mDimC" placeholder="Wys."  min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+          </div>
+        </div>
+        <div class="modal-row">
+          <label>Kolor etykiety</label>
+          <div class="modal-color-row">
+            <input type="color" id="mColor" value="#3498db"
+                   oninput="document.getElementById('mColorHex').textContent=this.value;drawPreview()"/>
+            <span id="mColorHex" style="font-size:.82rem;color:#555;font-family:monospace">#3498db</span>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="modal-row">
-      <label>Kolor etykiety</label>
-      <div class="modal-color-row">
-        <input type="color" id="mColor" value="#3498db"
-               oninput="document.getElementById('mColorHex').textContent=this.value"/>
-        <span id="mColorHex" style="font-size:.82rem;color:#555;font-family:monospace">#3498db</span>
+      <!-- right: 3-D preview + face selector -->
+      <div class="modal-preview">
+        <canvas id="previewCanvas" width="138" height="138"></canvas>
+        <div class="preview-hint">
+          Kliknij ścianę = zawsze na górze<br>
+          <b id="prevFaceLabel">Auto</b>
+        </div>
       </div>
     </div>
     <div class="modal-btns">
@@ -397,7 +418,7 @@ function buildPkgList() {
 
     // restore saved values
     if (savedQtys.has(p.id))    item.querySelector('.pkg-qty').value    = savedQtys.get(p.id);
-    if (savedOrients.has(p.id)) item.querySelector('.pkg-orient').value = savedOrients.get(p.id);
+    item.querySelector('.pkg-orient').value = savedOrients.has(p.id) ? savedOrients.get(p.id) : (p.topFace||'auto');
 
     item.querySelector('.pkg-qty')?.addEventListener('click',    e=>e.stopPropagation());
     item.querySelector('.pkg-orient')?.addEventListener('click', e=>e.stopPropagation());
@@ -440,7 +461,7 @@ function rebuildOrientSelect(pkg) {
     <option value="0">${A}×${B} zawsze na górze (wys. ${C})</option>
     <option value="1">${A}×${C} zawsze na górze (wys. ${B})</option>
     <option value="2">${B}×${C} zawsze na górze (wys. ${A})</option>`;
-  if ([...sel.options].some(o=>o.value===cur)) sel.value = cur;
+  sel.value = pkg.topFace || 'auto';
 }
 
 function enforeSingleSelect() {
@@ -1008,8 +1029,11 @@ function openPkgModal(id) {
   // Show "restore defaults" hint when editing
   document.getElementById('modalRestoreRow').style.display = isNew ? 'none' : 'block';
 
+  _previewFaceMode = pkg?.topFace || 'auto';
+  _prevTheta = 0.52; _prevPhi = 0.38;
   document.getElementById('pkgModal').classList.remove('hidden');
-  setTimeout(()=>document.getElementById('mName').focus(), 50);
+  _setupPreviewCanvas();
+  setTimeout(()=>{ document.getElementById('mName').focus(); drawPreview(); }, 50);
 }
 
 function modalClose() {
@@ -1034,10 +1058,10 @@ function modalSave() {
   if (_modalEditId) {
     // Edit existing
     const pkg = PKGS.find(p=>p.id===_modalEditId);
-    if (pkg) { pkg.name=name; pkg.dims=[A,B,C]; pkg.color=color; }
+    if (pkg) { pkg.name=name; pkg.dims=[A,B,C]; pkg.color=color; pkg.topFace=_previewFaceMode; }
   } else {
     // New custom package
-    PKGS.push({ id:'pkg_'+Date.now(), name, dims:[A,B,C], color });
+    PKGS.push({ id:'pkg_'+Date.now(), name, dims:[A,B,C], color, topFace:_previewFaceMode });
   }
   savePkgs();
   modalClose();
@@ -1086,6 +1110,170 @@ function _afterPkgsChanged() {
     buildLegend(r,'manual'); updateManStats(r); draw3D(r);
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// PACKAGE PREVIEW CANVAS (modal)
+// ═══════════════════════════════════════════════════════
+let _previewFaceMode = 'auto';
+let _prevTheta = 0.52, _prevPhi = 0.38;
+let _prevDragActive = false, _prevDragMoved = false;
+let _prevDragX = 0, _prevDragY = 0;
+
+function _prevProj(x, y, z, dimX, dimY, dimZ, cx, cy, sc) {
+  // dimX=A (width), dimY=C (height), dimZ=B (depth) — centre then rotate
+  x -= dimX/2; y -= dimY/2; z -= dimZ/2;
+  const sT=Math.sin(_prevTheta), cT=Math.cos(_prevTheta);
+  const sP=Math.sin(_prevPhi),   cP=Math.cos(_prevPhi);
+  const rx=x*cT-z*sT, rz=x*sT+z*cT;
+  const fx=rx, fy=y*cP-rz*sP, fz=y*sP+rz*cP;
+  const dist=2000, pz=fz+dist;
+  return [(fx/pz)*dist*sc+cx, (-fy/pz)*dist*sc+cy, fz];
+}
+
+function _ptInPoly(px, py, poly) {
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];
+    if(((yi>py)!==(yj>py))&&px<(xj-xi)*(py-yi)/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
+}
+
+function _computePreviewFaces(A, B, C) {
+  const pcv=document.getElementById('previewCanvas');
+  if(!pcv) return [];
+  const W=pcv.width, H=pcv.height;
+  const cx=W/2, cy=H/2;
+  const sc=W*0.36/Math.max(A,B,C);
+  const pp=(x,y,z)=>_prevProj(x,y,z,A,C,B,cx,cy,sc);
+  // box: x=[0..A], y=[0..C], z=[0..B]
+  const p=[
+    pp(0,0,0),pp(A,0,0),pp(A,C,0),pp(0,C,0),  // front z=0: p0-p3
+    pp(0,0,B),pp(A,0,B),pp(A,C,B),pp(0,C,B),  // back  z=B: p4-p7
+  ];
+  const avgZ=f=>f.reduce((s,v)=>s+v[2],0)/f.length;
+  const faces=[
+    {v:[p[3],p[2],p[6],p[7]],shade:.38, type:'0'},  // top y=C → A×B face
+    {v:[p[4],p[5],p[6],p[7]],shade:.16, type:'1'},  // back z=B → A×C face
+    {v:[p[0],p[3],p[7],p[4]],shade:.06, type:'2'},  // left x=0 → B×C face
+    {v:[p[1],p[2],p[6],p[5]],shade:-.14,type:'2'},  // right x=A → B×C face
+    {v:[p[0],p[1],p[2],p[3]],shade:-.26,type:'1'},  // front z=0 → A×C face
+    {v:[p[0],p[1],p[5],p[4]],shade:-.38,type:'0'},  // bottom y=0 → A×B face
+  ];
+  faces.sort((a,b)=>avgZ(b.v)-avgZ(a.v)); // painter: back→front
+  return faces;
+}
+
+function drawPreview() {
+  const pcv=document.getElementById('previewCanvas');
+  if(!pcv) return;
+  const pc=pcv.getContext('2d');
+  pc.clearRect(0,0,pcv.width,pcv.height);
+
+  const A=parseInt(document.getElementById('mDimA').value)||300;
+  const B=parseInt(document.getElementById('mDimB').value)||200;
+  const C=parseInt(document.getElementById('mDimC').value)||150;
+  const baseColor=document.getElementById('mColor')?.value||'#3498db';
+  const faceNames={'0':`${A}×${B} ↑`,'1':`${A}×${C} ↑`,'2':`${B}×${C} ↑`};
+  const faces=_computePreviewFaces(A,B,C);
+
+  faces.forEach(f=>{
+    const isSel=_previewFaceMode!=='auto'&&f.type===_previewFaceMode;
+    const v2=f.v.map(v=>[v[0],v[1]]);
+    pc.beginPath();
+    pc.moveTo(v2[0][0],v2[0][1]);
+    v2.slice(1).forEach(v=>pc.lineTo(v[0],v[1]));
+    pc.closePath();
+    pc.fillStyle=isSel?col(baseColor,.55):col(baseColor,f.shade);
+    pc.fill();
+    pc.strokeStyle=isSel?'#fff':'rgba(0,0,0,.22)';
+    pc.lineWidth=isSel?2:.7;
+    pc.stroke();
+    if(isSel){
+      const fcx=v2.reduce((s,v)=>s+v[0],0)/v2.length;
+      const fcy=v2.reduce((s,v)=>s+v[1],0)/v2.length;
+      pc.fillStyle='rgba(255,255,255,.9)';
+      pc.font=`bold ${Math.round(pcv.width*.12)}px Segoe UI`;
+      pc.textAlign='center';pc.textBaseline='middle';
+      pc.fillText('↑',fcx,fcy);
+      pc.textAlign='start';pc.textBaseline='alphabetic';
+    }
+  });
+
+  const lbl=document.getElementById('prevFaceLabel');
+  if(lbl) lbl.textContent=_previewFaceMode==='auto'?'Auto':(faceNames[_previewFaceMode]||'Auto');
+}
+
+function _setupPreviewCanvas() {
+  const pcv=document.getElementById('previewCanvas');
+  if(!pcv||pcv._previewBound) return;
+  pcv._previewBound=true;
+
+  const hitTest=(clientX,clientY)=>{
+    const rect=pcv.getBoundingClientRect();
+    const sx=(clientX-rect.left)*(pcv.width/rect.width);
+    const sy=(clientY-rect.top)*(pcv.height/rect.height);
+    const A=parseInt(document.getElementById('mDimA').value)||300;
+    const B=parseInt(document.getElementById('mDimB').value)||200;
+    const C=parseInt(document.getElementById('mDimC').value)||150;
+    const faces=_computePreviewFaces(A,B,C);
+    for(let i=faces.length-1;i>=0;i--){
+      if(_ptInPoly(sx,sy,faces[i].v.map(v=>[v[0],v[1]]))) return faces[i].type;
+    }
+    return null;
+  };
+
+  pcv.addEventListener('mousedown',e=>{
+    _prevDragActive=true;_prevDragMoved=false;
+    _prevDragX=e.clientX;_prevDragY=e.clientY;
+    e.preventDefault();
+  });
+  pcv.addEventListener('mousemove',e=>{
+    if(!_prevDragActive) return;
+    const dx=e.clientX-_prevDragX,dy=e.clientY-_prevDragY;
+    if(Math.hypot(dx,dy)>3)_prevDragMoved=true;
+    _prevTheta-=dx*.015;
+    _prevPhi=Math.max(.05,Math.min(1.5,_prevPhi-dy*.015));
+    _prevDragX=e.clientX;_prevDragY=e.clientY;
+    drawPreview();
+  });
+  pcv.addEventListener('mouseup',e=>{
+    if(!_prevDragMoved){
+      const hit=hitTest(e.clientX,e.clientY);
+      _previewFaceMode=(hit&&hit!==_previewFaceMode)?hit:'auto';
+      drawPreview();
+    }
+    _prevDragActive=false;
+  });
+  pcv.addEventListener('mouseleave',()=>{_prevDragActive=false;});
+
+  pcv.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    _prevDragActive=true;_prevDragMoved=false;
+    _prevDragX=e.touches[0].clientX;_prevDragY=e.touches[0].clientY;
+  },{passive:false});
+  pcv.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(!_prevDragActive) return;
+    const dx=e.touches[0].clientX-_prevDragX,dy=e.touches[0].clientY-_prevDragY;
+    if(Math.hypot(dx,dy)>3)_prevDragMoved=true;
+    _prevTheta-=dx*.015;
+    _prevPhi=Math.max(.05,Math.min(1.5,_prevPhi-dy*.015));
+    _prevDragX=e.touches[0].clientX;_prevDragY=e.touches[0].clientY;
+    drawPreview();
+  },{passive:false});
+  pcv.addEventListener('touchend',e=>{
+    if(!_prevDragMoved){
+      const t=e.changedTouches[0];
+      const hit=hitTest(t.clientX,t.clientY);
+      _previewFaceMode=(hit&&hit!==_previewFaceMode)?hit:'auto';
+      drawPreview();
+    }
+    _prevDragActive=false;
+  },{passive:true});
+}
+
+window.drawPreview=drawPreview;
 
 // ═══════════════════════════════════════════════════════
 // CALCULATE
