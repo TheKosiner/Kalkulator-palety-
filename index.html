@@ -747,6 +747,8 @@ function packSingle(pkg, qty, maxH, orientMode, margin=0) {
     const layers=Math.ceil(placed/perLayer);
     const totalH=PAL.H+layers*lh;
     if(!best||placed>best.count||(placed===best.count&&totalH<best.totalH)){
+      // bfw/bfd are the slot dims (possibly swapped by bestFit); render box to match slot
+      const rw=bfw-m2, rd=bfd-m2;
       const placements=[], groups=[{pkgId:pkg.id,color:pkg.color,layers:[]}];
       let rem=placed;
       for(let L=0;L<layers&&rem>0;L++){
@@ -754,8 +756,7 @@ function packSingle(pkg, qty, maxH, orientMode, margin=0) {
         groups[0].layers.push({layer:L,y:yBase,h:lh0});
         for(let ix=0;ix<nx&&rem>0;ix++)
           for(let iy=0;iy<ny&&rem>0;iy++){
-            // render at original dims, offset by margin within the slot
-            placements.push({x:ix*bfw+margin,y:yBase+margin,z:iy*bfd+margin,w:fw0,h:lh0,d:fd0,pkgId:pkg.id,color:pkg.color});
+            placements.push({x:ix*bfw+margin,y:yBase+margin,z:iy*bfd+margin,w:rw,h:lh0,d:rd,pkgId:pkg.id,color:pkg.color});
             rem--;
           }
       }
@@ -958,14 +959,25 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
     const heights = [...new Set(allOrients.map(o => o.lh))].filter(h => currentY + h <= maxH);
     if (heights.length === 0) break;
 
-    // Evaluate each candidate height; choose best by volume-per-mm density
+    // Evaluate each candidate height; choose best by volume-per-mm density.
+    // For each height, pre-select the single best orientation per box type
+    // (the one that fits the most boxes in a uniform grid) so the Guillotine
+    // Cut never gets confused by equal-area ties between two footprint rotations.
     let bestLh = null, bestResult = null, bestDensity = -1;
     for (const lh of heights) {
-      const layerItems = allOrients.filter(o => o.lh === lh);
+      const bestOrientPerPkg = new Map();
+      for (const orient of allOrients) {
+        if (orient.lh !== lh) continue;
+        const gridCount = Math.floor(PAL.W / orient.fw) * Math.floor(PAL.D / orient.fd);
+        const prev = bestOrientPerPkg.get(orient.pkgId);
+        if (!prev || gridCount > prev.gridCount)
+          bestOrientPerPkg.set(orient.pkgId, {...orient, gridCount});
+      }
+      const layerItems = [...bestOrientPerPkg.values()];
       const placed = _guillotineLayer(PAL.W, PAL.D, layerItems, qtysLeft);
       if (placed.length === 0) continue;
       const vol = placed.reduce((s, p) => s + p.fw0 * p.fd0 * p.lh0, 0);
-      const density = vol / lh; // mm²  — bigger boxes → higher score → placed first
+      const density = vol / lh;
       if (density > bestDensity) { bestDensity = density; bestLh = lh; bestResult = placed; }
     }
     if (!bestResult) break;
