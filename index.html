@@ -815,6 +815,19 @@ function _isFlat(x, z, fw, fd, reqH) {
 // Find the lowest flat position for a box fw×fd×lh within maxH.
 // Primary sort: lowest y (fill bottom first).
 // Secondary sort: box centre closest to pallet centre (avoid edge towers).
+// Returns false if any "small" box (vol < maxVol*0.5) tops out exactly at surfY
+// within the footprint. Used to prevent small-on-small stacking (towers).
+function _surfaceIsLargeOnly(x, z, fw, fd, surfY, maxVol) {
+  for (const b of _placed) {
+    if (b.w * b.h * b.d >= maxVol * 0.5) continue;
+    if (b.y + b.h !== surfY) continue;
+    if (b.x + b.w <= x || b.x >= x + fw) continue;
+    if (b.z + b.d <= z || b.z >= z + fd) continue;
+    return false;
+  }
+  return true;
+}
+
 // Optional minY: skip any position whose surface height is below this value
 // (used to force small boxes onto already-placed boxes rather than pallet surface).
 function _findPos(fw, fd, lh, maxH, minY=PAL.H) {
@@ -917,18 +930,22 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
       const onTopMinY = PAL.H + 1; // any position above bare pallet surface
 
       // Try every orientation; keep the one with the lowest valid placement y
-      // (then closest to pallet centre as tiebreak)
+      // (then closest to pallet centre as tiebreak).
+      // requireLargeSurface: small boxes must only sit on large-box surfaces,
+      // preventing small-on-small stacking (towers).
       let bestPos = null, bestOrient = null;
-      const tryOrients = (minY) => {
+      const tryOrients = (minY, requireLargeSurface=false) => {
         for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
           const pos = _findPos(fw, fd, lh, maxH, minY);
           if (!pos) continue;
+          if (requireLargeSurface && pos.y > PAL.H &&
+              !_surfaceIsLargeOnly(pos.x, pos.z, fw, fd, pos.y, maxVol)) continue;
           if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
             { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
         }
       };
-      tryOrients(isSmall ? onTopMinY : PAL.H);
-      // Fallback: if no on-top position found for small box, allow pallet surface
+      tryOrients(isSmall ? onTopMinY : PAL.H, isSmall);
+      // Fallback: if no on-top large-surface position found, allow pallet surface
       if (!bestPos && isSmall) tryOrients(PAL.H);
       if (!bestPos) continue;
 
