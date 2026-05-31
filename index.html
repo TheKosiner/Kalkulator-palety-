@@ -901,9 +901,10 @@ function genOrients(dims, faceMode, margin) {
 // Boxes of any type and height are placed wherever they fit on the growing surface,
 // so different types naturally share the same physical layer — no type segregation.
 //
-// Strategy: one placement round per loop iteration; each round tries to place one
-// box of each type (sorted large-first). Repeats until a full round produces nothing.
-function packMixed(entries, maxH, pkgOrientMap, margin=0) {
+// initialPlaced: optional existing heightmap state (used to resume packing on a
+// partially-filled pallet when processing the next box type sequentially).
+// Returns finalPlaced so the caller can continue packing on the same pallet.
+function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
   const placements = [];
   const groupMap   = new Map();
   const leftover   = [];
@@ -913,7 +914,7 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
 
   // Borrow the shared heightmap; restore when done
   const savedPlaced = _placed;
-  _placed = [];
+  _placed = [...initialPlaced]; // start from provided state (supports resuming a partial pallet)
 
   // Large boxes first → stable base, lower overall pallet height
   const sorted = [...entries].sort((a, b) =>
@@ -969,6 +970,7 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
     }
   }
 
+  const finalPlaced = [..._placed]; // snapshot for continuing on same pallet with next type
   _placed = savedPlaced;
 
   for (const {pkg} of entries) {
@@ -983,13 +985,13 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
     placements, totalH,
     groups: [...groupMap.entries()].map(([pkgId, g]) => ({pkgId, ...g, layers: []})),
     leftover,
+    finalPlaced,
   };
 }
 
-// packMixed is now self-optimising (tries all 6 orientations, all heights, Guillotine).
 // packMixedOptimal is kept for call-site compatibility.
-function packMixedOptimal(entries, maxH, pkgOrientMap, margin) {
-  return packMixed(entries, maxH, pkgOrientMap, margin);
+function packMixedOptimal(entries, maxH, pkgOrientMap, margin, initialPlaced=[]) {
+  return packMixed(entries, maxH, pkgOrientMap, margin, initialPlaced);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1326,29 +1328,52 @@ window.calculate=function(){
 
     const allPlacements=[];
     const groupAccum=new Map();
-    let remaining=initEntries, numPallets=0;
-    for(let pi=0;pi<maxPallets&&remaining.length>0;pi++){
-      const r=packMixedOptimal(remaining,maxH,pkgOrientMap,margin);
-      if(r.count===0) break;
-      const ox=pi*(PAL.W+PAL_GAP);
-      r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx:pi}));
-      r.groups?.forEach(g=>{
-        if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
-        groupAccum.get(g.pkgId).placed+=g.placed;
-      });
-      remaining=r.leftover||[]; numPallets=pi+1;
-      res=r;
+    // Sort largest types first: each type fills complete pallets before smaller
+    // types start. Smaller types share remaining space on the last pallet.
+    const sortedEntries=[...initEntries].sort((a,b)=>{
+      const va=a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2];
+      const vb=b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2];
+      return vb-va;
+    });
+    let palletIdx=0, palletState=[];
+    const leftover=[];
+    res={count:0,layers:0,placements:[],totalH:PAL.H,groups:[],leftover:[],numPallets:1};
+
+    for (const entry of sortedEntries) {
+      if (palletIdx>=maxPallets){leftover.push({pkg:entry.pkg,qty:entry.qty});continue;}
+      let remQty=entry.qty;
+      while (remQty>0 && palletIdx<maxPallets) {
+        const r=packMixedOptimal([{pkg:entry.pkg,qty:remQty}],maxH,pkgOrientMap,margin,palletState);
+        if (r.count===0) {
+          // Nothing fits on current pallet — start a fresh one
+          if (palletState.length===0) break; // can't fit even on an empty pallet
+          palletIdx++; palletState=[];
+          continue;
+        }
+        const ox=palletIdx*(PAL.W+PAL_GAP);
+        r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx}));
+        r.groups?.forEach(g=>{
+          if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
+          groupAccum.get(g.pkgId).placed+=g.placed;
+        });
+        palletState=r.finalPlaced||[];
+        remQty-=r.count;
+        res=r;
+      }
+      if (remQty>0) leftover.push({pkg:entry.pkg,qty:remQty});
     }
-    const totalLeft=remaining.reduce((s,l)=>s+l.qty,0);
+    const numPallets=allPlacements.length>0
+      ? Math.max(...allPlacements.map(p=>p.palletIdx))+1 : 1;
+    const totalLeft=leftover.reduce((s,l)=>s+l.qty,0);
     res={...res,count:allPlacements.length,placements:allPlacements,numPallets,
-         groups:[...groupAccum.values()],leftover:remaining};
+         groups:[...groupAccum.values()],leftover};
     document.getElementById('rTotal').textContent=res.count;
     document.getElementById('rLayers').textContent=res.layers||0;
     document.getElementById('rHeight').textContent=res.totalH||'—';
     document.getElementById('sPerLayer').style.display='none';
     document.getElementById('rLeft').textContent=totalLeft;
-    if(remaining.length&&numPallets>=maxPallets){
-      warns.push('Nie zmieściło się (zwiększ liczbę palet): '+remaining.map(l=>`${l.pkg.name} ×${l.qty}`).join(', '));
+    if(leftover.length&&numPallets>=maxPallets){
+      warns.push('Nie zmieściło się (zwiększ liczbę palet): '+leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', '));
     }
   }
 
