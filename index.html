@@ -156,6 +156,7 @@
   <canvas id="canvas3d"></canvas>
   <div class="ov" id="statsBar">
     <div class="s"><span class="v" id="rTotal">—</span><span class="l">Paczek</span></div>
+    <div class="s" id="sPallets" style="display:none"><span class="v" id="rPallets">—</span><span class="l">Palet</span></div>
     <div class="s"><span class="v" id="rLayers">—</span><span class="l">Warstw</span></div>
     <div class="s"><span class="v" id="rHeight">—</span><span class="l">Wys. mm</span></div>
     <div class="s" id="sPerLayer" style="display:none"><span class="v" id="rPerLayer">—</span><span class="l">/ warstwę</span></div>
@@ -170,6 +171,8 @@
     <button class="cam-btn" title="Oddal" onclick="camZoomOut()">−</button>
     <button class="cam-btn" title="Obróć lewo" onclick="camRotL()">◀</button>
     <button class="cam-btn" title="Obróć prawo" onclick="camRotR()">▶</button>
+    <button class="cam-btn" title="Pochyl w górę" onclick="camRotUp()">▲</button>
+    <button class="cam-btn" title="Pochyl w dół" onclick="camRotDn()">▼</button>
     <button class="cam-btn" title="Reset widoku" onclick="camReset()">⟳</button>
   </div>
 </div>
@@ -245,6 +248,10 @@
     <div class="ctrl-full">
       <label class="lbl">Margines bezpieczeństwa (mm / stronę)</label>
       <input type="number" id="margin" value="0" min="0" max="200" step="5" inputmode="numeric"/>
+    </div>
+    <div class="ctrl-full">
+      <label class="lbl">Maks. liczba palet (nadmiar na kolejne)</label>
+      <input type="number" id="maxPallets" value="1" min="1" max="20" inputmode="numeric"/>
     </div>
 
     <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
@@ -1265,6 +1272,7 @@ let lastRes=null, lastMode=null;
 window.calculate=function(){
   const orientMode=document.getElementById('orient').value;
   const margin=parseInt(document.getElementById('margin').value)||0;
+  const maxPallets=Math.max(1,parseInt(document.getElementById('maxPallets').value)||1);
   let res, warns=[];
 
   if(mode==='single'){
@@ -1273,41 +1281,81 @@ window.calculate=function(){
     const pkg=PKGS.find(p=>p.id===pkgId);
     const qty=parseInt(document.getElementById('qty').value)||1;
     const maxH=parseInt(document.getElementById('maxH').value)||1800;
-    res=packSingle(pkg,qty,maxH,orientMode,margin);
-    if(!res||res.count===0) warns.push('Paczka nie mieści się w podanej wysokości!');
-    else if(res.count<qty) warns.push(`Tylko ${res.count} z ${qty} paczek zmieściło się.`);
-    document.getElementById('rTotal').textContent=res?res.count:0;
-    document.getElementById('rLayers').textContent=res?res.layers:0;
-    document.getElementById('rHeight').textContent=res?res.totalH:'—';
-    document.getElementById('rPerLayer').textContent=res?res.perLayer:0;
+
+    // pack across multiple pallets: each pallet gets a fresh run until all boxes placed
+    const allPlacements=[];
+    const groupAccum=new Map();
+    let remQty=qty, numPallets=0;
+    for(let pi=0;pi<maxPallets&&remQty>0;pi++){
+      const r=packSingle(pkg,remQty,maxH,orientMode,margin);
+      if(!r||r.count===0) break;
+      const ox=pi*(PAL.W+PAL_GAP);
+      r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx:pi}));
+      remQty-=r.count; numPallets=pi+1;
+      res=r; // keep last for metadata (layers, perLayer, totalH)
+      r.groups?.forEach(g=>{
+        if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
+        groupAccum.get(g.pkgId).placed+=g.placed;
+      });
+    }
+    if(!res||allPlacements.length===0) warns.push('Paczka nie mieści się w podanej wysokości!');
+    else if(remQty>0 && numPallets>=maxPallets) warns.push(`Zostało ${remQty} paczek – zwiększ liczbę palet.`);
+    res={...res,count:allPlacements.length,placements:allPlacements,numPallets,
+         groups:[...groupAccum.values()]};
+    document.getElementById('rTotal').textContent=res.count;
+    document.getElementById('rLayers').textContent=res.layers||0;
+    document.getElementById('rHeight').textContent=res.totalH||'—';
+    document.getElementById('rPerLayer').textContent=res.perLayer||0;
     document.getElementById('sPerLayer').style.display='';
-    document.getElementById('rLeft').textContent=res?(qty-res.count):qty;
+    document.getElementById('rLeft').textContent=remQty;
+
   } else {
     if(!selectedIds.size){alert('Zaznacz przynajmniej jeden karton!');return;}
     const maxH=parseInt(document.getElementById('maxHMixed').value)||1800;
-    const entries=[];
     const pkgOrientMap=new Map();
-    let totalReq=0;
+    let initEntries=[]; let totalReq=0;
     selectedIds.forEach(id=>{
       const pkg=PKGS.find(p=>p.id===id);
       const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
       const orientEl=document.querySelector(`.pkg-orient[data-id="${id}"]`);
       const qty=parseInt(qtyEl?.value)||0;
-      if(qty<=0) return; // skip types with 0 quantity
+      if(qty<=0) return;
       pkgOrientMap.set(id, orientEl?.value||'auto');
-      entries.push({pkg,qty});
-      totalReq+=qty;
+      initEntries.push({pkg,qty}); totalReq+=qty;
     });
-    res=packMixedOptimal(entries,maxH,pkgOrientMap,margin);
+
+    const allPlacements=[];
+    const groupAccum=new Map();
+    let remaining=initEntries, numPallets=0;
+    for(let pi=0;pi<maxPallets&&remaining.length>0;pi++){
+      const r=packMixedOptimal(remaining,maxH,pkgOrientMap,margin);
+      if(r.count===0) break;
+      const ox=pi*(PAL.W+PAL_GAP);
+      r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx:pi}));
+      r.groups?.forEach(g=>{
+        if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
+        groupAccum.get(g.pkgId).placed+=g.placed;
+      });
+      remaining=r.leftover||[]; numPallets=pi+1;
+      res=r;
+    }
+    const totalLeft=remaining.reduce((s,l)=>s+l.qty,0);
+    res={...res,count:allPlacements.length,placements:allPlacements,numPallets,
+         groups:[...groupAccum.values()],leftover:remaining};
     document.getElementById('rTotal').textContent=res.count;
-    document.getElementById('rLayers').textContent=res.layers;
-    document.getElementById('rHeight').textContent=res.totalH;
+    document.getElementById('rLayers').textContent=res.layers||0;
+    document.getElementById('rHeight').textContent=res.totalH||'—';
     document.getElementById('sPerLayer').style.display='none';
-    document.getElementById('rLeft').textContent=totalReq-res.count;
-    if(res.leftover?.length){
-      warns.push('Nie zmieściło się: '+res.leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', '));
+    document.getElementById('rLeft').textContent=totalLeft;
+    if(remaining.length&&numPallets>=maxPallets){
+      warns.push('Nie zmieściło się (zwiększ liczbę palet): '+remaining.map(l=>`${l.pkg.name} ×${l.qty}`).join(', '));
     }
   }
+
+  // pallets counter in stats bar
+  const numP=res?.numPallets||1;
+  document.getElementById('rPallets').textContent=numP;
+  document.getElementById('sPallets').style.display=numP>1?'':'none';
 
   const sb=document.getElementById('statsBar');
   sb.style.display='flex';
@@ -1362,7 +1410,7 @@ canvas.addEventListener('mousemove',e=>{
   if(!drag)return;
   const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
   if(rmb){panX+=dx*1.8;panY+=dy*1.8;}
-  else{camTheta-=dx*.007;camPhi=Math.max(.05,Math.min(1.5,camPhi-dy*.007));}
+  else{camTheta-=dx*.007;camPhi-=dy*.007;}
   if(lastRes)draw3D(lastRes);
 });
 canvas.addEventListener('mouseup',e=>{
@@ -1397,7 +1445,7 @@ canvas.addEventListener('touchmove',e=>{
   } else if(e.touches.length===1){
     const t=e.touches[0],pr=tpts[t.identifier];
     if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;
-      camTheta-=dx*.007;camPhi=Math.max(.05,Math.min(1.5,camPhi-dy*.007));
+      camTheta-=dx*.007;camPhi-=dy*.007;
     }
     tpts[t.identifier]={x:t.clientX,y:t.clientY};
   }
@@ -1420,9 +1468,10 @@ canvas.addEventListener('touchend',e=>{
 },{passive:true});
 
 // projection — orbit centre is the geometric centre of the scene in all 3 axes
+let _sceneCenterX = PAL.W/2; // updated by draw3D for multi-pallet scenes
 function proj(x,y,z,cx,cy,sc){
-  x -= PAL.W/2;      // centre on pallet X midpoint
-  z -= PAL.D/2;      // centre on pallet Z midpoint
+  x -= _sceneCenterX; // centre on scene X midpoint (multi-pallet aware)
+  z -= PAL.D/2;       // centre on pallet Z midpoint
   y -= camTargetY;   // centre on vertical midpoint of scene
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
   const sP=Math.sin(camPhi),cP=Math.cos(camPhi);
@@ -1462,13 +1511,15 @@ function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
   ].sort((a,b)=>avgZ(b.v)-avgZ(a.v)).forEach(f=>drawFace(f.v,f.f,f.s));
 }
 
-function drawPallet(sc,cx,cy){
+function drawPallet(sc,cx,cy,ox=0){
   const {W,D,H}=PAL;
-  for(let i=0;i<6;i++) drawBox(i*200,H-22,0,120,22,D,'#c8a86a',sc,cx,cy);
-  [0,D/2-50,D-100].forEach(bz=>drawBox(0,0,bz,W,20,100,'#b8965a',sc,cx,cy));
-  [0,W/2-50,W-100].forEach(bx=>[0,D/2-50,D-100].forEach(bz=>drawBox(bx,20,bz,100,72,100,'#9a6e38',sc,cx,cy)));
-  [0,D/2-40,D-80].forEach(bz=>drawBox(0,92,bz,W,20,80,'#b8965a',sc,cx,cy));
+  for(let i=0;i<6;i++) drawBox(ox+i*200,H-22,0,120,22,D,'#c8a86a',sc,cx,cy);
+  [0,D/2-50,D-100].forEach(bz=>drawBox(ox,0,bz,W,20,100,'#b8965a',sc,cx,cy));
+  [0,W/2-50,W-100].forEach(bx=>[0,D/2-50,D-100].forEach(bz=>drawBox(ox+bx,20,bz,100,72,100,'#9a6e38',sc,cx,cy)));
+  [0,D/2-40,D-80].forEach(bz=>drawBox(ox,92,bz,W,20,80,'#b8965a',sc,cx,cy));
 }
+
+const PAL_GAP = 200; // gap between pallets in mm
 
 function draw3D(res){
   const vw=document.getElementById('view3d');
@@ -1484,18 +1535,29 @@ function draw3D(res){
 
   if(!res)return;
 
+  const numPallets = res.numPallets || 1;
+  const sceneW = numPallets * PAL.W + (numPallets-1) * PAL_GAP;
+  _sceneCenterX = sceneW / 2; // update proj() orbit centre
+
   const totalH=res.totalH||PAL.H+100;
-  camTargetY=totalH/2; // camera looks at vertical midpoint of scene
-  const maxDim=Math.max(PAL.W,PAL.D,totalH);
+  camTargetY=totalH/2;
+  const maxDim=Math.max(sceneW,PAL.D,totalH);
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim;
-  const cx=W/2,cy=H/2; // screen centre; y is centred via camTargetY in proj
+  const cx=W/2,cy=H/2;
 
-  // floor shadow
-  const sh=[[0,0,0],[PAL.W,0,0],[PAL.W,0,PAL.D],[0,0,PAL.D]].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
-  ctx.beginPath();sh.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
-  ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
+  // floor shadows + pallets, sorted back→front for painter's algorithm
+  const palletObjs = Array.from({length: numPallets}, (_,i) => ({
+    ox: i*(PAL.W+PAL_GAP),
+    depth: proj(i*(PAL.W+PAL_GAP)+PAL.W/2, 0, PAL.D/2, cx, cy, sc)[2],
+  })).sort((a,b)=>b.depth-a.depth);
 
-  drawPallet(sc,cx,cy);
+  for (const {ox} of palletObjs) {
+    const sh=[[ox,0,0],[ox+PAL.W,0,0],[ox+PAL.W,0,PAL.D],[ox,0,PAL.D]]
+      .map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
+    ctx.beginPath();sh.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+    ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
+    drawPallet(sc,cx,cy,ox);
+  }
 
   // sort all boxes back→front
   [...res.placements].sort((a,b)=>
@@ -1503,10 +1565,9 @@ function draw3D(res){
     proj(a.x+a.w/2,a.y+a.h/2,a.z+a.d/2,cx,cy,sc)[2]
   ).forEach(p=>drawBox(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy));
 
-  // manual mode overlays
+  // manual mode overlays (always single pallet)
   if(mode==='manual'){
     if(manRemoveMode && manHoverRemoveIdx>=0 && manHoverRemoveIdx<manBoxes.length){
-      // red highlight on the box about to be removed
       const b=manBoxes[manHoverRemoveIdx];
       ctx.globalAlpha=0.55;
       drawBox(b.x,b.y,b.z,b.w,b.h,b.d,'#e74c3c',sc,cx,cy);
@@ -1520,15 +1581,20 @@ function draw3D(res){
     }
   }
 
-  // height line
-  const [lx0,ly0]=proj(PAL.W+90,0,PAL.D/2,cx,cy,sc);
-  const [lx1,ly1]=proj(PAL.W+90,res.totalH,PAL.D/2,cx,cy,sc);
-  ctx.beginPath();ctx.moveTo(lx0,ly0);ctx.lineTo(lx1,ly1);
-  ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
-  [[lx0,ly0],[lx1,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
+  // height lines — one per pallet
   const fs=Math.max(11,Math.min(15,W/28));
-  ctx.fillStyle='#1a3c5e';ctx.font=`bold ${fs}px Segoe UI`;
-  ctx.fillText(res.totalH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
+  ctx.font=`bold ${fs}px Segoe UI`;
+  for (let pi=0; pi<numPallets; pi++) {
+    const ox=pi*(PAL.W+PAL_GAP);
+    const [lx0,ly0]=proj(ox+PAL.W+90,0,PAL.D/2,cx,cy,sc);
+    const [lx1,ly1]=proj(ox+PAL.W+90,res.totalH,PAL.D/2,cx,cy,sc);
+    ctx.beginPath();ctx.moveTo(lx0,ly0);ctx.lineTo(lx1,ly1);
+    ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
+    [[lx0,ly0],[lx1,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
+    ctx.fillStyle='#1a3c5e';
+    ctx.fillText(res.totalH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
+    if(numPallets>1){ctx.fillStyle='#1a3c5e80';ctx.fillText('P'+(pi+1),lx1+8,ly1-fs);}
+  }
 
   document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: obracaj · 2 palce: zoom · przyciski: zoom/obrót':'Mysz: obracaj · Scroll: zoom · PPM: przesuń';
 }
@@ -1570,9 +1636,12 @@ function camZoomIn(){camDist=Math.max(600,camDist*0.8);if(lastRes)draw3D(lastRes
 function camZoomOut(){camDist=Math.min(10000,camDist*1.25);if(lastRes)draw3D(lastRes);}
 function camRotL(){camTheta-=0.18;if(lastRes)draw3D(lastRes);}
 function camRotR(){camTheta+=0.18;if(lastRes)draw3D(lastRes);}
-function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camDist=CAM_DEF.dist;panX=0;panY=0;camTargetY=PAL.H/2;if(lastRes)draw3D(lastRes);}
+function camRotUp(){camPhi-=0.18;if(lastRes)draw3D(lastRes);}
+function camRotDn(){camPhi+=0.18;if(lastRes)draw3D(lastRes);}
+function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camDist=CAM_DEF.dist;panX=0;panY=0;camTargetY=PAL.H/2;_sceneCenterX=PAL.W/2;if(lastRes)draw3D(lastRes);}
 window.camZoomIn=camZoomIn;window.camZoomOut=camZoomOut;
 window.camRotL=camRotL;window.camRotR=camRotR;window.camReset=camReset;
+window.camRotUp=camRotUp;window.camRotDn=camRotDn;
 window.openPkgModal=openPkgModal;window.modalSave=modalSave;
 window.modalDelete=modalDelete;window.modalClose=modalClose;
 window.modalBgClick=modalBgClick;window.modalRestoreDefaults=modalRestoreDefaults;
