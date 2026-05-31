@@ -815,7 +815,9 @@ function _isFlat(x, z, fw, fd, reqH) {
 // Find the lowest flat position for a box fw×fd×lh within maxH.
 // Primary sort: lowest y (fill bottom first).
 // Secondary sort: box centre closest to pallet centre (avoid edge towers).
-function _findPos(fw, fd, lh, maxH) {
+// Optional minY: skip any position whose surface height is below this value
+// (used to force small boxes onto already-placed boxes rather than pallet surface).
+function _findPos(fw, fd, lh, maxH, minY=PAL.H) {
   const xs = new Set([0]), zs = new Set([0]);
   for (const b of _placed) {
     xs.add(b.x); xs.add(b.x+b.w);
@@ -828,7 +830,7 @@ function _findPos(fw, fd, lh, maxH) {
     for (const z of zs) {
       if (z + fd > PAL.D) continue;
       const y = _maxSurf(x, z, fw, fd);
-      if (y + lh > maxH) continue;
+      if (y < minY || y + lh > maxH) continue;
       if (!_isFlat(x, z, fw, fd, y)) continue;
       const dc = Math.hypot(x + fw/2 - pcx, z + fd/2 - pcz);
       if (!best || y < best.y || (y === best.y && dc < best.dc))
@@ -897,6 +899,7 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
   const sorted = [...entries].sort((a, b) =>
     b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2] - a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2]
   );
+  const maxVol = sorted[0] ? sorted[0].pkg.dims[0]*sorted[0].pkg.dims[1]*sorted[0].pkg.dims[2] : 1;
 
   let progress = true;
   while (progress) {
@@ -906,15 +909,27 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0) {
       if (qty <= 0) continue;
       const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
 
-      // Try every orientation; keep the one with the lowest placement y
+      // A box is "small" if its volume is < 50% of the largest selected type.
+      // Small boxes prefer sitting on top of already-placed boxes (minY > PAL.H),
+      // concentrating them centrally above the large base layer.
+      const vol = pkg.dims[0]*pkg.dims[1]*pkg.dims[2];
+      const isSmall = vol < maxVol * 0.5 && _placed.length > 0;
+      const onTopMinY = PAL.H + 1; // any position above bare pallet surface
+
+      // Try every orientation; keep the one with the lowest valid placement y
       // (then closest to pallet centre as tiebreak)
       let bestPos = null, bestOrient = null;
-      for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
-        const pos = _findPos(fw, fd, lh, maxH);
-        if (!pos) continue;
-        if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
-          { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
-      }
+      const tryOrients = (minY) => {
+        for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
+          const pos = _findPos(fw, fd, lh, maxH, minY);
+          if (!pos) continue;
+          if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
+            { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
+        }
+      };
+      tryOrients(isSmall ? onTopMinY : PAL.H);
+      // Fallback: if no on-top position found for small box, allow pallet surface
+      if (!bestPos && isSmall) tryOrients(PAL.H);
       if (!bestPos) continue;
 
       _placed.push({x: bestPos.x, y: bestPos.y, z: bestPos.z,
