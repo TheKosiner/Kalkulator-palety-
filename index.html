@@ -77,10 +77,23 @@
     .cam-btn{width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.86);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.22);color:#1a3c5e;font-weight:700;line-height:1}
     .cam-btn:active{transform:scale(.88)}
 
-    /* PER-PKG ORIENT */
+    /* PER-PKG FACE BUTTON */
     .pkg-orient-wrap{display:none;flex-shrink:0}
-    .pkg-orient{width:76px;padding:4px 3px;border:1.5px solid #dde2e8;border-radius:7px;font-size:.7rem;outline:none;background:#fff}
-    .pkg-orient:focus{border-color:var(--blue)}
+    .pkg-face-btn{padding:3px 8px;border:1.5px solid #dde2e8;border-radius:7px;font-size:.7rem;cursor:pointer;background:#fff;color:#444;white-space:nowrap;flex-shrink:0}
+    .pkg-face-btn:hover{border-color:var(--blue);background:#eef3ff}
+
+    /* FACE PICKER POPUP */
+    #facePickerModal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center}
+    #facePickerModal.hidden{display:none}
+    #facePickerBox{background:#fff;border-radius:14px;padding:18px 20px;width:230px;box-shadow:0 8px 40px rgba(0,0,0,.28);display:flex;flex-direction:column;align-items:center;gap:8px}
+    #facePickerTitle{font-weight:700;font-size:.9rem;color:var(--navy);text-align:center}
+    #facePickerSub{font-size:.72rem;color:#888;text-align:center;margin-top:-4px}
+    #facePickerHint{font-size:.67rem;color:#aaa;text-align:center}
+    #facePickerLabel{font-size:.82rem;color:var(--navy);font-weight:600;min-height:1.1em}
+    .fp-btns{display:flex;gap:8px;margin-top:4px}
+    .fp-btn{padding:6px 14px;border:none;border-radius:8px;cursor:pointer;font-size:.78rem;font-weight:600}
+    .fp-btn-auto{background:#e8eef6;color:#1a3c5e}
+    .fp-btn-close{background:var(--navy);color:#fff}
 
     /* MANUAL MODE */
     #manualPanel .pkg-item{cursor:pointer}
@@ -259,6 +272,21 @@
   </div>
 </div>
 
+<!-- FACE PICKER POPUP -->
+<div class="hidden" id="facePickerModal" onclick="fpBgClick(event)">
+  <div id="facePickerBox">
+    <div id="facePickerTitle">Ściana na górze</div>
+    <div id="facePickerSub"></div>
+    <canvas id="facePickerCanvas" width="190" height="190" style="cursor:pointer;border-radius:8px;background:#f4f7fb"></canvas>
+    <div id="facePickerHint">Kliknij ścianę · przeciągnij aby obrócić</div>
+    <div id="facePickerLabel">Auto</div>
+    <div class="fp-btns">
+      <button class="fp-btn fp-btn-auto" onclick="fpSetAuto()">Auto</button>
+      <button class="fp-btn fp-btn-close" onclick="closeFacePicker()">Zamknij</button>
+    </div>
+  </div>
+</div>
+
 <!-- PACKAGE EDIT / CREATE MODAL -->
 <div class="modal-overlay hidden" id="pkgModal" onclick="modalBgClick(event)">
   <div class="modal-box">
@@ -390,11 +418,11 @@ let selectedIds = new Set([PKGS[0]?.id || '']);
 function buildPkgList() {
   const list = document.getElementById('pkgList');
   list.innerHTML = '';
-  // Preserve qty/orient values across rebuilds
-  const savedQtys   = new Map();
-  const savedOrients = new Map();
-  document.querySelectorAll('.pkg-qty').forEach(el   => savedQtys.set(el.dataset.id,   el.value));
-  document.querySelectorAll('.pkg-orient').forEach(el => savedOrients.set(el.dataset.id, el.value));
+  // Preserve qty/face values across rebuilds
+  const savedQtys  = new Map();
+  const savedFaces = new Map();
+  document.querySelectorAll('.pkg-qty').forEach(el  => savedQtys.set(el.dataset.id,  el.value));
+  document.querySelectorAll('.pkg-face-btn').forEach(el => savedFaces.set(el.dataset.id, el.dataset.face));
 
   PKGS.forEach(p => {
     const isSel  = selectedIds.has(p.id);
@@ -411,12 +439,7 @@ function buildPkgList() {
       </div>
       <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
       <div class="pkg-orient-wrap" style="display:${showMixed?'flex':'none'}">
-        <select class="pkg-orient" data-id="${p.id}">
-          <option value="auto">Auto</option>
-          <option value="0">${A}×${B} ↑ wys.${C}</option>
-          <option value="1">${A}×${C} ↑ wys.${B}</option>
-          <option value="2">${B}×${C} ↑ wys.${A}</option>
-        </select>
+        <button class="pkg-face-btn" data-id="${p.id}" data-face="auto">↑ Auto</button>
       </div>
       <div class="pkg-qty-wrap" style="display:${showMixed?'flex':'none'}">
         <label>szt.:</label>
@@ -424,11 +447,13 @@ function buildPkgList() {
       </div>`;
 
     // restore saved values
-    if (savedQtys.has(p.id))    item.querySelector('.pkg-qty').value    = savedQtys.get(p.id);
-    item.querySelector('.pkg-orient').value = savedOrients.has(p.id) ? savedOrients.get(p.id) : (p.topFace||'auto');
+    if (savedQtys.has(p.id)) item.querySelector('.pkg-qty').value = savedQtys.get(p.id);
+    const faceBtn = item.querySelector('.pkg-face-btn');
+    const savedFace = savedFaces.has(p.id) ? savedFaces.get(p.id) : (p.topFace||'auto');
+    _applyFaceBtnLabel(faceBtn, p.dims, savedFace);
 
-    item.querySelector('.pkg-qty')?.addEventListener('click',    e=>e.stopPropagation());
-    item.querySelector('.pkg-orient')?.addEventListener('click', e=>e.stopPropagation());
+    item.querySelector('.pkg-qty')?.addEventListener('click', e=>e.stopPropagation());
+    faceBtn?.addEventListener('click', e=>{ e.stopPropagation(); openFacePicker(p.id); });
     item.querySelector('.pkg-edit-btn')?.addEventListener('click', e=>{
       e.stopPropagation(); openPkgModal(p.id);
     });
@@ -1130,49 +1155,47 @@ function _ptInPoly(px, py, poly) {
   return inside;
 }
 
-function _computePreviewFaces(A, B, C) {
-  const pcv=document.getElementById('previewCanvas');
-  if(!pcv) return [];
-  const W=pcv.width, H=pcv.height;
+// Generic face computation for any canvas + explicit theta/phi state
+function _computeFacesForCanvas(canvasEl, A, B, C, theta, phi) {
+  const W=canvasEl.width, H=canvasEl.height;
   const cx=W/2, cy=H/2;
   const sc=W*0.36/Math.max(A,B,C);
-  const pp=(x,y,z)=>_prevProj(x,y,z,A,C,B,cx,cy,sc);
-  // box: x=[0..A], y=[0..C], z=[0..B]
-  const p=[
-    pp(0,0,0),pp(A,0,0),pp(A,C,0),pp(0,C,0),  // front z=0: p0-p3
-    pp(0,0,B),pp(A,0,B),pp(A,C,B),pp(0,C,B),  // back  z=B: p4-p7
-  ];
+  const pp=(x,y,z)=>{
+    x-=A/2; y-=C/2; z-=B/2;
+    const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
+    const rx=x*cT-z*sT, rz=x*sT+z*cT;
+    const fx=rx, fy=y*cP-rz*sP, fz=y*sP+rz*cP;
+    const dist=2000, pz=Math.max(fz+dist,1);
+    return[(fx/pz)*dist*sc+cx,(-fy/pz)*dist*sc+cy,fz];
+  };
+  const p=[pp(0,0,0),pp(A,0,0),pp(A,C,0),pp(0,C,0),pp(0,0,B),pp(A,0,B),pp(A,C,B),pp(0,C,B)];
   const avgZ=f=>f.reduce((s,v)=>s+v[2],0)/f.length;
   const faces=[
-    {v:[p[3],p[2],p[6],p[7]],shade:.38, type:'0'},  // top y=C → A×B face
-    {v:[p[4],p[5],p[6],p[7]],shade:.16, type:'1'},  // back z=B → A×C face
-    {v:[p[0],p[3],p[7],p[4]],shade:.06, type:'2'},  // left x=0 → B×C face
-    {v:[p[1],p[2],p[6],p[5]],shade:-.14,type:'2'},  // right x=A → B×C face
-    {v:[p[0],p[1],p[2],p[3]],shade:-.26,type:'1'},  // front z=0 → A×C face
-    {v:[p[0],p[1],p[5],p[4]],shade:-.38,type:'0'},  // bottom y=0 → A×B face
+    {v:[p[3],p[2],p[6],p[7]],shade:.38, type:'0'},
+    {v:[p[4],p[5],p[6],p[7]],shade:.16, type:'1'},
+    {v:[p[0],p[3],p[7],p[4]],shade:.06, type:'2'},
+    {v:[p[1],p[2],p[6],p[5]],shade:-.14,type:'2'},
+    {v:[p[0],p[1],p[2],p[3]],shade:-.26,type:'1'},
+    {v:[p[0],p[1],p[5],p[4]],shade:-.38,type:'0'},
   ];
-  faces.sort((a,b)=>avgZ(b.v)-avgZ(a.v)); // painter: back→front
+  faces.sort((a,b)=>avgZ(b.v)-avgZ(a.v));
   return faces;
 }
 
-function drawPreview() {
+function _computePreviewFaces(A, B, C) {
   const pcv=document.getElementById('previewCanvas');
-  if(!pcv) return;
-  const pc=pcv.getContext('2d');
-  pc.clearRect(0,0,pcv.width,pcv.height);
+  if(!pcv) return [];
+  return _computeFacesForCanvas(pcv, A, B, C, _prevTheta, _prevPhi);
+}
 
-  const A=parseInt(document.getElementById('mDimA').value)||300;
-  const B=parseInt(document.getElementById('mDimB').value)||200;
-  const C=parseInt(document.getElementById('mDimC').value)||150;
-  const baseColor=document.getElementById('mColor')?.value||'#3498db';
-  const faceNames={'0':`${A}×${B} ↑`,'1':`${A}×${C} ↑`,'2':`${B}×${C} ↑`};
-  const faces=_computePreviewFaces(A,B,C);
-
+// Generic canvas face renderer (shared by modal preview + face picker)
+function _renderFaces(canvasEl, faces, baseColor, faceMode) {
+  const pc=canvasEl.getContext('2d');
+  pc.clearRect(0,0,canvasEl.width,canvasEl.height);
   faces.forEach(f=>{
-    const isSel=_previewFaceMode!=='auto'&&f.type===_previewFaceMode;
+    const isSel=faceMode!=='auto'&&f.type===faceMode;
     const v2=f.v.map(v=>[v[0],v[1]]);
-    pc.beginPath();
-    pc.moveTo(v2[0][0],v2[0][1]);
+    pc.beginPath();pc.moveTo(v2[0][0],v2[0][1]);
     v2.slice(1).forEach(v=>pc.lineTo(v[0],v[1]));
     pc.closePath();
     pc.fillStyle=isSel?col(baseColor,.55):col(baseColor,f.shade);
@@ -1184,13 +1207,144 @@ function drawPreview() {
       const fcx=v2.reduce((s,v)=>s+v[0],0)/v2.length;
       const fcy=v2.reduce((s,v)=>s+v[1],0)/v2.length;
       pc.fillStyle='rgba(255,255,255,.9)';
-      pc.font=`bold ${Math.round(pcv.width*.12)}px Segoe UI`;
+      pc.font=`bold ${Math.round(canvasEl.width*.12)}px Segoe UI`;
       pc.textAlign='center';pc.textBaseline='middle';
       pc.fillText('↑',fcx,fcy);
       pc.textAlign='start';pc.textBaseline='alphabetic';
     }
   });
+}
 
+// ═══════════════════════════════════════════════════════
+// FACE PICKER (popup for per-package face selection in mixed mode)
+// ═══════════════════════════════════════════════════════
+let _fpFaceMode='auto', _fpTheta=0.52, _fpPhi=0.38, _fpPkgId=null;
+let _fpDragActive=false, _fpDragMoved=false, _fpDragX=0, _fpDragY=0;
+
+function _applyFaceBtnLabel(btn, dims, face) {
+  if(!btn) return;
+  const [A,B,C]=dims;
+  const labels={'0':`${A}×${B}`,'1':`${A}×${C}`,'2':`${B}×${C}`};
+  btn.dataset.face=face;
+  btn.textContent=face==='auto'?'↑ Auto':'↑ '+labels[face];
+}
+
+function _fpFaceNames(dims) {
+  const [A,B,C]=dims;
+  return {'auto':'Auto','0':`${A}×${B} ↑`,'1':`${A}×${C} ↑`,'2':`${B}×${C} ↑`};
+}
+
+function drawFacePicker() {
+  const pcv=document.getElementById('facePickerCanvas');
+  if(!pcv) return;
+  const pkg=PKGS.find(p=>p.id===_fpPkgId);
+  if(!pkg) return;
+  const [A,B,C]=pkg.dims;
+  const faces=_computeFacesForCanvas(pcv,A,B,C,_fpTheta,_fpPhi);
+  _renderFaces(pcv,faces,pkg.color,_fpFaceMode);
+  const lbl=document.getElementById('facePickerLabel');
+  if(lbl) lbl.textContent=_fpFaceNames(pkg.dims)[_fpFaceMode]||'Auto';
+}
+
+function _fpHit(clientX,clientY){
+  const pcv=document.getElementById('facePickerCanvas');
+  if(!pcv) return null;
+  const rect=pcv.getBoundingClientRect();
+  const sx=(clientX-rect.left)*(pcv.width/rect.width);
+  const sy=(clientY-rect.top)*(pcv.height/rect.height);
+  const pkg=PKGS.find(p=>p.id===_fpPkgId);
+  if(!pkg) return null;
+  const [A,B,C]=pkg.dims;
+  const faces=_computeFacesForCanvas(pcv,A,B,C,_fpTheta,_fpPhi);
+  for(let i=faces.length-1;i>=0;i--)
+    if(_ptInPoly(sx,sy,faces[i].v.map(v=>[v[0],v[1]]))) return faces[i].type;
+  return null;
+}
+
+function _fpApplyAndSave(face){
+  _fpFaceMode=face;
+  drawFacePicker();
+  const btn=document.querySelector(`.pkg-face-btn[data-id="${_fpPkgId}"]`);
+  const pkg=PKGS.find(p=>p.id===_fpPkgId);
+  if(btn&&pkg) _applyFaceBtnLabel(btn,pkg.dims,face);
+}
+
+function openFacePicker(pkgId){
+  _fpPkgId=pkgId;
+  _fpTheta=0.52; _fpPhi=0.38;
+  const btn=document.querySelector(`.pkg-face-btn[data-id="${pkgId}"]`);
+  _fpFaceMode=btn?.dataset?.face||'auto';
+  const pkg=PKGS.find(p=>p.id===pkgId);
+  document.getElementById('facePickerSub').textContent=pkg?.name||'';
+  document.getElementById('facePickerModal').classList.remove('hidden');
+  _setupFacePickerCanvas();
+  setTimeout(()=>drawFacePicker(),20);
+}
+
+function closeFacePicker(){
+  document.getElementById('facePickerModal').classList.add('hidden');
+}
+
+function fpSetAuto(){ _fpApplyAndSave('auto'); }
+function fpBgClick(e){ if(e.target.id==='facePickerModal') closeFacePicker(); }
+
+function _setupFacePickerCanvas(){
+  const old=document.getElementById('facePickerCanvas');
+  if(!old) return;
+  const pcv=old.cloneNode(false);
+  old.parentNode.replaceChild(pcv,old);
+
+  pcv.addEventListener('mousedown',e=>{
+    _fpDragActive=true;_fpDragMoved=false;
+    _fpDragX=e.clientX;_fpDragY=e.clientY;e.preventDefault();
+  },{passive:false});
+  pcv.addEventListener('mousemove',e=>{
+    if(!_fpDragActive) return;
+    const dx=e.clientX-_fpDragX,dy=e.clientY-_fpDragY;
+    if(Math.hypot(dx,dy)>3)_fpDragMoved=true;
+    _fpTheta-=dx*.015;_fpPhi=Math.max(.05,Math.min(1.5,_fpPhi-dy*.015));
+    _fpDragX=e.clientX;_fpDragY=e.clientY;drawFacePicker();
+  });
+  pcv.addEventListener('mouseup',e=>{
+    if(!_fpDragMoved){const hit=_fpHit(e.clientX,e.clientY);_fpApplyAndSave(hit&&hit!==_fpFaceMode?hit:'auto');}
+    _fpDragActive=false;
+  });
+  pcv.addEventListener('mouseleave',()=>_fpDragActive=false);
+
+  let tFpStart=null;
+  pcv.addEventListener('touchstart',e=>{
+    e.preventDefault();_fpDragActive=true;_fpDragMoved=false;
+    _fpDragX=e.touches[0].clientX;_fpDragY=e.touches[0].clientY;
+    tFpStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  },{passive:false});
+  pcv.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    const dx=e.touches[0].clientX-_fpDragX,dy=e.touches[0].clientY-_fpDragY;
+    if(Math.hypot(dx,dy)>3)_fpDragMoved=true;
+    _fpTheta-=dx*.015;_fpPhi=Math.max(.05,Math.min(1.5,_fpPhi-dy*.015));
+    _fpDragX=e.touches[0].clientX;_fpDragY=e.touches[0].clientY;drawFacePicker();
+  },{passive:false});
+  pcv.addEventListener('touchend',e=>{
+    if(!_fpDragMoved&&tFpStart){
+      const t=e.changedTouches[0];
+      const hit=_fpHit(t.clientX,t.clientY);
+      _fpApplyAndSave(hit&&hit!==_fpFaceMode?hit:'auto');
+    }
+    _fpDragActive=false;
+  },{passive:true});
+}
+window.openFacePicker=openFacePicker;window.closeFacePicker=closeFacePicker;
+window.fpSetAuto=fpSetAuto;window.fpBgClick=fpBgClick;
+
+function drawPreview() {
+  const pcv=document.getElementById('previewCanvas');
+  if(!pcv) return;
+  const A=parseInt(document.getElementById('mDimA').value)||300;
+  const B=parseInt(document.getElementById('mDimB').value)||200;
+  const C=parseInt(document.getElementById('mDimC').value)||150;
+  const baseColor=document.getElementById('mColor')?.value||'#3498db';
+  const faceNames={'0':`${A}×${B} ↑`,'1':`${A}×${C} ↑`,'2':`${B}×${C} ↑`};
+  _renderFaces(pcv,_computePreviewFaces(A,B,C),baseColor,_previewFaceMode);
   const lbl=document.getElementById('prevFaceLabel');
   if(lbl) lbl.textContent=_previewFaceMode==='auto'?'Auto':(faceNames[_previewFaceMode]||'Auto');
 }
@@ -1319,10 +1473,10 @@ window.calculate=function(){
     selectedIds.forEach(id=>{
       const pkg=PKGS.find(p=>p.id===id);
       const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
-      const orientEl=document.querySelector(`.pkg-orient[data-id="${id}"]`);
+      const faceEl=document.querySelector(`.pkg-face-btn[data-id="${id}"]`);
       const qty=parseInt(qtyEl?.value)||0;
       if(qty<=0) return;
-      pkgOrientMap.set(id, orientEl?.value||'auto');
+      pkgOrientMap.set(id, faceEl?.dataset?.face||'auto');
       initEntries.push({pkg,qty}); totalReq+=qty;
     });
 
@@ -1536,12 +1690,15 @@ function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
   ].sort((a,b)=>avgZ(b.v)-avgZ(a.v)).forEach(f=>drawFace(f.v,f.f,f.s));
 }
 
-function drawPallet(sc,cx,cy,ox=0){
-  const {W,D,H}=PAL;
-  for(let i=0;i<6;i++) drawBox(ox+i*200,H-22,0,120,22,D,'#c8a86a',sc,cx,cy);
-  [0,D/2-50,D-100].forEach(bz=>drawBox(ox,0,bz,W,20,100,'#b8965a',sc,cx,cy));
-  [0,W/2-50,W-100].forEach(bx=>[0,D/2-50,D-100].forEach(bz=>drawBox(ox+bx,20,bz,100,72,100,'#9a6e38',sc,cx,cy)));
-  [0,D/2-40,D-80].forEach(bz=>drawBox(ox,92,bz,W,20,80,'#b8965a',sc,cx,cy));
+// Returns box specs for one pallet at X-offset ox (used in unified depth sort)
+function palletBoxes(ox){
+  const {W,D,H}=PAL, b=[];
+  for(let i=0;i<6;i++) b.push({x:ox+i*200,y:H-22,z:0,w:120,h:22,d:D,color:'#c8a86a'});
+  [0,D/2-50,D-100].forEach(bz=>b.push({x:ox,y:0,z:bz,w:W,h:20,d:100,color:'#b8965a'}));
+  [0,W/2-50,W-100].forEach(bx=>[0,D/2-50,D-100].forEach(bz=>
+    b.push({x:ox+bx,y:20,z:bz,w:100,h:72,d:100,color:'#9a6e38'})));
+  [0,D/2-40,D-80].forEach(bz=>b.push({x:ox,y:92,z:bz,w:W,h:20,d:80,color:'#b8965a'}));
+  return b;
 }
 
 const PAL_GAP = 200; // gap between pallets in mm
@@ -1570,25 +1727,24 @@ function draw3D(res){
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim;
   const cx=W/2,cy=H/2;
 
-  // floor shadows + pallets, sorted back→front for painter's algorithm
-  const palletObjs = Array.from({length: numPallets}, (_,i) => ({
-    ox: i*(PAL.W+PAL_GAP),
-    depth: proj(i*(PAL.W+PAL_GAP)+PAL.W/2, 0, PAL.D/2, cx, cy, sc)[2],
-  })).sort((a,b)=>b.depth-a.depth);
-
-  for (const {ox} of palletObjs) {
+  // Floor shadows first (always behind everything)
+  for(let i=0;i<numPallets;i++){
+    const ox=i*(PAL.W+PAL_GAP);
     const sh=[[ox,0,0],[ox+PAL.W,0,0],[ox+PAL.W,0,PAL.D],[ox,0,PAL.D]]
       .map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
     ctx.beginPath();sh.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
     ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
-    drawPallet(sc,cx,cy,ox);
   }
 
-  // sort all boxes back→front
-  [...res.placements].sort((a,b)=>
+  // Unified depth sort: pallet components + cargo together — fixes transparency
+  // when viewing from below (pallet boards would otherwise draw in wrong order)
+  const allBoxes=[];
+  for(let i=0;i<numPallets;i++) allBoxes.push(...palletBoxes(i*(PAL.W+PAL_GAP)));
+  res.placements.forEach(p=>allBoxes.push({x:p.x,y:p.y,z:p.z,w:p.w,h:p.h,d:p.d,color:p.color}));
+  allBoxes.sort((a,b)=>
     proj(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2,cx,cy,sc)[2]-
     proj(a.x+a.w/2,a.y+a.h/2,a.z+a.d/2,cx,cy,sc)[2]
-  ).forEach(p=>drawBox(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy));
+  ).forEach(b=>drawBox(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy));
 
   // manual mode overlays (always single pallet)
   if(mode==='manual'){
