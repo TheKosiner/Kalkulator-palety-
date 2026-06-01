@@ -417,12 +417,12 @@ let selectedIds = new Set([PKGS[0]?.id || '']);
 // Rebuild the auto-mode package list from scratch.
 function buildPkgList() {
   const list = document.getElementById('pkgList');
-  list.innerHTML = '';
-  // Preserve qty/face values across rebuilds
+  // Read values BEFORE clearing (inputs live inside #pkgList)
   const savedQtys  = new Map();
   const savedFaces = new Map();
   document.querySelectorAll('.pkg-qty').forEach(el  => savedQtys.set(el.dataset.id,  el.value));
   document.querySelectorAll('.pkg-face-btn').forEach(el => savedFaces.set(el.dataset.id, el.dataset.face));
+  list.innerHTML = '';
 
   PKGS.forEach(p => {
     const isSel  = selectedIds.has(p.id);
@@ -443,7 +443,7 @@ function buildPkgList() {
       </div>
       <div class="pkg-qty-wrap" style="display:${showMixed?'flex':'none'}">
         <label>szt.:</label>
-        <input class="pkg-qty" type="number" value="10" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
+        <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
       </div>`;
 
     // restore saved values
