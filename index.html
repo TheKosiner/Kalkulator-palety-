@@ -1674,20 +1674,25 @@ function drawFace(verts,fill,stroke){
   ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=.7;ctx.stroke();
 }
 
-function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
+function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy){
   const p=[
     [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
     [x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]
   ].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
-  const avgZ=f=>f.reduce((s,v)=>s+v[2],0)/f.length;
-  [
-    {v:[p[3],p[2],p[6],p[7]],f:col(color,.38),s:'rgba(0,0,0,.18)'},
-    {v:[p[4],p[5],p[6],p[7]],f:col(color,.16),s:'rgba(0,0,0,.18)'},
-    {v:[p[0],p[3],p[7],p[4]],f:col(color,.06),s:'rgba(0,0,0,.18)'},
+  return[
+    {v:[p[3],p[2],p[6],p[7]],f:col(color,.38), s:'rgba(0,0,0,.18)'},
+    {v:[p[4],p[5],p[6],p[7]],f:col(color,.16), s:'rgba(0,0,0,.18)'},
+    {v:[p[0],p[3],p[7],p[4]],f:col(color,.06), s:'rgba(0,0,0,.18)'},
     {v:[p[1],p[2],p[6],p[5]],f:col(color,-.14),s:'rgba(0,0,0,.18)'},
     {v:[p[0],p[1],p[2],p[3]],f:col(color,-.26),s:'rgba(0,0,0,.18)'},
     {v:[p[0],p[1],p[5],p[4]],f:col(color,-.38),s:'rgba(0,0,0,.18)'},
-  ].sort((a,b)=>avgZ(b.v)-avgZ(a.v)).forEach(f=>drawFace(f.v,f.f,f.s));
+  ].map(face=>{const v=face.v;return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
+}
+
+function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
+  getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy)
+    .sort((a,b)=>b.depth-a.depth)
+    .forEach(f=>drawFace(f.v,f.f,f.s));
 }
 
 // Returns box specs for one pallet at X-offset ox (used in unified depth sort)
@@ -1736,15 +1741,15 @@ function draw3D(res){
     ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
   }
 
-  // Unified depth sort: pallet components + cargo together — fixes transparency
-  // when viewing from below (pallet boards would otherwise draw in wrong order)
-  const allBoxes=[];
-  for(let i=0;i<numPallets;i++) allBoxes.push(...palletBoxes(i*(PAL.W+PAL_GAP)));
-  res.placements.forEach(p=>allBoxes.push({x:p.x,y:p.y,z:p.z,w:p.w,h:p.h,d:p.d,color:p.color}));
-  allBoxes.sort((a,b)=>
-    proj(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2,cx,cy,sc)[2]-
-    proj(a.x+a.w/2,a.y+a.h/2,a.z+a.d/2,cx,cy,sc)[2]
-  ).forEach(b=>drawBox(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy));
+  // Global face-level depth sort: collect every face from pallet boards + cargo,
+  // sort all faces together back-to-front — eliminates see-through at any angle
+  const allFaces=[];
+  for(let i=0;i<numPallets;i++)
+    for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
+      allFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy));
+  res.placements.forEach(p=>allFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy)));
+  allFaces.sort((a,b)=>b.depth-a.depth);
+  allFaces.forEach(f=>drawFace(f.v,f.f,f.s));
 
   // manual mode overlays (always single pallet)
   if(mode==='manual'){
