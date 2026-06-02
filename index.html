@@ -784,6 +784,8 @@ function packSingle(pkg, qty, maxH, orientMode, margin=0) {
     if(!best||placed>best.count||(placed===best.count&&totalH<best.totalH)){
       // bfw/bfd are the slot dims (possibly swapped by bestFit); render box to match slot
       const rw=bfw-m2, rd=bfd-m2;
+      // Centre the grid on the pallet — distribute leftover space equally on both sides
+      const oxs=(PAL.W-nx*bfw)/2, ozs=(PAL.D-ny*bfd)/2;
       const placements=[], groups=[{pkgId:pkg.id,color:pkg.color,layers:[]}];
       let rem=placed;
       for(let L=0;L<layers&&rem>0;L++){
@@ -791,7 +793,7 @@ function packSingle(pkg, qty, maxH, orientMode, margin=0) {
         groups[0].layers.push({layer:L,y:yBase,h:lh0});
         for(let ix=0;ix<nx&&rem>0;ix++)
           for(let iy=0;iy<ny&&rem>0;iy++){
-            placements.push({x:ix*bfw+margin,y:yBase+margin,z:iy*bfd+margin,w:rw,h:lh0,d:rd,pkgId:pkg.id,color:pkg.color});
+            placements.push({x:ix*bfw+oxs+margin,y:yBase+margin,z:iy*bfd+ozs+margin,w:rw,h:lh0,d:rd,pkgId:pkg.id,color:pkg.color});
             rem--;
           }
       }
@@ -866,7 +868,13 @@ function _surfaceIsLargeOnly(x, z, fw, fd, surfY, maxVol) {
 // Optional minY: skip any position whose surface height is below this value
 // (used to force small boxes onto already-placed boxes rather than pallet surface).
 function _findPos(fw, fd, lh, maxH, minY=PAL.H) {
-  const xs = new Set([0]), zs = new Set([0]);
+  // Always include the pallet-centre-aligned position so the first (and every
+  // subsequent) box can be placed centrally even when _placed is empty.
+  const cx0 = (PAL.W - fw) / 2, cz0 = (PAL.D - fd) / 2;
+  const xs = new Set([0]);
+  const zs = new Set([0]);
+  if (cx0 > 0) xs.add(cx0);
+  if (cz0 > 0) zs.add(cz0);
   for (const b of _placed) {
     xs.add(b.x); xs.add(b.x+b.w);
     zs.add(b.z); zs.add(b.z+b.d);
