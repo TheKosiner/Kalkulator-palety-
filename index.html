@@ -871,16 +871,14 @@ function _findPos(fw, fd, lh, maxH, minY=PAL.H) {
   const xs = new Set([0]), zs = new Set([0]);
   for (const b of _placed) {
     xs.add(b.x); xs.add(b.x+b.w);
-    xs.add(b.x - fw/2); xs.add(b.x + b.w - fw/2);
     zs.add(b.z); zs.add(b.z+b.d);
-    zs.add(b.z - fd/2); zs.add(b.z + b.d - fd/2);
   }
   const pcx = PAL.W/2, pcz = PAL.D/2;
   let best = null;
   for (const x of xs) {
-    if (x < 0 || x + fw > PAL.W) continue;
+    if (x + fw > PAL.W) continue;
     for (const z of zs) {
-      if (z < 0 || z + fd > PAL.D) continue;
+      if (z + fd > PAL.D) continue;
       const y = _maxSurf(x, z, fw, fd);
       if (y < minY || y + lh > maxH) continue;
       if (!_isFlat(x, z, fw, fd, y)) continue;
