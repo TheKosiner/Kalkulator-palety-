@@ -868,13 +868,7 @@ function _surfaceIsLargeOnly(x, z, fw, fd, surfY, maxVol) {
 // Optional minY: skip any position whose surface height is below this value
 // (used to force small boxes onto already-placed boxes rather than pallet surface).
 function _findPos(fw, fd, lh, maxH, minY=PAL.H) {
-  // Always include the pallet-centre-aligned position so the first (and every
-  // subsequent) box can be placed centrally even when _placed is empty.
-  const cx0 = (PAL.W - fw) / 2, cz0 = (PAL.D - fd) / 2;
-  const xs = new Set([0]);
-  const zs = new Set([0]);
-  if (cx0 > 0) xs.add(cx0);
-  if (cz0 > 0) zs.add(cz0);
+  const xs = new Set([0]), zs = new Set([0]);
   for (const b of _placed) {
     xs.add(b.x); xs.add(b.x+b.w);
     zs.add(b.z); zs.add(b.z+b.d);
@@ -1462,6 +1456,31 @@ function buildOrientationHints(res, maxH, margin) {
   return hints;
 }
 
+// Shift each pallet's placements so the loaded area is centred on that pallet.
+// Only moves x/z — never affects y, count, or layers. Safe to apply after any
+// packing run. Each pallet's boxes are centred independently.
+function centrePlacements(placements) {
+  if (!placements.length) return placements;
+  const byPallet = new Map();
+  placements.forEach(p => {
+    const pi = p.palletIdx ?? 0;
+    if (!byPallet.has(pi)) byPallet.set(pi, []);
+    byPallet.get(pi).push(p);
+  });
+  const out = [];
+  for (const [pi, grp] of byPallet) {
+    const ox = pi * (PAL.W + PAL_GAP);
+    const lx0 = Math.min(...grp.map(p => p.x - ox));
+    const lx1 = Math.max(...grp.map(p => p.x - ox + p.w));
+    const lz0 = Math.min(...grp.map(p => p.z));
+    const lz1 = Math.max(...grp.map(p => p.z + p.d));
+    const sx = (PAL.W - (lx1 - lx0)) / 2 - lx0;
+    const sz = (PAL.D - (lz1 - lz0)) / 2 - lz0;
+    grp.forEach(p => out.push({...p, x: p.x + sx, z: p.z + sz}));
+  }
+  return out;
+}
+
 // ═══════════════════════════════════════════════════════
 // CALCULATE
 // ═══════════════════════════════════════════════════════
@@ -1498,7 +1517,7 @@ window.calculate=function(){
     }
     if(!res||allPlacements.length===0) warns.push('Paczka nie mieści się w podanej wysokości!');
     else if(remQty>0 && numPallets>=maxPallets) warns.push(`Zostało ${remQty} paczek – zwiększ liczbę palet.`);
-    res={...res,count:allPlacements.length,placements:allPlacements,numPallets,
+    res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
          groups:[...groupAccum.values()]};
     document.getElementById('rTotal').textContent=res.count;
     document.getElementById('rLayers').textContent=res.layers||0;
@@ -1561,7 +1580,7 @@ window.calculate=function(){
     const numPallets=allPlacements.length>0
       ? Math.max(...allPlacements.map(p=>p.palletIdx))+1 : 1;
     const totalLeft=leftover.reduce((s,l)=>s+l.qty,0);
-    res={...res,count:allPlacements.length,placements:allPlacements,numPallets,
+    res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
          groups:[...groupAccum.values()],leftover};
     document.getElementById('rTotal').textContent=res.count;
     document.getElementById('rLayers').textContent=res.layers||0;
