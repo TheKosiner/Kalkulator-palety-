@@ -1767,18 +1767,21 @@ function draw3D(res){
     }
   }
 
-  // height lines — one per pallet
+  // height lines — one per pallet, using the actual height of that pallet's boxes
   const fs=Math.max(11,Math.min(15,W/28));
   ctx.font=`bold ${fs}px Segoe UI`;
   for (let pi=0; pi<numPallets; pi++) {
     const ox=pi*(PAL.W+PAL_GAP);
+    const palH=res.placements
+      .filter(p=>(p.palletIdx??0)===pi)
+      .reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
     const [lx0,ly0]=proj(ox+PAL.W+90,0,PAL.D/2,cx,cy,sc);
-    const [lx1,ly1]=proj(ox+PAL.W+90,res.totalH,PAL.D/2,cx,cy,sc);
+    const [lx1,ly1]=proj(ox+PAL.W+90,palH,PAL.D/2,cx,cy,sc);
     ctx.beginPath();ctx.moveTo(lx0,ly0);ctx.lineTo(lx1,ly1);
     ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
     [[lx0,ly0],[lx1,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
     ctx.fillStyle='#1a3c5e';
-    ctx.fillText(res.totalH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
+    ctx.fillText(palH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
     if(numPallets>1){ctx.fillStyle='#1a3c5e80';ctx.fillText('P'+(pi+1),lx1+8,ly1-fs);}
   }
 
