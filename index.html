@@ -26,6 +26,7 @@
     #statsBar .s .l{font-size:.58rem;opacity:.72;text-transform:uppercase;letter-spacing:.04em}
     #hintBar{bottom:10px;right:10px;background:rgba(255,255,255,.76);color:#444;padding:6px 10px;font-size:.63rem}
     #warnBar{bottom:52px;left:10px;right:10px;background:rgba(192,57,43,.88);color:#fff;padding:7px 12px;font-size:.78rem;font-weight:600;display:none;text-align:center}
+    #orientHintBar{bottom:90px;left:10px;right:10px;background:rgba(140,90,0,.88);color:#fff;padding:7px 12px;font-size:.75rem;font-weight:500;display:none;text-align:center}
 
     /* DRAWER */
     #drawer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.22);z-index:200;transition:transform .32s cubic-bezier(.4,0,.2,1);transform:translateY(calc(100% - var(--peek)))}
@@ -176,6 +177,7 @@
     <div class="s"><span class="v" id="rLeft">—</span><span class="l">Zostało</span></div>
   </div>
   <div class="ov" id="warnBar"></div>
+  <div class="ov" id="orientHintBar"></div>
   <div class="ov" id="hintBar">Dotyk: obracaj · 2 palce: zoom</div>
   <div id="legend"></div>
   <div id="manHint">Dotknij palety aby postawić karton</div>
@@ -621,6 +623,7 @@ function updateManStats(r) {
   document.getElementById('rLeft').textContent=0;
   document.getElementById('sPerLayer').style.display='none';
   document.getElementById('warnBar').style.display='none';
+  document.getElementById('orientHintBar').style.display='none';
 }
 
 // Inverse perspective projection — screen (sx,sy) → world (x,z) on plane y=y0
@@ -1420,6 +1423,37 @@ function _setupPreviewCanvas() {
 
 window.drawPreview=drawPreview;
 
+// Checks if any placed box type A, in its current orientation (height), is
+// preventing leftover box type B from fitting above it. Returns human-readable
+// hints per unique (A, B) type pair.
+function buildOrientationHints(res, maxH, margin) {
+  if (!res || !res.leftover || res.leftover.length === 0) return [];
+  const seen = new Set();
+  const hints = [];
+  for (const lb of res.leftover) {
+    const bMinH = Math.min(...lb.pkg.dims);
+    for (const pA of res.placements) {
+      if (pA.pkgId === lb.pkg.id) continue;
+      const key = `${pA.pkgId}|${lb.pkg.id}`;
+      if (seen.has(key)) continue;
+      // B can't fit on top of this A placement at current height
+      if (pA.y + pA.h + bMinH <= maxH) continue;
+      const aPkg = PKGS.find(p => p.id === pA.pkgId);
+      if (!aPkg) continue;
+      // Find minimum actual height A could use in any orientation
+      const allOrients = genOrients(aPkg.dims, 'auto', margin);
+      const minAH = Math.min(...allOrients.map(o => o[5])); // o[5] = lh0, actual box height
+      if (pA.h <= minAH) continue; // already at minimum — orientation can't help
+      // With shorter A, would B fit?
+      if (pA.y + minAH + bMinH <= maxH) {
+        seen.add(key);
+        hints.push(`Karton „${aPkg.name}" ułożony na wys. ${pA.h} mm — inna orientacja (min. ${minAH} mm) może zwolnić miejsce dla „${lb.pkg.name}"`);
+      }
+    }
+  }
+  return hints;
+}
+
 // ═══════════════════════════════════════════════════════
 // CALCULATE
 // ═══════════════════════════════════════════════════════
@@ -1541,6 +1575,16 @@ window.calculate=function(){
   const wb=document.getElementById('warnBar');
   if(warns.length){ wb.textContent=warns.join(' | '); wb.style.display='block'; }
   else wb.style.display='none';
+
+  // Orientation hints: warn if a different orientation of a placed type could
+  // free up vertical space for a leftover type
+  const curMaxH = mode==='single'
+    ? (parseInt(document.getElementById('maxH').value)||1800)
+    : (parseInt(document.getElementById('maxHMixed').value)||1800);
+  const ohints = buildOrientationHints(res, curMaxH, margin);
+  const ohb = document.getElementById('orientHintBar');
+  ohb.textContent = ohints.join(' · ');
+  ohb.style.display = ohints.length ? '' : 'none';
 
   lastRes=res; lastMode=mode;
   buildLegend(res,mode);
