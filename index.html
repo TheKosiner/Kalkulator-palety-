@@ -1754,7 +1754,7 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy){
     const v=face.v;
     const dot=face.n[0]*cdx+face.n[1]*cdy+face.n[2]*cdz;
     return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25,dot};
-  }).filter(f=>f.dot>0);
+  }).filter(f=>f.dot>-0.12);
 }
 
 function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
