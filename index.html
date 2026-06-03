@@ -1747,7 +1747,11 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy){
     {v:[p[1],p[2],p[6],p[5]],f:col(color,-.14),s:'rgba(0,0,0,.18)'},
     {v:[p[0],p[1],p[2],p[3]],f:col(color,-.26),s:'rgba(0,0,0,.18)'},
     {v:[p[0],p[1],p[5],p[4]],f:col(color,-.38),s:'rgba(0,0,0,.18)'},
-  ].map(face=>{const v=face.v;return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
+  ].map(face=>{
+    const v=face.v;
+    const cross=(v[1][0]-v[0][0])*(v[2][1]-v[0][1])-(v[1][1]-v[0][1])*(v[2][0]-v[0][0]);
+    return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25,cross};
+  }).filter(f=>f.cross>0);
 }
 
 function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
