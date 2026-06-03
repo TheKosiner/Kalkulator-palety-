@@ -1,1949 +1,851 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Kalkulator Palety 3D</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kalkulator Palety 3D – Optymalizuj załadunek</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --bg:#0f172a;--surface:#1a2740;--surface-2:#223051;
-      --border:#2d3f58;--border-2:#3d5270;
+      --bg:#0a1020;--surface:#111827;--surface-2:#1a2740;--surface-3:#223051;
+      --border:#1e2e45;--border-2:#2d4060;
       --text:#e8edf4;--text-2:#8fa3bc;--text-3:#546a84;
       --accent:#3b82f6;--accent-h:#60a5fa;--accent-dim:rgba(59,130,246,.14);
-      --red:#f87171;--red-dim:rgba(248,113,113,.11);
-      --r:8px;--rl:12px;--peek:52px;
+      --accent-glow:rgba(59,130,246,.28);
+      --green:#22c55e;--orange:#f59e0b;--red:#f87171;
+      --r:10px;--rl:16px;--rxl:24px;
     }
-    html,body{height:100%;overflow:hidden;font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%}
 
-    /* HEADER */
-    header{position:fixed;top:0;left:0;right:0;height:52px;background:var(--bg);display:flex;align-items:center;padding:0 18px;gap:12px;z-index:100;border-bottom:1px solid var(--border)}
-    header h1{font-size:.92rem;font-weight:700;letter-spacing:-.01em;color:var(--text);flex:1}
-    header .sub{font-size:.63rem;background:var(--surface);color:var(--text-3);padding:3px 10px;border-radius:20px;border:1px solid var(--border);white-space:nowrap;font-weight:500;letter-spacing:.01em}
+    /* ─── NAV ─── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 24px;height:64px;display:flex;align-items:center;gap:16px;background:rgba(10,16,32,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1rem;letter-spacing:-.02em;flex:1}
+    .nav-logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .nav-links{display:flex;gap:28px;font-size:.85rem;color:var(--text-2)}
+    .nav-links a:hover{color:var(--text)}
+    .nav-actions{display:flex;gap:10px;align-items:center;margin-left:16px}
+    .btn-ghost{padding:8px 16px;border:1px solid var(--border-2);border-radius:var(--r);font-size:.84rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-2);transition:color .15s,border-color .15s}
+    .btn-ghost:hover{color:var(--text);border-color:var(--text-3)}
+    .btn-primary{padding:9px 20px;background:var(--accent);border:none;border-radius:var(--r);font-size:.85rem;font-weight:700;cursor:pointer;color:#fff;transition:background .15s,box-shadow .15s;box-shadow:0 2px 14px var(--accent-glow)}
+    .btn-primary:hover{background:var(--accent-h);box-shadow:0 2px 20px rgba(96,165,250,.35)}
+    .nav-mobile-menu{display:none;background:none;border:none;color:var(--text-2);font-size:1.4rem;cursor:pointer;padding:4px 8px}
 
-    /* CANVAS */
-    #view3d{position:fixed;top:52px;left:0;right:0;bottom:0;background:#c4d8e8;touch-action:none}
-    #canvas3d{width:100%;height:100%;display:block;touch-action:none}
+    /* ─── HERO ─── */
+    .hero{min-height:100vh;padding:120px 24px 80px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.12) 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 80% 60%,rgba(99,102,241,.08) 0%,transparent 60%);pointer-events:none}
+    .hero-grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(59,130,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.04) 1px,transparent 1px);background-size:64px 64px;pointer-events:none}
+    .hero-inner{max-width:1160px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;position:relative;z-index:1}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.3);border-radius:20px;padding:5px 14px;font-size:.75rem;font-weight:600;color:var(--accent-h);margin-bottom:20px}
+    .hero-badge span{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .hero h1{font-size:3.2rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;margin-bottom:20px}
+    .hero h1 em{font-style:normal;color:var(--accent-h)}
+    .hero-sub{font-size:1.05rem;color:var(--text-2);line-height:1.6;max-width:480px;margin-bottom:36px}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .btn-hero-primary{padding:14px 28px;background:var(--accent);border:none;border-radius:var(--r);font-size:.96rem;font-weight:700;cursor:pointer;color:#fff;transition:background .15s,box-shadow .15s,transform .1s;box-shadow:0 4px 24px var(--accent-glow)}
+    .btn-hero-primary:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 6px 28px rgba(96,165,250,.4)}
+    .btn-hero-secondary{padding:14px 28px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r);font-size:.96rem;font-weight:700;cursor:pointer;color:var(--text);transition:border-color .15s,background .15s}
+    .btn-hero-secondary:hover{border-color:var(--text-3);background:var(--surface-3)}
+    .hero-note{margin-top:16px;font-size:.78rem;color:var(--text-3);display:flex;align-items:center;gap:6px}
+    .hero-note::before{content:'';width:4px;height:4px;background:var(--green);border-radius:50%;flex-shrink:0}
 
-    /* OVERLAYS */
-    .ov{position:absolute;border-radius:var(--rl)}
-    #statsBar{top:12px;left:12px;right:12px;background:rgba(10,18,34,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--text);padding:10px 16px;display:none;flex-wrap:wrap;gap:4px 20px;border:1px solid rgba(255,255,255,.07)}
-    #statsBar .s{display:flex;flex-direction:column;align-items:center;min-width:50px}
-    #statsBar .s .v{font-size:1.1rem;font-weight:800;line-height:1.1;color:#fff;letter-spacing:-.02em}
-    #statsBar .s .l{font-size:.56rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
-    #hintBar{bottom:12px;right:12px;background:rgba(10,18,34,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--text-3);padding:6px 12px;font-size:.62rem;border:1px solid rgba(255,255,255,.06)}
-    #warnBar{bottom:62px;left:12px;right:12px;background:rgba(220,38,38,.92);backdrop-filter:blur(6px);color:#fff;padding:8px 14px;font-size:.78rem;font-weight:600;display:none;text-align:center;border:1px solid rgba(255,100,100,.2)}
-    #orientHintBar{bottom:108px;left:12px;right:12px;background:rgba(180,120,0,.92);backdrop-filter:blur(6px);color:#fff;padding:8px 14px;font-size:.75rem;font-weight:500;display:none;text-align:center}
+    /* ─── APP MOCKUP ─── */
+    .app-mockup{position:relative}
+    .app-mockup::before{content:'';position:absolute;inset:-2px;border-radius:calc(var(--rl) + 2px);background:linear-gradient(135deg,rgba(59,130,246,.4),rgba(99,102,241,.2),transparent 50%);z-index:-1}
+    .app-window{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--rl);overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04)}
+    .app-titlebar{height:36px;background:var(--surface-2);display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:1px solid var(--border)}
+    .app-dots{display:flex;gap:6px}
+    .app-dots span{width:11px;height:11px;border-radius:50%}
+    .app-dots span:nth-child(1){background:#ff5f56}
+    .app-dots span:nth-child(2){background:#ffbd2e}
+    .app-dots span:nth-child(3){background:#27c93f}
+    .app-titlebar-name{font-size:.72rem;color:var(--text-3);flex:1;text-align:center;font-weight:500}
+    .app-body{display:flex;height:320px}
+    .app-sidebar-mock{width:140px;background:var(--bg);border-right:1px solid var(--border);padding:12px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+    .mock-label{font-size:.55rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+    .mock-tabs{display:flex;gap:3px;background:var(--surface);border-radius:5px;padding:2px}
+    .mock-tab{flex:1;padding:3px;border-radius:4px;font-size:.5rem;color:var(--text-3);text-align:center}
+    .mock-tab.a{background:var(--accent);color:#fff}
+    .mock-pkg{display:flex;align-items:center;gap:6px;padding:5px 7px;background:var(--surface);border-radius:5px;border:1px solid transparent}
+    .mock-pkg.sel{border-color:var(--accent);background:var(--accent-dim)}
+    .mock-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+    .mock-pkg-info{flex:1;min-width:0}
+    .mock-pkg-name{font-size:.52rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mock-pkg-dim{font-size:.45rem;color:var(--text-3)}
+    .mock-input-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .mock-input{height:22px;background:var(--surface);border:1px solid var(--border);border-radius:4px}
+    .mock-btn{height:26px;background:var(--accent);border-radius:5px;margin-top:4px;box-shadow:0 2px 8px var(--accent-glow)}
 
-    /* DRAWER */
-    #drawer{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--border);box-shadow:0 -12px 48px rgba(0,0,0,.55);z-index:200;transition:transform .28s cubic-bezier(.4,0,.2,1);transform:translateY(calc(100% - var(--peek)))}
-    #drawer.open{transform:translateY(0)}
-    #handle{height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;gap:8px;color:var(--text-2);font-size:.78rem;font-weight:600;flex-shrink:0;position:relative}
-    #handle .pip{width:30px;height:3px;border-radius:2px;background:var(--border-2);position:absolute;top:10px}
-    #handle .chev{font-size:.75rem;transition:transform .25s;color:var(--text-3)}
-    #drawer.open #handle .chev{transform:rotate(180deg)}
-    #drawerContent{overflow-y:auto;padding:4px 16px 36px;max-height:78vh}
-    #drawerContent::-webkit-scrollbar{width:3px}
-    #drawerContent::-webkit-scrollbar-track{background:transparent}
-    #drawerContent::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    /* viewport with 3D boxes */
+    .app-viewport-mock{flex:1;background:linear-gradient(160deg,#dce8f2 0%,#b4c8d8 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .box-scene-wrap{perspective:500px;perspective-origin:55% 40%}
+    .box-scene{transform-style:preserve-3d;transform:rotateX(26deg) rotateY(-28deg);position:relative;width:210px;height:140px}
+    /* pallet base */
+    .pal-base{position:absolute;bottom:0;left:0;width:210px;height:140px;background:#b8965a;border-radius:2px;transform:translateZ(0)}
+    .pal-boards{position:absolute;bottom:0;left:0;width:210px;height:140px;background:repeating-linear-gradient(90deg,#c8a870 0px,#c8a870 28px,transparent 28px,transparent 32px);border-radius:2px;transform:translateZ(2px)}
+    /* CSS 3D boxes using helper class */
+    .b{position:absolute;transform-style:preserve-3d}
+    .b .f{position:absolute;width:100%;height:100%}
+    .b .top{transform-origin:top;transform:rotateX(-90deg);top:0;transform-origin:top center}
+    .b .front{transform:translateZ(0)}
+    .b .right{right:0;transform-origin:right center;transform:rotateY(90deg)}
 
-    /* SECTION TITLES */
-    .stitle{font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:18px 0 8px}
+    /* Stats overlay in mockup */
+    .mock-stats{position:absolute;top:8px;left:8px;right:8px;background:rgba(10,16,32,.8);backdrop-filter:blur(6px);border-radius:8px;padding:7px 12px;display:flex;gap:14px;border:1px solid rgba(255,255,255,.07)}
+    .mock-stat{display:flex;flex-direction:column;align-items:center}
+    .mock-stat-v{font-size:.85rem;font-weight:800;color:#fff}
+    .mock-stat-l{font-size:.44rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
 
-    /* PACKAGE CARDS */
-    .pkg-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:10px}
-    .pkg-item:hover{border-color:var(--border-2);background:var(--surface-2)}
-    .pkg-item.selected{border-color:var(--accent);background:var(--accent-dim)}
-    .pkg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
-    .pkg-info{flex:1;min-width:0}
-    .pkg-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
-    .pkg-dim{font-size:.63rem;color:var(--text-3);margin-top:1px}
-    .pkg-qty-wrap{display:none;align-items:center;gap:5px;flex-shrink:0}
-    .pkg-item.selected .pkg-qty-wrap{display:flex}
-    .pkg-qty-wrap label{font-size:.63rem;color:var(--text-2);white-space:nowrap;margin:0}
-    .pkg-qty{width:56px;padding:5px 7px;background:var(--bg);border:1px solid var(--border-2);border-radius:6px;font-size:.84rem;text-align:center;outline:none;color:var(--text)}
-    .pkg-qty:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+    /* ─── STATS STRIP ─── */
+    .stats-strip{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:36px 24px}
+    .stats-inner{max-width:900px;margin:0 auto;display:flex;justify-content:space-around;gap:24px;flex-wrap:wrap}
+    .stat-item{text-align:center}
+    .stat-num{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;color:#fff;line-height:1}
+    .stat-label{font-size:.78rem;color:var(--text-3);margin-top:4px}
+    .stat-num em{font-style:normal;color:var(--accent-h)}
 
-    /* CONTROLS */
-    .ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-    .ctrl-full{margin-bottom:10px}
-    label.lbl{font-size:.72rem;font-weight:500;color:var(--text-2);display:block;margin-bottom:4px}
-    input[type=number],select{width:100%;padding:9px 11px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:.87rem;outline:none;color:var(--text);transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none}
-    input[type=number]:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
-    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-    input[type=number]{-moz-appearance:textfield}
-    select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23546a84' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:28px}
-    select option{background:var(--surface);color:var(--text)}
+    /* ─── SECTION COMMONS ─── */
+    .section{padding:96px 24px}
+    .section-inner{max-width:1160px;margin:0 auto}
+    .section-tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+    .section-title{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
+    .section-sub{font-size:1rem;color:var(--text-2);line-height:1.6;max-width:540px}
+    .section-header{margin-bottom:56px}
+    .section-header.center{text-align:center}
+    .section-header.center .section-sub{margin:0 auto}
 
-    .btn-calc{background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:12px;font-size:.93rem;font-weight:700;cursor:pointer;width:100%;margin-top:6px;letter-spacing:.01em;transition:background .15s,box-shadow .15s,transform .1s;box-shadow:0 2px 18px rgba(59,130,246,.32)}
-    .btn-calc:hover{background:var(--accent-h);box-shadow:0 2px 22px rgba(96,165,250,.38)}
-    .btn-calc:active{transform:scale(.98);opacity:.9}
+    /* ─── HOW IT WORKS ─── */
+    .how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
+    .how-steps::before{content:'';position:absolute;top:48px;left:calc(16.66% + 24px);right:calc(16.66% + 24px);height:1px;background:linear-gradient(90deg,var(--border-2),var(--border-2));z-index:0}
+    .how-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;position:relative;z-index:1;transition:border-color .2s,transform .2s}
+    .how-step:hover{border-color:var(--border-2);transform:translateY(-4px)}
+    .step-num{width:48px;height:48px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--accent);margin-bottom:20px}
+    .step-title{font-size:1.08rem;font-weight:700;margin-bottom:8px;color:var(--text)}
+    .step-desc{font-size:.87rem;color:var(--text-2);line-height:1.6}
 
-    /* MODE TABS */
-    .mode-tabs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;padding:3px;gap:2px}
-    .mode-tab{flex:1;padding:7px 4px;text-align:center;font-size:.74rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-2);border:none;border-radius:6px;transition:background .15s,color .15s}
-    .mode-tab.active{background:var(--accent);color:#fff}
-    .mode-tab:hover:not(.active){background:var(--surface-2);color:var(--text)}
+    /* ─── FEATURES ─── */
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;transition:border-color .2s,background .2s}
+    .feat-card:hover{border-color:var(--border-2);background:var(--surface-2)}
+    .feat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:16px}
+    .feat-title{font-size:.96rem;font-weight:700;margin-bottom:8px}
+    .feat-desc{font-size:.85rem;color:var(--text-2);line-height:1.6}
+    .fi-blue{background:rgba(59,130,246,.15)}
+    .fi-green{background:rgba(34,197,94,.12)}
+    .fi-orange{background:rgba(245,158,11,.12)}
+    .fi-purple{background:rgba(168,85,247,.12)}
+    .fi-teal{background:rgba(20,184,166,.12)}
+    .fi-pink{background:rgba(236,72,153,.12)}
 
-    /* LEGEND */
-    #legend{position:absolute;bottom:12px;left:12px;background:rgba(10,18,34,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.07);border-radius:var(--rl);padding:10px 14px;font-size:.69rem;color:var(--text);display:none;max-width:220px}
-    #legend .lr{display:flex;align-items:center;gap:8px;margin:3px 0}
-    #legend .ls{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+    /* ─── ACCOUNT BENEFITS ─── */
+    .account-section{background:var(--surface)}
+    .account-inner{max-width:1160px;margin:0 auto;padding:96px 24px;display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+    .account-visual{background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--rl);padding:32px;position:relative;overflow:hidden}
+    .account-visual::after{content:'';position:absolute;bottom:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,var(--accent-dim) 0%,transparent 70%);pointer-events:none}
+    .profile-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+    .profile-avatar{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),#6366f1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:#fff;flex-shrink:0}
+    .profile-name{font-size:1rem;font-weight:700}
+    .profile-plan{font-size:.75rem;color:var(--accent-h);font-weight:600;background:var(--accent-dim);padding:2px 10px;border-radius:20px;display:inline-block;margin-top:3px}
+    .saved-pkgs-list{display:flex;flex-direction:column;gap:8px}
+    .saved-pkg{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+    .saved-pkg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+    .saved-pkg-name{font-size:.82rem;font-weight:600}
+    .saved-pkg-dim{font-size:.68rem;color:var(--text-3)}
+    .saved-pkg-badge{margin-left:auto;font-size:.62rem;color:var(--accent-h);background:var(--accent-dim);padding:2px 8px;border-radius:10px}
+    .benefit-list{list-style:none;display:flex;flex-direction:column;gap:18px}
+    .benefit-list li{display:flex;align-items:flex-start;gap:14px}
+    .benefit-check{width:28px;height:28px;background:rgba(34,197,94,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:.9rem;flex-shrink:0;margin-top:1px}
+    .benefit-text strong{display:block;font-size:.94rem;font-weight:700;margin-bottom:3px}
+    .benefit-text span{font-size:.84rem;color:var(--text-2);line-height:1.5}
 
-    /* CAM CONTROLS */
-    #camCtrls{position:absolute;right:12px;bottom:60px;display:flex;flex-direction:column;gap:5px;z-index:10}
-    .cam-btn{width:36px;height:36px;border-radius:var(--r);border:1px solid rgba(255,255,255,.07);background:rgba(10,18,34,.84);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.4);color:var(--text-2);font-weight:700;line-height:1;transition:background .15s,color .15s,border-color .15s,transform .1s}
-    .cam-btn:hover{background:rgba(59,130,246,.22);border-color:rgba(59,130,246,.38);color:var(--text)}
-    .cam-btn:active{transform:scale(.86)}
+    /* ─── PRICING ─── */
+    .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+    .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;transition:border-color .2s,transform .2s;position:relative}
+    .price-card.popular{border-color:var(--accent);transform:scale(1.02);box-shadow:0 0 0 1px var(--accent),0 24px 48px rgba(59,130,246,.18)}
+    .popular-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.68rem;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap;letter-spacing:.05em}
+    .price-plan{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+    .price-amount{font-size:2.6rem;font-weight:800;letter-spacing:-.04em;line-height:1;color:#fff;margin-bottom:4px}
+    .price-amount sup{font-size:1rem;vertical-align:top;margin-top:.4em;font-weight:600;color:var(--text-2)}
+    .price-amount sub{font-size:.85rem;font-weight:500;color:var(--text-3);vertical-align:baseline}
+    .price-amount.free-tag{font-size:2rem;color:var(--green)}
+    .price-desc{font-size:.82rem;color:var(--text-2);margin-bottom:24px;line-height:1.5;min-height:2.6em}
+    .price-divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+    .price-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px}
+    .price-features li{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--text-2)}
+    .price-features li::before{content:'✓';color:var(--green);font-weight:700;font-size:.88rem;flex-shrink:0}
+    .price-features li.off{color:var(--text-3)}
+    .price-features li.off::before{content:'–';color:var(--text-3)}
+    .btn-plan{width:100%;padding:12px;border:none;border-radius:var(--r);font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s,box-shadow .15s}
+    .btn-plan-primary{background:var(--accent);color:#fff;box-shadow:0 2px 14px var(--accent-glow)}
+    .btn-plan-primary:hover{background:var(--accent-h);box-shadow:0 2px 20px rgba(96,165,250,.35)}
+    .btn-plan-outline{background:transparent;color:var(--text);border:1px solid var(--border-2)}
+    .btn-plan-outline:hover{border-color:var(--text-3);background:var(--surface-2)}
+    .btn-plan-ghost{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+    .btn-plan-ghost:hover{background:var(--surface-3);color:var(--text)}
+    .price-note{text-align:center;font-size:.75rem;color:var(--text-3);margin-top:24px}
 
-    /* PER-PKG FACE BUTTON */
-    .pkg-orient-wrap{display:none;flex-shrink:0}
-    .pkg-face-btn{padding:3px 8px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:.67rem;cursor:pointer;color:var(--text-2);white-space:nowrap;transition:border-color .15s,color .15s,background .15s}
-    .pkg-face-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+    /* ─── SIGNUP CTA ─── */
+    .signup-cta{padding:96px 24px;background:radial-gradient(ellipse 70% 80% at 50% 50%,rgba(59,130,246,.09) 0%,transparent 65%)}
+    .signup-box{max-width:480px;margin:0 auto;text-align:center}
+    .signup-box h2{font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:12px}
+    .signup-box p{color:var(--text-2);margin-bottom:36px;line-height:1.6}
+    .signup-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;text-align:left}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-size:.76rem;font-weight:500;color:var(--text-2);margin-bottom:5px}
+    .form-group input{width:100%;padding:11px 13px;background:var(--bg);border:1px solid var(--border-2);border-radius:var(--r);font-size:.93rem;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+    .form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+    .form-group input::placeholder{color:var(--text-3)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn-signup-submit{width:100%;padding:13px;background:var(--accent);border:none;border-radius:var(--r);font-size:.95rem;font-weight:700;color:#fff;cursor:pointer;margin-top:8px;transition:background .15s,box-shadow .15s;box-shadow:0 2px 18px var(--accent-glow)}
+    .btn-signup-submit:hover{background:var(--accent-h)}
+    .form-terms{font-size:.71rem;color:var(--text-3);text-align:center;margin-top:12px;line-height:1.5}
+    .form-terms a{color:var(--accent-h)}
+    .form-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text-3);font-size:.75rem}
+    .form-divider::before,.form-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    .login-link{text-align:center;margin-top:16px;font-size:.83rem;color:var(--text-2)}
+    .login-link a{color:var(--accent-h);font-weight:600}
 
-    /* FACE PICKER POPUP */
-    #facePickerModal{position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-    #facePickerModal.hidden{display:none}
-    #facePickerBox{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:20px 18px;width:240px;box-shadow:0 24px 64px rgba(0,0,0,.65);display:flex;flex-direction:column;align-items:center;gap:9px}
-    #facePickerTitle{font-weight:700;font-size:.9rem;color:var(--text);text-align:center}
-    #facePickerSub{font-size:.7rem;color:var(--text-2);text-align:center;margin-top:-4px}
-    #facePickerHint{font-size:.64rem;color:var(--text-3);text-align:center}
-    #facePickerLabel{font-size:.82rem;color:var(--accent-h);font-weight:600;min-height:1.1em}
-    #facePickerCanvas{border-radius:8px;background:var(--bg)!important}
-    .fp-btns{display:flex;gap:8px;margin-top:4px}
-    .fp-btn{padding:7px 16px;border:none;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:600;transition:background .15s}
-    .fp-btn-auto{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
-    .fp-btn-auto:hover{border-color:var(--border-2)}
-    .fp-btn-close{background:var(--accent);color:#fff}
-    .fp-btn-close:hover{background:var(--accent-h)}
+    /* ─── FOOTER ─── */
+    footer{background:var(--surface);border-top:1px solid var(--border);padding:48px 24px 32px}
+    .footer-inner{max-width:1160px;margin:0 auto}
+    .footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+    .footer-brand p{font-size:.85rem;color:var(--text-3);margin-top:12px;line-height:1.6;max-width:260px}
+    .footer-col h4{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:14px}
+    .footer-col a{display:block;font-size:.85rem;color:var(--text-2);margin-bottom:9px;transition:color .15s}
+    .footer-col a:hover{color:var(--text)}
+    .footer-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    .footer-copy{font-size:.78rem;color:var(--text-3)}
+    .footer-legal{display:flex;gap:20px}
+    .footer-legal a{font-size:.78rem;color:var(--text-3)}
+    .footer-legal a:hover{color:var(--text-2)}
 
-    /* MANUAL MODE */
-    #manualPanel .pkg-item{cursor:pointer}
-    .man-face-btns{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-    .man-face-btn{padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:.72rem;cursor:pointer;color:var(--text-2);text-align:left;width:100%;transition:background .15s,color .15s,border-color .15s}
-    .man-face-btn:hover:not(.active){border-color:var(--border-2);background:var(--surface-2);color:var(--text)}
-    .man-face-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .man-action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-    .btn-man{border:none;border-radius:var(--r);padding:11px;font-size:.84rem;font-weight:600;cursor:pointer;width:100%;transition:opacity .15s,transform .1s,border-color .15s}
-    .btn-man:active{transform:scale(.97)}
-    .btn-undo{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
-    .btn-undo:hover{border-color:var(--border-2)}
-    .btn-clear{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.18)}
-    #manHint{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:rgba(10,18,34,.92);backdrop-filter:blur(8px);color:var(--text);padding:7px 16px;border-radius:20px;font-size:.75rem;font-weight:600;pointer-events:none;white-space:nowrap;display:none;border:1px solid rgba(255,255,255,.07)}
-    .btn-fill{background:var(--accent-dim);color:var(--accent-h);border:1px solid rgba(59,130,246,.22)}
-    .btn-fill:hover{background:rgba(59,130,246,.2)}
-    .btn-remove{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.18)}
-    .btn-remove.active{background:var(--red);color:#fff;border-color:var(--red)}
+    /* ─── MODAL ─── */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-backdrop.open{opacity:1;pointer-events:all}
+    .modal{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--rl);width:100%;max-width:420px;padding:32px;box-shadow:0 32px 80px rgba(0,0,0,.6);transform:translateY(20px) scale(.97);transition:transform .22s,opacity .22s}
+    .modal-backdrop.open .modal{transform:none}
+    .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-3);font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s}
+    .modal-close:hover{color:var(--text)}
+    .modal-title{font-size:1.2rem;font-weight:800;margin-bottom:6px}
+    .modal-sub{font-size:.85rem;color:var(--text-2);margin-bottom:24px}
 
-    /* PKG EDIT / ADD */
-    .pkg-edit-btn{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:.9rem;padding:3px 5px;flex-shrink:0;border-radius:5px;line-height:1;transition:color .15s,background .15s}
-    .pkg-edit-btn:hover{color:var(--accent-h);background:var(--accent-dim)}
-    .btn-add-pkg{display:block;width:100%;margin-top:4px;padding:9px 10px;background:transparent;border:1px dashed var(--border);border-radius:var(--r);color:var(--text-3);font-size:.78rem;font-weight:600;cursor:pointer;text-align:center;transition:border-color .15s,color .15s,background .15s}
-    .btn-add-pkg:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+    /* ─── ANIMATIONS ─── */
+    .fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+    .fade-in.visible{opacity:1;transform:none}
 
-    /* PACKAGE EDIT MODAL */
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-    .modal-overlay.hidden{display:none}
-    .modal-box{background:var(--surface);border-top:1px solid var(--border);width:100%;max-width:480px;padding:22px 20px 36px;animation:slideUp .22s ease}
-    @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-    .modal-title{font-size:.98rem;font-weight:700;color:var(--text);margin-bottom:16px}
-    .modal-row{margin-bottom:12px}
-    .modal-row label{font-size:.72rem;font-weight:500;color:var(--text-2);display:block;margin-bottom:4px}
-    .modal-row input[type=text],.modal-row input[type=number]{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-size:.9rem;outline:none;color:var(--text);transition:border-color .15s,box-shadow .15s}
-    .modal-row input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
-    .modal-dims{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-    .modal-color-row{display:flex;align-items:center;gap:12px}
-    .modal-color-row input[type=color]{width:44px;height:38px;padding:2px 3px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);flex-shrink:0}
-    #mColorHex{font-size:.82rem;color:var(--text-2)!important;font-family:monospace}
-    .modal-btns{display:flex;gap:8px;margin-top:16px}
-    .btn-modal-save{flex:1;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:12px;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s}
-    .btn-modal-save:hover{background:var(--accent-h)}
-    .btn-modal-del{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.2);border-radius:var(--r);padding:12px;font-size:.9rem;font-weight:600;cursor:pointer}
-    .btn-modal-del.hidden{display:none}
-    .btn-modal-cancel{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-size:.9rem;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
-    .btn-modal-cancel:hover{border-color:var(--border-2);color:var(--text)}
-    .modal-restore{font-size:.7rem;color:var(--text-3);margin-top:10px;text-align:center;cursor:pointer;text-decoration:underline}
-    .modal-layout{display:flex;gap:14px;align-items:flex-start}
-    .modal-form{flex:1;min-width:0}
-    .modal-preview{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:0}
-    #previewCanvas{border-radius:8px;cursor:pointer;background:var(--bg);display:block;touch-action:none;border:1px solid var(--border)}
-    .preview-hint{font-size:.62rem;color:var(--text-3);margin-top:5px;text-align:center;line-height:1.4;max-width:130px}
-    .preview-hint b{color:var(--accent-h);font-weight:700}
-    @media(max-width:440px){.modal-layout{flex-direction:column-reverse}.modal-preview{flex-direction:row;align-items:center;gap:12px;width:100%}.preview-hint{max-width:none}}
-    @media(min-width:760px){.modal-overlay{align-items:center}.modal-box{border-radius:var(--rl);border:1px solid var(--border);max-width:440px}}
-
-    /* DESKTOP */
-    @media(min-width:760px){
-      html,body{overflow:auto}
-      #view3d{left:360px}
-      #drawer{position:fixed;left:0;top:52px;bottom:0;width:360px;border-radius:0;transform:none!important;border-right:1px solid var(--border);border-top:none;box-shadow:none;display:flex;flex-direction:column}
-      #handle{display:none}
-      #drawerContent{flex:1;overflow-y:auto;max-height:none;padding:16px 16px 28px}
-      #statsBar{top:12px;left:12px;right:auto;min-width:240px}
-      #legend{bottom:12px;left:12px}
+    /* ─── RESPONSIVE ─── */
+    @media(max-width:900px){
+      .hero-inner{grid-template-columns:1fr;gap:48px;text-align:center}
+      .hero h1{font-size:2.4rem}
+      .hero-sub{margin:0 auto 36px}
+      .hero-actions{justify-content:center}
+      .hero-note{justify-content:center}
+      .app-mockup::before{display:none}
+      .how-steps{grid-template-columns:1fr}
+      .how-steps::before{display:none}
+      .features-grid{grid-template-columns:1fr 1fr}
+      .account-inner{grid-template-columns:1fr;gap:40px;padding:64px 24px}
+      .pricing-grid{grid-template-columns:1fr;max-width:400px;margin:0 auto}
+      .price-card.popular{transform:none}
+      .footer-top{grid-template-columns:1fr 1fr;gap:24px}
+      .nav-links{display:none}
+      .nav-mobile-menu{display:block}
+    }
+    @media(max-width:560px){
+      .features-grid{grid-template-columns:1fr}
+      .hero h1{font-size:2rem}
+      .section-title{font-size:1.8rem}
+      .stats-inner{gap:32px}
+      .footer-top{grid-template-columns:1fr}
+      .footer-bottom{flex-direction:column;text-align:center}
+      .form-row{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>Kalkulator Palety 3D</h1>
-  <span class="sub">Europaleta 1200×800 mm</span>
-</header>
-
-<div id="view3d">
-  <canvas id="canvas3d"></canvas>
-  <div class="ov" id="statsBar">
-    <div class="s"><span class="v" id="rTotal">—</span><span class="l">Paczek</span></div>
-    <div class="s" id="sPallets" style="display:none"><span class="v" id="rPallets">—</span><span class="l">Palet</span></div>
-    <div class="s"><span class="v" id="rLayers">—</span><span class="l">Warstw</span></div>
-    <div class="s"><span class="v" id="rHeight">—</span><span class="l">Wys. mm</span></div>
-    <div class="s" id="sPerLayer" style="display:none"><span class="v" id="rPerLayer">—</span><span class="l">/ warstwę</span></div>
-    <div class="s"><span class="v" id="rLeft">—</span><span class="l">Zostało</span></div>
+<!-- ═══ NAV ═══ -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">&#9633;</div>
+    Kalkulator Palety 3D
   </div>
-  <div class="ov" id="warnBar"></div>
-  <div class="ov" id="orientHintBar"></div>
-  <div class="ov" id="hintBar">Dotyk: obracaj · 2 palce: zoom</div>
-  <div id="legend"></div>
-  <div id="manHint">Dotknij palety aby postawić karton</div>
-  <div id="camCtrls">
-    <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
-    <button class="cam-btn" title="Oddal" onclick="camZoomOut()">−</button>
-    <button class="cam-btn" title="Obróć lewo" onclick="camRotL()">◀</button>
-    <button class="cam-btn" title="Obróć prawo" onclick="camRotR()">▶</button>
-    <button class="cam-btn" title="Pochyl w górę" onclick="camRotUp()">▲</button>
-    <button class="cam-btn" title="Pochyl w dół" onclick="camRotDn()">▼</button>
-    <button class="cam-btn" title="Reset widoku" onclick="camReset()">⟳</button>
+  <div class="nav-links">
+    <a href="#jak-dziala">Jak to działa</a>
+    <a href="#funkcje">Funkcje</a>
+    <a href="#cennik">Cennik</a>
+    <a href="#zaloz-konto">Konto</a>
   </div>
-</div>
-
-<div id="drawer">
-  <div id="handle" onclick="toggleDrawer()">
-    <div class="pip"></div>
-    <span id="handleLabel">Wybierz kartony &amp; oblicz</span>
-    <span class="chev">▲</span>
+  <div class="nav-actions">
+    <button class="btn-ghost" onclick="openModal('login')">Zaloguj się</button>
+    <button class="btn-primary" onclick="openModal('signup')">Załóż konto</button>
   </div>
+  <button class="nav-mobile-menu" onclick="openModal('signup')">☰</button>
+</nav>
 
-  <div id="drawerContent">
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="hero-inner">
 
-    <!-- MODE TABS -->
-    <div class="stitle">Tryb</div>
-    <div class="mode-tabs">
-      <button class="mode-tab active" id="tabSingle" onclick="setMode('single')">Jeden typ</button>
-      <button class="mode-tab"        id="tabMixed"  onclick="setMode('mixed')">Mieszane</button>
-      <button class="mode-tab"        id="tabManual" onclick="setMode('manual')">Ręcznie</button>
-    </div>
-
-    <!-- AUTO PACKAGES (single / mixed) -->
-    <div id="autoPanel">
-      <div class="stitle">Kartony</div>
-      <div id="pkgList"></div>
-      <button class="btn-add-pkg" onclick="openPkgModal(null)">+ Dodaj nowy karton</button>
-    </div>
-
-    <!-- MANUAL PANEL -->
-    <div id="manualPanel" style="display:none">
-      <div class="stitle">Karton do ułożenia</div>
-      <div id="manPkgList"></div>
-      <div class="stitle">Ściana na dole</div>
-      <div class="man-face-btns" id="manFaceBtns"></div>
-      <div class="stitle">Parametry</div>
-      <div class="ctrl-full">
-        <label class="lbl">Max. wysokość (mm)</label>
-        <input type="number" id="manMaxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
+    <div class="hero-content">
+      <div class="hero-badge"><span></span>Nowa wersja z wizualizacją 3D</div>
+      <h1>Optymalizuj załadunek<br><em>palet w 3D</em></h1>
+      <p class="hero-sub">Oblicz idealny układ kartonów na europalecie — w kilka sekund, z interaktywną wizualizacją 3D. Oszczędzaj przestrzeń, czas i pieniądze.</p>
+      <div class="hero-actions">
+        <a href="app.html"><button class="btn-hero-primary">Wypróbuj bezpłatnie</button></a>
+        <button class="btn-hero-secondary" onclick="openModal('signup')">Załóż konto</button>
       </div>
-      <div class="man-action-row">
-        <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
-        <button class="btn-man btn-clear" onclick="manClear()">🗑 Wyczyść</button>
-      </div>
-      <div class="man-action-row" style="margin-top:6px">
-        <button class="btn-man btn-fill"   onclick="manAutoFill()">⬛ Wypełnij</button>
-        <button class="btn-man btn-remove" id="btnRemove" onclick="manToggleRemove()">✕ Usuń</button>
-      </div>
+      <div class="hero-note">Brak karty kredytowej &nbsp;·&nbsp; Dostęp instant &nbsp;·&nbsp; Bezpłatny plan na zawsze</div>
     </div>
 
-    <!-- PARAMS (auto modes) -->
-    <div id="autoParams">
-    <div class="stitle">Parametry</div>
-    <div class="ctrl-row" id="singleQtyRow">
-      <div>
-        <label class="lbl">Ilość paczek</label>
-        <input type="number" id="qty" value="20" min="1" max="999" inputmode="numeric"/>
-      </div>
-      <div>
-        <label class="lbl">Max. wysokość (mm)</label>
-        <input type="number" id="maxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
-      </div>
-    </div>
-    <div class="ctrl-full" id="mixedMaxHRow" style="display:none">
-      <label class="lbl">Max. wysokość palety (mm)</label>
-      <input type="number" id="maxHMixed" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
-    </div>
-    <div class="ctrl-full" id="globalOrientRow">
-      <label class="lbl">Bok zawsze na górze</label>
-      <select id="orient">
-        <option value="auto">Auto (najlepsze upakowanie)</option>
-      </select>
-    </div>
-    <div class="ctrl-full">
-      <label class="lbl">Margines bezpieczeństwa (mm / stronę)</label>
-      <input type="number" id="margin" value="0" min="0" max="200" step="5" inputmode="numeric"/>
-    </div>
-    <div class="ctrl-full">
-      <label class="lbl">Maks. liczba palet (nadmiar na kolejne)</label>
-      <input type="number" id="maxPallets" value="1" min="1" max="20" inputmode="numeric"/>
-    </div>
-
-    <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
-    </div><!-- /autoParams -->
-  </div>
-</div>
-
-<!-- FACE PICKER POPUP -->
-<div class="hidden" id="facePickerModal" onclick="fpBgClick(event)">
-  <div id="facePickerBox">
-    <div id="facePickerTitle">Ściana na górze</div>
-    <div id="facePickerSub"></div>
-    <canvas id="facePickerCanvas" width="190" height="190" style="cursor:pointer;border-radius:8px;background:#f4f7fb"></canvas>
-    <div id="facePickerHint">Kliknij ścianę · przeciągnij aby obrócić</div>
-    <div id="facePickerLabel">Auto</div>
-    <div class="fp-btns">
-      <button class="fp-btn fp-btn-auto" onclick="fpSetAuto()">Auto</button>
-      <button class="fp-btn fp-btn-close" onclick="closeFacePicker()">Zamknij</button>
-    </div>
-  </div>
-</div>
-
-<!-- PACKAGE EDIT / CREATE MODAL -->
-<div class="modal-overlay hidden" id="pkgModal" onclick="modalBgClick(event)">
-  <div class="modal-box">
-    <div class="modal-title" id="modalTitle">Nowy karton</div>
-    <div class="modal-layout">
-      <!-- left: form fields -->
-      <div class="modal-form">
-        <div class="modal-row">
-          <label>Nazwa</label>
-          <input type="text" id="mName" placeholder="np. Karton XL" maxlength="48"/>
+    <!-- App mockup -->
+    <div class="app-mockup fade-in">
+      <div class="app-window">
+        <div class="app-titlebar">
+          <div class="app-dots"><span></span><span></span><span></span></div>
+          <span class="app-titlebar-name">Kalkulator Palety 3D</span>
         </div>
-        <div class="modal-row">
-          <label>Wymiary mm — Dł &times; Szer &times; Wys</label>
-          <div class="modal-dims">
-            <input type="number" id="mDimA" placeholder="Dług." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
-            <input type="number" id="mDimB" placeholder="Szer." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
-            <input type="number" id="mDimC" placeholder="Wys."  min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+        <div class="app-body">
+          <div class="app-sidebar-mock">
+            <div class="mock-label">Tryb</div>
+            <div class="mock-tabs">
+              <div class="mock-tab a">Jeden</div>
+              <div class="mock-tab">Mieszane</div>
+              <div class="mock-tab">Ręcznie</div>
+            </div>
+            <div class="mock-label" style="margin-top:8px">Kartony</div>
+            <div class="mock-pkg sel">
+              <div class="mock-dot" style="background:#e74c3c"></div>
+              <div class="mock-pkg-info">
+                <div class="mock-pkg-name">Karton RF4</div>
+                <div class="mock-pkg-dim">770×380×533</div>
+              </div>
+            </div>
+            <div class="mock-pkg">
+              <div class="mock-dot" style="background:#e67e22"></div>
+              <div class="mock-pkg-info">
+                <div class="mock-pkg-name">Karton RP</div>
+                <div class="mock-pkg-dim">770×380×650</div>
+              </div>
+            </div>
+            <div class="mock-pkg">
+              <div class="mock-dot" style="background:#27ae60"></div>
+              <div class="mock-pkg-info">
+                <div class="mock-pkg-name">Stojak NOWY</div>
+                <div class="mock-pkg-dim">770×195×380</div>
+              </div>
+            </div>
+            <div class="mock-label" style="margin-top:6px">Parametry</div>
+            <div class="mock-input-row">
+              <div class="mock-input"></div>
+              <div class="mock-input"></div>
+            </div>
+            <div class="mock-btn"></div>
+          </div>
+
+          <div class="app-viewport-mock">
+            <!-- Stats overlay -->
+            <div class="mock-stats">
+              <div class="mock-stat"><div class="mock-stat-v">24</div><div class="mock-stat-l">Paczek</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">3</div><div class="mock-stat-l">Warstw</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">1598</div><div class="mock-stat-l">Wys. mm</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">0</div><div class="mock-stat-l">Zostało</div></div>
+            </div>
+            <!-- 3D box scene -->
+            <div class="box-scene-wrap">
+              <div class="box-scene">
+                <!-- pallet base -->
+                <div style="position:absolute;bottom:0;left:0;width:210px;height:140px;background:#b8965a;border-radius:2px;transform:translateZ(0)"></div>
+                <div style="position:absolute;bottom:0;left:0;width:210px;height:140px;background:repeating-linear-gradient(90deg,#c8a870 0,#c8a870 26px,transparent 26px,transparent 30px);border-radius:2px;transform:translateZ(1px)"></div>
+
+                <!-- Row 1 col 1 -->
+                <div style="position:absolute;left:4px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0;transform:skewX(0)"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 1 col 2 -->
+                <div style="position:absolute;left:70px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 1 col 3 -->
+                <div style="position:absolute;left:136px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+
+                <!-- Row 2 col 1 -->
+                <div style="position:absolute;left:4px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 2 col 2 -->
+                <div style="position:absolute;left:70px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 2 col 3 -->
+                <div style="position:absolute;left:136px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+
+                <!-- Layer 2 row 1 col 1 -->
+                <div style="position:absolute;left:4px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Layer 2 row 1 col 2 -->
+                <div style="position:absolute;left:70px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Layer 2 row 1 col 3 -->
+                <div style="position:absolute;left:136px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="modal-row">
-          <label>Kolor etykiety</label>
-          <div class="modal-color-row">
-            <input type="color" id="mColor" value="#3498db"
-                   oninput="document.getElementById('mColorHex').textContent=this.value;drawPreview()"/>
-            <span id="mColorHex" style="font-size:.82rem;color:#555;font-family:monospace">#3498db</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ STATS STRIP ═══ -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>23%</em></div>
+      <div class="stat-label">Średnia oszczędność miejsca</div>
+    </div>
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>&lt;2s</em></div>
+      <div class="stat-label">Czas obliczenia</div>
+    </div>
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>100%</em></div>
+      <div class="stat-label">Przeglądarkowy – bez instalacji</div>
+    </div>
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>1200×800</em></div>
+      <div class="stat-label">Europaleta (norma ISO 6780)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="section" id="jak-dziala">
+  <div class="section-inner">
+    <div class="section-header center fade-in">
+      <div class="section-tag">Jak to działa</div>
+      <h2 class="section-title">Od kartonów do gotowej palety<br>w trzech krokach</h2>
+      <p class="section-sub">Nie trzeba żadnych specjalistycznych narzędzi ani wiedzy. Wystarczy podać wymiary i ilości kartonów.</p>
+    </div>
+    <div class="how-steps">
+      <div class="how-step fade-in">
+        <div class="step-num">1</div>
+        <div class="step-title">Zdefiniuj kartony</div>
+        <p class="step-desc">Wprowadź wymiary i ilości kartonów. Możesz wybrać spośród predefiniowanych typów lub dodać własne — zapisane na Twoim koncie.</p>
+      </div>
+      <div class="how-step fade-in">
+        <div class="step-num">2</div>
+        <div class="step-title">Oblicz układ</div>
+        <p class="step-desc">Kliknij „Oblicz i wizualizuj". Algorytm automatycznie dobiera optymalną orientację i rozplanowanie kartonów na palecie.</p>
+      </div>
+      <div class="how-step fade-in">
+        <div class="step-num">3</div>
+        <div class="step-title">Wizualizuj w 3D</div>
+        <p class="step-desc">Obejrzyj wynik w interaktywnej wizualizacji 3D — obracaj, zoomuj i analizuj układ z dowolnej perspektywy. Tryb ręczny daje pełną kontrolę.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="section" id="funkcje" style="background:var(--surface);padding-top:80px;padding-bottom:80px">
+  <div class="section-inner">
+    <div class="section-header fade-in">
+      <div class="section-tag">Funkcje</div>
+      <h2 class="section-title">Wszystko czego potrzebujesz<br>do planowania załadunku</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-blue">&#9671;</div>
+        <div class="feat-title">Wizualizacja 3D w czasie rzeczywistym</div>
+        <p class="feat-desc">Interaktywny widok 3D z pełną kontrolą kamery — obracanie, zoom, panorama. Dokładne odwzorowanie europalety 1200×800 mm.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-green">&#9632;</div>
+        <div class="feat-title">Algorytm optymalnego upakowania</div>
+        <p class="feat-desc">Automatyczne dobieranie orientacji i kolejności układania. Obsługa wielu typów kartonów jednocześnie (tryb mieszany).</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-orange">&#9670;</div>
+        <div class="feat-title">Tryb ręczny</div>
+        <p class="feat-desc">Układaj kartony ręcznie — kliknij na paletę aby postawić karton. Narzędzia cofnij, wypełnij i usuń dla pełnej elastyczności.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-purple">&#9651;</div>
+        <div class="feat-title">Wiele palet jednocześnie</div>
+        <p class="feat-desc">Nadwyżka kartonów automatycznie przechodzi na kolejną paletę. Skonfiguruj maksymalną liczbę palet i wysokość załadunku.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-teal">&#9654;</div>
+        <div class="feat-title">Wybór ściany nośnej</div>
+        <p class="feat-desc">Dla każdego kartonu określ, która ściana ma leżeć na dole. Interaktywny selektor 3D umożliwia precyzyjny wybór orientacji.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-pink">&#9650;</div>
+        <div class="feat-title">Margines bezpieczeństwa</div>
+        <p class="feat-desc">Ustaw margines bezpieczeństwa od krawędzi palety. Obsługa folii stretch i innych wymogów logistycznych.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ACCOUNT BENEFITS ═══ -->
+<section class="account-section" id="zaloz-konto">
+  <div class="account-inner">
+    <div class="fade-in">
+      <div class="section-tag">Twoje konto</div>
+      <h2 class="section-title">Własne konto odblokowuje<br>pełne możliwości</h2>
+      <p class="section-sub" style="margin-bottom:36px">Zapisuj własne typy kartonów w chmurze, korzystaj z historii obliczeń i synchronizuj dane między urządzeniami.</p>
+      <ul class="benefit-list">
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Własne kartony zapisane w chmurze</strong>
+            <span>Dodawaj nieograniczoną liczbę typów kartonów z dowolnymi wymiarami, nazwami i kolorami. Dostępne na każdym urządzeniu po zalogowaniu.</span>
+          </div>
+        </li>
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Historia obliczeń</strong>
+            <span>Każde obliczenie zostaje zapisane. Wróć do dowolnego wcześniejszego układu palety bez przeliczania od nowa.</span>
+          </div>
+        </li>
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Szablony konfiguracji</strong>
+            <span>Zapisuj zestawy kartonów jako szablony. Jednym kliknięciem załaduj ulubiony schemat załadunku.</span>
+          </div>
+        </li>
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Synchronizacja między urządzeniami</strong>
+            <span>Zacznij obliczenie na komputerze, sprawdź wynik na tablecie w magazynie — Twoje dane są zawsze aktualne.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div class="account-visual fade-in">
+      <div class="profile-header">
+        <div class="profile-avatar">MW</div>
+        <div>
+          <div class="profile-name">Marek Wiśniewski</div>
+          <div class="profile-plan">Standard</div>
+        </div>
+      </div>
+      <div style="font-size:.7rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:10px">Moje kartony (8)</div>
+      <div class="saved-pkgs-list">
+        <div class="saved-pkg">
+          <div class="saved-pkg-dot" style="background:#e74c3c"></div>
+          <div>
+            <div class="saved-pkg-name">Karton RF4</div>
+            <div class="saved-pkg-dim">770 × 380 × 533 mm</div>
+          </div>
+          <div class="saved-pkg-badge">własny</div>
+        </div>
+        <div class="saved-pkg">
+          <div class="saved-pkg-dot" style="background:#e67e22"></div>
+          <div>
+            <div class="saved-pkg-name">Opakowanie XL premium</div>
+            <div class="saved-pkg-dim">900 × 500 × 600 mm</div>
+          </div>
+          <div class="saved-pkg-badge">własny</div>
+        </div>
+        <div class="saved-pkg">
+          <div class="saved-pkg-dot" style="background:#27ae60"></div>
+          <div>
+            <div class="saved-pkg-name">Karton sezonowy</div>
+            <div class="saved-pkg-dim">400 × 300 × 250 mm</div>
+          </div>
+          <div class="saved-pkg-badge">własny</div>
+        </div>
+        <div class="saved-pkg" style="opacity:.5">
+          <div class="saved-pkg-dot" style="background:#2980b9"></div>
+          <div>
+            <div class="saved-pkg-name">+ 5 więcej kartonów...</div>
+            <div class="saved-pkg-dim">zapisanych na Twoim koncie</div>
           </div>
         </div>
       </div>
-      <!-- right: 3-D preview + face selector -->
-      <div class="modal-preview">
-        <canvas id="previewCanvas" width="138" height="138"></canvas>
-        <div class="preview-hint">
-          Kliknij ścianę = zawsze na górze<br>
-          <b id="prevFaceLabel">Auto</b>
+      <button class="btn-primary" style="width:100%;margin-top:24px;padding:12px" onclick="openModal('signup')">Załóż konto i dodaj własne kartony</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═══ -->
+<section class="section" id="cennik">
+  <div class="section-inner">
+    <div class="section-header center fade-in">
+      <div class="section-tag">Cennik</div>
+      <h2 class="section-title">Prosto i przejrzyście</h2>
+      <p class="section-sub">Zacznij za darmo. Płać tylko jeśli potrzebujesz więcej.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- FREE -->
+      <div class="price-card fade-in">
+        <div class="price-plan">Bezpłatny</div>
+        <div class="price-amount free-tag">0 zł</div>
+        <p class="price-desc">Idealny do testowania i okazjonalnego użycia.</p>
+        <hr class="price-divider"/>
+        <ul class="price-features">
+          <li>Dostęp do kalkulatora 3D</li>
+          <li>7 predefiniowanych kartonów</li>
+          <li>1 europaleta jednocześnie</li>
+          <li>Tryb automatyczny i ręczny</li>
+          <li class="off">Własne kartony (konto)</li>
+          <li class="off">Historia obliczeń</li>
+          <li class="off">Szablony konfiguracji</li>
+        </ul>
+        <a href="app.html"><button class="btn-plan btn-plan-ghost">Otwórz kalkulator</button></a>
+      </div>
+
+      <!-- STANDARD (popular) -->
+      <div class="price-card popular fade-in">
+        <div class="popular-badge">NAJPOPULARNIEJSZY</div>
+        <div class="price-plan">Standard</div>
+        <div class="price-amount"><sup>zł</sup>29<sub>/mies.</sub></div>
+        <p class="price-desc">Dla firm korzystających z kalkulatora regularnie.</p>
+        <hr class="price-divider"/>
+        <ul class="price-features">
+          <li>Wszystko z planu Bezpłatny</li>
+          <li>Konto i logowanie</li>
+          <li>Nielimitowane własne kartony</li>
+          <li>Historia ostatnich 50 obliczeń</li>
+          <li>3 europalety jednocześnie</li>
+          <li>Szablony konfiguracji (5 szt.)</li>
+          <li class="off">Eksport PDF / Excel</li>
+        </ul>
+        <button class="btn-plan btn-plan-primary" onclick="openModal('signup')">Zacznij — 14 dni gratis</button>
+      </div>
+
+      <!-- PRO -->
+      <div class="price-card fade-in">
+        <div class="price-plan">Pro</div>
+        <div class="price-amount"><sup>zł</sup>79<sub>/mies.</sub></div>
+        <p class="price-desc">Dla zespołów i zaawansowanych zastosowań logistycznych.</p>
+        <hr class="price-divider"/>
+        <ul class="price-features">
+          <li>Wszystko z planu Standard</li>
+          <li>Do 5 użytkowników w firmie</li>
+          <li>Nielimitowana historia</li>
+          <li>Nielimitowane palety i szablony</li>
+          <li>Eksport do PDF i Excel</li>
+          <li>Priorytetowe wsparcie techniczne</li>
+          <li>Własne logo i branding</li>
+        </ul>
+        <button class="btn-plan btn-plan-outline" onclick="openModal('signup')">Wypróbuj Pro gratis</button>
+      </div>
+
+    </div>
+    <p class="price-note">Ceny netto, + 23% VAT &nbsp;·&nbsp; Płatność miesięczna lub roczna (–20%) &nbsp;·&nbsp; Anuluj w dowolnym momencie</p>
+  </div>
+</section>
+
+<!-- ═══ SIGNUP CTA ═══ -->
+<section class="signup-cta" id="zaloz-konto-form">
+  <div class="signup-box">
+    <div class="fade-in">
+      <div class="section-tag" style="display:block;text-align:center;margin-bottom:10px">Zacznij teraz</div>
+      <h2>Załóż konto<br>w 30 sekund</h2>
+      <p>Bez karty kredytowej. 14 dni planu Standard gratis, potem bezpłatny plan lub subskrypcja.</p>
+    </div>
+    <div class="signup-form fade-in">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Imię</label>
+          <input type="text" placeholder="Jan"/>
+        </div>
+        <div class="form-group">
+          <label>Nazwisko</label>
+          <input type="text" placeholder="Kowalski"/>
         </div>
       </div>
+      <div class="form-group">
+        <label>Adres e-mail</label>
+        <input type="email" placeholder="jan@firma.pl"/>
+      </div>
+      <div class="form-group">
+        <label>Hasło</label>
+        <input type="password" placeholder="Min. 8 znaków"/>
+      </div>
+      <div class="form-group">
+        <label>Firma (opcjonalnie)</label>
+        <input type="text" placeholder="Nazwa firmy"/>
+      </div>
+      <button class="btn-signup-submit" onclick="handleSignup(event)">Utwórz konto bezpłatnie</button>
+      <p class="form-terms">Rejestrując się akceptujesz <a href="#">Regulamin</a> i <a href="#">Politykę prywatności</a>.</p>
+      <div class="form-divider">lub</div>
+      <div class="login-link">Masz już konto? <a href="#" onclick="openModal('login');return false">Zaloguj się</a></div>
     </div>
-    <div class="modal-btns">
-      <button class="btn-modal-save"            onclick="modalSave()">Zapisz</button>
-      <button class="btn-modal-del hidden" id="modalDelBtn" onclick="modalDelete()">Usuń</button>
-      <button class="btn-modal-cancel"          onclick="modalClose()">Anuluj</button>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="nav-logo" style="flex:none">
+          <div class="nav-logo-icon">&#9633;</div>
+          Kalkulator Palety 3D
+        </div>
+        <p>Profesjonalne narzędzie do optymalizacji załadunku europalety. Szybko, precyzyjnie, wizualnie.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Produkt</h4>
+        <a href="#jak-dziala">Jak to działa</a>
+        <a href="#funkcje">Funkcje</a>
+        <a href="#cennik">Cennik</a>
+        <a href="app.html">Otwórz kalkulator</a>
+      </div>
+      <div class="footer-col">
+        <h4>Konto</h4>
+        <a href="#" onclick="openModal('signup');return false">Rejestracja</a>
+        <a href="#" onclick="openModal('login');return false">Logowanie</a>
+        <a href="#cennik">Subskrypcja</a>
+        <a href="#">Moje kartony</a>
+      </div>
+      <div class="footer-col">
+        <h4>Pomoc</h4>
+        <a href="#">Dokumentacja</a>
+        <a href="#">FAQ</a>
+        <a href="#">Kontakt</a>
+        <a href="#">Status systemu</a>
+      </div>
     </div>
-    <div class="modal-restore" id="modalRestoreRow" style="display:none"
-         onclick="modalRestoreDefaults()">Przywróć domyślne kartony</div>
+    <div class="footer-bottom">
+      <div class="footer-copy">&copy; 2025 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
+      <div class="footer-legal">
+        <a href="#">Regulamin</a>
+        <a href="#">Polityka prywatności</a>
+        <a href="#">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══ LOGIN MODAL ═══ -->
+<div class="modal-backdrop" id="loginModal" onclick="closeMBg(event,'loginModal')">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+    <div class="modal-title">Zaloguj się</div>
+    <p class="modal-sub">Witaj z powrotem! Wprowadź swoje dane.</p>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" placeholder="jan@firma.pl"/>
+    </div>
+    <div class="form-group">
+      <label>Hasło</label>
+      <input type="password" placeholder="Twoje hasło"/>
+    </div>
+    <button class="btn-signup-submit" onclick="handleLogin(event)">Zaloguj się</button>
+    <p class="form-terms" style="margin-top:12px"><a href="#">Zapomniałem hasła</a></p>
+    <div class="form-divider">lub</div>
+    <div class="login-link">Nie masz konta? <a href="#" onclick="switchModal('loginModal','signupModal');return false">Zarejestruj się</a></div>
+  </div>
+</div>
+
+<!-- ═══ SIGNUP MODAL ═══ -->
+<div class="modal-backdrop" id="signupModal" onclick="closeMBg(event,'signupModal')">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
+    <div class="modal-title">Utwórz konto</div>
+    <p class="modal-sub">14 dni planu Standard gratis. Bez karty kredytowej.</p>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Imię</label><input type="text" placeholder="Jan"/></div>
+      <div class="form-group"><label>Nazwisko</label><input type="text" placeholder="Kowalski"/></div>
+    </div>
+    <div class="form-group"><label>E-mail</label><input type="email" placeholder="jan@firma.pl"/></div>
+    <div class="form-group"><label>Hasło</label><input type="password" placeholder="Min. 8 znaków"/></div>
+    <button class="btn-signup-submit" onclick="handleSignup(event)">Utwórz konto bezpłatnie</button>
+    <p class="form-terms" style="margin-top:10px">Akceptujesz <a href="#">Regulamin</a> i <a href="#">Politykę prywatności</a>.</p>
+    <div class="form-divider">lub</div>
+    <div class="login-link">Masz już konto? <a href="#" onclick="switchModal('signupModal','loginModal');return false">Zaloguj się</a></div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// DATA
-// ═══════════════════════════════════════════════════════
-const DEFAULT_PKGS = [
-  { id:'rf4',   name:'Karton do RF4',            dims:[770,380,533], color:'#e74c3c' },
-  { id:'rp',    name:'Karton RP',                dims:[770,380,650], color:'#e67e22' },
-  { id:'st1',   name:'Karton stojak',            dims:[600,195,300], color:'#c9a800' },
-  { id:'st2',   name:'Karton stojak (NOWY)',     dims:[770,195,380], color:'#27ae60' },
-  { id:'hst',   name:'Karton H-stand (NOWY)',    dims:[770,250,700], color:'#16a085' },
-  { id:'nos',   name:'Nosy/Sterowniki (NOWY)',   dims:[300,300,200], color:'#2980b9' },
-  { id:'small', name:'Karton małe części',       dims:[250,150,100], color:'#8e44ad' },
-];
-const BUILTIN_IDS = new Set(DEFAULT_PKGS.map(p=>p.id));
-
-function savePkgs() { try{localStorage.setItem('pkgs',JSON.stringify(PKGS));}catch(e){} }
-function loadPkgsFromStorage() {
-  try {
-    const raw = localStorage.getItem('pkgs');
-    if (raw) { const p=JSON.parse(raw); if(Array.isArray(p)&&p.length) return p; }
-  } catch(e) {}
-  return DEFAULT_PKGS.map(p=>({...p, dims:[...p.dims]}));
-}
-let PKGS = loadPkgsFromStorage();
-const PAL = { W:1200, D:800, H:144 };
-
-// ═══════════════════════════════════════════════════════
-// MODE & DRAWER
-// ═══════════════════════════════════════════════════════
-let mode = 'single'; // 'single' | 'mixed' | 'manual'
-let drawerOpen = false;
-
-function setMode(m) {
-  mode = m;
-  ['Single','Mixed','Manual'].forEach(t =>
-    document.getElementById('tab'+t).classList.toggle('active', m===t.toLowerCase()));
-  const isMan = m==='manual';
-  document.getElementById('autoPanel').style.display   = isMan ? 'none' : '';
-  document.getElementById('autoParams').style.display  = isMan ? 'none' : '';
-  document.getElementById('manualPanel').style.display = isMan ? '' : 'none';
-  document.getElementById('manHint').style.display     = isMan ? 'block' : 'none';
-  document.getElementById('singleQtyRow').style.display   = m==='single' ? '' : 'none';
-  document.getElementById('mixedMaxHRow').style.display   = m==='mixed'  ? '' : 'none';
-  document.getElementById('sPerLayer').style.display      = m==='single' ? '' : 'none';
-  document.getElementById('globalOrientRow').style.display = m==='single' ? '' : 'none';
-  // Rebuild pkg list so qty/orient wrap visibility matches the new mode
-  buildPkgList();
-  if (m==='single') {
-    const pkg = PKGS.find(p=>selectedIds.has(p.id));
-    if (pkg) rebuildOrientSelect(pkg);
+  /* ── Modals ── */
+  function openModal(which){
+    document.getElementById(which==='signup'?'signupModal':'loginModal').classList.add('open');
+    document.body.style.overflow='hidden';
   }
-  if (isMan) {
-    manRefreshFaceBtns();
-    const r = buildManualRes();
-    lastRes=r; lastMode='manual';
-    buildLegend(r,'manual');
-    updateManStats(r);
-    draw3D(r);
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.style.overflow='';
   }
-}
-
-function toggleDrawer() {
-  drawerOpen = !drawerOpen;
-  document.getElementById('drawer').classList.toggle('open', drawerOpen);
-}
-// swipe handle
-let sy0=null;
-document.getElementById('handle').addEventListener('touchstart',e=>{sy0=e.touches[0].clientY;},{passive:true});
-document.getElementById('handle').addEventListener('touchend',e=>{
-  if(sy0===null) return;
-  const dy=sy0-e.changedTouches[0].clientY;
-  if(Math.abs(dy)>20){ drawerOpen=dy>0; document.getElementById('drawer').classList.toggle('open',drawerOpen); }
-  sy0=null;
-},{passive:true});
-
-// ═══════════════════════════════════════════════════════
-// PACKAGE LIST  (rebuilt whenever PKGS changes or mode switches)
-// ═══════════════════════════════════════════════════════
-let selectedIds = new Set([PKGS[0]?.id || '']);
-
-// Rebuild the auto-mode package list from scratch.
-function buildPkgList() {
-  const list = document.getElementById('pkgList');
-  // Read values BEFORE clearing (inputs live inside #pkgList)
-  const savedQtys  = new Map();
-  const savedFaces = new Map();
-  document.querySelectorAll('.pkg-qty').forEach(el  => savedQtys.set(el.dataset.id,  el.value));
-  document.querySelectorAll('.pkg-face-btn').forEach(el => savedFaces.set(el.dataset.id, el.dataset.face));
-  list.innerHTML = '';
-
-  PKGS.forEach(p => {
-    const isSel  = selectedIds.has(p.id);
-    const showMixed = mode==='mixed' && isSel;
-    const [A,B,C] = p.dims;
-    const item = document.createElement('div');
-    item.className = 'pkg-item' + (isSel ? ' selected' : '');
-    item.dataset.id = p.id;
-    item.innerHTML = `
-      <div class="pkg-dot" style="background:${p.color}"></div>
-      <div class="pkg-info">
-        <div class="pkg-name">${p.name}</div>
-        <div class="pkg-dim">${A}×${B}×${C} mm</div>
-      </div>
-      <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
-      <div class="pkg-orient-wrap" style="display:${showMixed?'flex':'none'}">
-        <button class="pkg-face-btn" data-id="${p.id}" data-face="auto">↑ Auto</button>
-      </div>
-      <div class="pkg-qty-wrap" style="display:${showMixed?'flex':'none'}">
-        <label>szt.:</label>
-        <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
-      </div>`;
-
-    // restore saved values
-    if (savedQtys.has(p.id)) item.querySelector('.pkg-qty').value = savedQtys.get(p.id);
-    const faceBtn = item.querySelector('.pkg-face-btn');
-    const savedFace = savedFaces.has(p.id) ? savedFaces.get(p.id) : (p.topFace||'auto');
-    _applyFaceBtnLabel(faceBtn, p.dims, savedFace);
-
-    item.querySelector('.pkg-qty')?.addEventListener('click', e=>e.stopPropagation());
-    faceBtn?.addEventListener('click', e=>{ e.stopPropagation(); openFacePicker(p.id); });
-    item.querySelector('.pkg-edit-btn')?.addEventListener('click', e=>{
-      e.stopPropagation(); openPkgModal(p.id);
-    });
-
-    item.addEventListener('click', () => {
-      if (mode === 'single') {
-        document.querySelectorAll('#pkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
-        selectedIds.clear();
-        item.classList.add('selected');
-        selectedIds.add(p.id);
-        rebuildOrientSelect(p);
-      } else {
-        if (selectedIds.has(p.id)) {
-          selectedIds.delete(p.id);
-          item.classList.remove('selected');
-          item.querySelector('.pkg-qty-wrap').style.display   = 'none';
-          item.querySelector('.pkg-orient-wrap').style.display = 'none';
-        } else {
-          selectedIds.add(p.id);
-          item.classList.add('selected');
-          item.querySelector('.pkg-qty-wrap').style.display   = 'flex';
-          item.querySelector('.pkg-orient-wrap').style.display = 'flex';
-        }
-      }
-    });
-    list.appendChild(item);
-  });
-}
-
-// Rebuild the #orient select for single mode to show top-face options of pkg.
-function rebuildOrientSelect(pkg) {
-  const sel = document.getElementById('orient');
-  const cur = sel.value;
-  const [A,B,C] = pkg.dims;
-  sel.innerHTML = `
-    <option value="auto">Auto (najlepsze upakowanie)</option>
-    <option value="0">${A}×${B} zawsze na górze (wys. ${C})</option>
-    <option value="1">${A}×${C} zawsze na górze (wys. ${B})</option>
-    <option value="2">${B}×${C} zawsze na górze (wys. ${A})</option>`;
-  sel.value = pkg.topFace || 'auto';
-}
-
-function enforeSingleSelect() {
-  const first = [...selectedIds][0];
-  selectedIds.clear();
-  if (first && PKGS.find(p=>p.id===first)) selectedIds.add(first);
-  buildPkgList();
-  const pkg = PKGS.find(p=>selectedIds.has(p.id));
-  if (pkg) rebuildOrientSelect(pkg);
-}
-
-buildPkgList();
-// Set initial orient options for the first package
-{ const p = PKGS.find(p=>selectedIds.has(p.id)); if(p) rebuildOrientSelect(p); }
-
-// ═══════════════════════════════════════════════════════
-// MANUAL MODE
-// ═══════════════════════════════════════════════════════
-let manBoxes  = [];          // placed boxes {x,y,z,w,h,d,pkgId,color}
-let manSelPkg = PKGS[0];     // box type selected for placement
-let manFaceIdx = 0;          // 0‥2  which face is on the floor
-let manFlipped = false;      // 90° footprint rotation
-let manGhostX  = null;       // world-x of ghost preview
-let manGhostZ  = null;
-
-// Build the manual-mode package selector list (rebuilds when PKGS changes).
-function buildManPkgList() {
-  const list = document.getElementById('manPkgList');
-  list.innerHTML = '';
-  // If current manSelPkg was removed, fall back to first available
-  if (!PKGS.find(p=>p.id===manSelPkg?.id)) manSelPkg = PKGS[0];
-  PKGS.forEach(p => {
-    const item = document.createElement('div');
-    item.className = 'pkg-item' + (p.id===manSelPkg?.id ? ' selected' : '');
-    item.dataset.id = p.id;
-    item.innerHTML = `<div class="pkg-dot" style="background:${p.color}"></div>
-      <div class="pkg-info"><div class="pkg-name">${p.name}</div>
-      <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div></div>`;
-    item.addEventListener('click', () => {
-      manSelPkg = p; manFaceIdx = 0; manFlipped = false;
-      document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
-      item.classList.add('selected');
-      manRefreshFaceBtns();
-    });
-    list.appendChild(item);
-  });
-}
-
-function manRefreshFaceBtns() {
-  const [A,B,C] = manSelPkg.dims;
-  const faces = [[A,B,C],[A,C,B],[B,C,A]];
-  const btns = document.getElementById('manFaceBtns');
-  let html = '';
-  faces.forEach(([a,b,c], i) => {
-    const act = i===manFaceIdx && !manFlipped;
-    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},false)">${a}×${b} na górze (wys. ${c})</button>`;
-  });
-  faces.forEach(([a,b,c], i) => {
-    if (a===b) return;
-    const act = i===manFaceIdx && manFlipped;
-    html += `<button class="man-face-btn${act?' active':''}" onclick="manSetFace(${i},true)">${b}×${a} na górze (wys. ${c}) ↔</button>`;
-  });
-  btns.innerHTML = html;
-}
-
-buildManPkgList();
-window.manSetFace = (i,fl) => { manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns(); if(lastRes)draw3D(lastRes); };
-
-function manGetDims() {
-  const [A,B,C] = manSelPkg.dims;
-  const faces = [[A,B,C],[A,C,B],[B,C,A]];
-  let [fw,fd,lh] = faces[manFaceIdx];
-  if (manFlipped) [fw,fd] = [fd,fw];
-  return {fw,fd,lh};
-}
-
-function manSurfAt(x,z,fw,fd) {
-  let h=PAL.H;
-  for(const b of manBoxes)
-    if(b.x<x+fw&&b.x+b.w>x&&b.z<z+fd&&b.z+b.d>z) h=Math.max(h,b.y+b.h);
-  return h;
-}
-
-function manPlace(wx,wz) {
-  const {fw,fd,lh} = manGetDims();
-  const maxH = parseInt(document.getElementById('manMaxH').value)||1800;
-  const GRID = 50;
-  wx = Math.round(wx/GRID)*GRID;
-  wz = Math.round(wz/GRID)*GRID;
-  wx = Math.max(0, Math.min(PAL.W-fw, wx));
-  wz = Math.max(0, Math.min(PAL.D-fd, wz));
-  const wy = manSurfAt(wx,wz,fw,fd);
-  if (wy+lh > maxH) return;
-  manBoxes.push({x:wx,y:wy,z:wz,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color});
-  const r=buildManualRes(); lastRes=r; lastMode='manual';
-  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
-}
-window.manUndo = () => {
-  manBoxes.pop();
-  const r=buildManualRes(); lastRes=r; lastMode='manual';
-  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
-};
-window.manClear = () => {
-  manBoxes=[]; manGhostX=manGhostZ=null;
-  const r=buildManualRes(); lastRes=r; lastMode='manual';
-  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
-};
-
-function buildManualRes() {
-  const pl=[...manBoxes];
-  const totalH=pl.reduce((m,b)=>Math.max(m,b.y+b.h),PAL.H);
-  const gm=new Map();
-  pl.forEach(b=>{
-    if(!gm.has(b.pkgId)){const p=PKGS.find(q=>q.id===b.pkgId);gm.set(b.pkgId,{color:b.color,name:p?.name||b.pkgId,placed:0,qty:0});}
-    gm.get(b.pkgId).placed++;
-  });
-  return {placements:pl,totalH,count:pl.length,layers:new Set(pl.map(b=>b.y)).size,
-          groups:[...gm.entries()].map(([id,g])=>({pkgId:id,...g,layers:[]})),leftover:[]};
-}
-function updateManStats(r) {
-  document.getElementById('statsBar').style.display='flex';
-  document.getElementById('rTotal').textContent=r.count;
-  document.getElementById('rLayers').textContent=r.layers;
-  document.getElementById('rHeight').textContent=r.totalH;
-  document.getElementById('rLeft').textContent=0;
-  document.getElementById('sPerLayer').style.display='none';
-  document.getElementById('warnBar').style.display='none';
-  document.getElementById('orientHintBar').style.display='none';
-}
-
-// Inverse perspective projection — screen (sx,sy) → world (x,z) on plane y=y0
-function unprojectY(sx, sy, y0, W, H, sc) {
-  const p   = camDist*sc, cx=W/2, cy=H/2;
-  const dx  = sx - cx - panX;
-  const dy  = -(sy - cy - panY);
-  const Y   = y0 - camTargetY;
-  const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
-  const sP=Math.sin(camPhi),  cP=Math.cos(camPhi);
-  if(Math.abs(sP)<0.01) return null;
-  const denom = 1 + dy*cP/(p*sP);
-  if(Math.abs(denom)<1e-4) return null;
-  const pz  = (Y/sP + camDist) / denom;
-  const fy  = dy*pz/p;
-  const Rz  = (Y*cP - fy)/sP;
-  const Rx  = dx*pz/p;
-  return { x: Rx*cT + Rz*sT + PAL.W/2,
-           z:-Rx*sT + Rz*cT + PAL.D/2 };
-}
-
-function manEventToWorld(e) {
-  const vw=document.getElementById('view3d');
-  const W=vw.clientWidth, H=vw.clientHeight;
-  const totalH=lastRes?.totalH||PAL.H+200;
-  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
-  const rect=canvas.getBoundingClientRect();
-  const cl=e.changedTouches?e.changedTouches[0]:e;
-  const sx=cl.clientX-rect.left, sy=cl.clientY-rect.top;
-  return unprojectY(sx,sy,PAL.H,W,H,sc);
-}
-function manHoverToWorld(e) {
-  const vw=document.getElementById('view3d');
-  const W=vw.clientWidth, H=vw.clientHeight;
-  const totalH=lastRes?.totalH||PAL.H+200;
-  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
-  const rect=canvas.getBoundingClientRect();
-  const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
-  return unprojectY(sx,sy,PAL.H,W,H,sc);
-}
-
-// Remove mode — tap on a placed box to delete it
-let manRemoveMode = false;
-let manHoverRemoveIdx = -1;
-
-window.manToggleRemove = () => {
-  manRemoveMode = !manRemoveMode;
-  manGhostX = null;
-  document.getElementById('btnRemove').classList.toggle('active', manRemoveMode);
-  document.getElementById('manHint').textContent = manRemoveMode
-    ? 'Dotknij kartonu aby go usunąć' : 'Dotknij palety aby postawić karton';
-  if (lastRes) draw3D(lastRes);
-};
-
-function manScreenSc() {
-  const vw = document.getElementById('view3d');
-  const W = vw.clientWidth, H = vw.clientHeight;
-  const totalH = lastRes?.totalH || PAL.H+200;
-  return { W, H, sc:(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH) };
-}
-function manPickBox(e) {
-  const {W,H,sc} = manScreenSc();
-  const cx=W/2, cy=H/2;
-  const rect = canvas.getBoundingClientRect();
-  const cl = e.changedTouches ? e.changedTouches[0] : e;
-  const sx = cl.clientX-rect.left, sy = cl.clientY-rect.top;
-  let best=-1, bestDist=50;
-  for (let i=0; i<manBoxes.length; i++) {
-    const b = manBoxes[i];
-    const [px,py] = proj(b.x+b.w/2, b.y+b.h/2, b.z+b.d/2, cx, cy, sc);
-    const d = Math.hypot(px-sx, py-sy);
-    if (d < bestDist) { bestDist=d; best=i; }
-  }
-  return best;
-}
-
-// Auto-fill: pack as many more of the selected box as possible into the
-// remaining space, using the same heightmap algorithm as the auto modes.
-window.manAutoFill = () => {
-  const {fw,fd,lh} = manGetDims();
-  const maxH = parseInt(document.getElementById('manMaxH').value)||1800;
-  // Temporarily point _placed at a copy of manBoxes so _findPos/_isFlat/_maxSurf work
-  const savedPlaced = _placed;
-  _placed = manBoxes.map(b=>({x:b.x,y:b.y,z:b.z,w:b.w,h:b.h,d:b.d}));
-  let added=0;
-  while (added < 500) {
-    const pos = _findPos(fw, fd, lh, maxH);
-    if (!pos) break;
-    const box={x:pos.x,y:pos.y,z:pos.z,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color};
-    _placed.push({x:box.x,y:box.y,z:box.z,w:fw,h:lh,d:fd});
-    manBoxes.push(box);
-    added++;
-  }
-  _placed = savedPlaced;
-  if (added>0) {
-    const r=buildManualRes(); lastRes=r; lastMode='manual';
-    buildLegend(r,'manual'); updateManStats(r); draw3D(r);
-  }
-};
-
-// ═══════════════════════════════════════════════════════
-// PACKING ALGORITHM
-// ═══════════════════════════════════════════════════════
-function bestFit(palW, palD, fw, fd) {
-  const n1 = Math.floor(palW/fw)*Math.floor(palD/fd);
-  const n2 = Math.floor(palW/fd)*Math.floor(palD/fw);
-  return n1>=n2 ? [fw,fd] : [fd,fw];
-}
-
-function orientCandidates(dims, orientMode) {
-  const d=dims;
-  if (orientMode==='flat') {
-    const s=[...d].sort((a,b)=>a-b);
-    return [[s[2],s[1],s[0]]];
-  }
-  if (orientMode==='upright') {
-    const s=[...d].sort((a,b)=>a-b);
-    return [[s[0],s[1],s[2]]];
-  }
-  // '0','1','2' = fix top/bottom face (same as face-down since faces are parallel)
-  const fi = parseInt(orientMode);
-  if (!isNaN(fi) && fi>=0 && fi<=2)
-    return [[[d[0],d[1],d[2]],[d[0],d[2],d[1]],[d[1],d[2],d[0]]][fi]];
-  // 'auto': try all unique orientations
-  const seen=new Set(), out=[];
-  [[d[0],d[1],d[2]],[d[0],d[2],d[1]],[d[1],d[2],d[0]]].forEach(p=>{
-    const k=p.join(','); if(!seen.has(k)){seen.add(k);out.push(p);}
-  });
-  return out;
-}
-
-function bestOrientation(dims, orientMode) {
-  // Optimise for perLayer/lh (boxes per mm of height) → minimum stack height
-  let best=null;
-  for(const [fw,fd,lh] of orientCandidates(dims,orientMode)){
-    const [bfw,bfd]=bestFit(PAL.W,PAL.D,fw,fd);
-    const nx=Math.floor(PAL.W/bfw), ny=Math.floor(PAL.D/bfd);
-    const perLayer=nx*ny; if(!perLayer) continue;
-    const density=perLayer/lh;
-    if(!best||density>best.density) best={fw:bfw,fd:bfd,lh,nx,ny,perLayer,density};
-  }
-  return best;
-}
-
-// SINGLE-TYPE pack
-function packSingle(pkg, qty, maxH, orientMode, margin=0) {
-  const m2 = margin * 2;
-  let best=null;
-  for(const [fw0,fd0,lh0] of orientCandidates(pkg.dims, orientMode)){
-    const fw=fw0+m2, fd=fd0+m2, lh=lh0+m2; // effective dims with margin
-    const [bfw,bfd]=bestFit(PAL.W,PAL.D,fw,fd);
-    const nx=Math.floor(PAL.W/bfw), ny=Math.floor(PAL.D/bfd);
-    const perLayer=nx*ny; if(!perLayer) continue;
-    const maxL=Math.floor((maxH-PAL.H)/lh); if(!maxL) continue;
-    const placed=Math.min(qty,maxL*perLayer);
-    const layers=Math.ceil(placed/perLayer);
-    const totalH=PAL.H+layers*lh;
-    if(!best||placed>best.count||(placed===best.count&&totalH<best.totalH)){
-      // bfw/bfd are the slot dims (possibly swapped by bestFit); render box to match slot
-      const rw=bfw-m2, rd=bfd-m2;
-      // Centre the grid on the pallet — distribute leftover space equally on both sides
-      const oxs=(PAL.W-nx*bfw)/2, ozs=(PAL.D-ny*bfd)/2;
-      const placements=[], groups=[{pkgId:pkg.id,color:pkg.color,layers:[]}];
-      let rem=placed;
-      for(let L=0;L<layers&&rem>0;L++){
-        const yBase=PAL.H+L*lh;
-        groups[0].layers.push({layer:L,y:yBase,h:lh0});
-        for(let ix=0;ix<nx&&rem>0;ix++)
-          for(let iy=0;iy<ny&&rem>0;iy++){
-            placements.push({x:ix*bfw+oxs+margin,y:yBase+margin,z:iy*bfd+ozs+margin,w:rw,h:lh0,d:rd,pkgId:pkg.id,color:pkg.color});
-            rem--;
-          }
-      }
-      best={count:placed,layers,placements,layerH:lh0,perLayer,totalH,groups};
-    }
-  }
-  return best;
-}
-
-// MIXED-TYPE pack — 3D heightmap bin-packing
-//
-// Uses a surface height map so boxes can sit NEXT TO each other (not just
-// stacked in uniform layers). No-levitation guaranteed: a box is only placed
-// where its entire footprint has a flat, uniformly supported surface below it.
-// Sorts by volume desc so the heaviest/largest types go to the bottom first.
-
-let _placed = []; // working set: {x,y,z,w,h,d}
-
-// Maximum surface height under footprint (x..x+fw, z..z+fd)
-function _maxSurf(x, z, fw, fd) {
-  let h = PAL.H;
-  for (const b of _placed)
-    if (b.x < x+fw && b.x+b.w > x && b.z < z+fd && b.z+b.d > z)
-      h = Math.max(h, b.y + b.h);
-  return h;
-}
-
-// True iff every sub-rectangle under the footprint has surface height === reqH
-// (i.e., the footprint is fully supported and flat at reqH – no floating)
-function _isFlat(x, z, fw, fd, reqH) {
-  if (x + fw > PAL.W || z + fd > PAL.D) return false;
-  // Build breakpoints from overlapping box edges to avoid sampling inside a box
-  const xs = new Set([x, x+fw]);
-  const zs = new Set([z, z+fd]);
-  for (const b of _placed) {
-    if (b.x < x+fw && b.x+b.w > x && b.z < z+fd && b.z+b.d > z) {
-      [b.x, b.x+b.w].forEach(v => { if (v > x && v < x+fw) xs.add(v); });
-      [b.z, b.z+b.d].forEach(v => { if (v > z && v < z+fd) zs.add(v); });
-    }
-  }
-  const sX = [...xs].sort((a,b)=>a-b);
-  const sZ = [...zs].sort((a,b)=>a-b);
-  for (let i = 0; i < sX.length-1; i++)
-    for (let j = 0; j < sZ.length-1; j++) {
-      // Check midpoint of each sub-rectangle
-      let ph = PAL.H;
-      const px = (sX[i]+sX[i+1])/2, pz = (sZ[j]+sZ[j+1])/2;
-      for (const b of _placed)
-        if (px >= b.x && px < b.x+b.w && pz >= b.z && pz < b.z+b.d)
-          ph = Math.max(ph, b.y+b.h);
-      if (ph !== reqH) return false;
-    }
-  return true;
-}
-
-// Find the lowest flat position for a box fw×fd×lh within maxH.
-// Primary sort: lowest y (fill bottom first).
-// Secondary sort: box centre closest to pallet centre (avoid edge towers).
-// Returns false if any "small" box (vol < maxVol*0.5) tops out exactly at surfY
-// within the footprint. Used to prevent small-on-small stacking (towers).
-function _surfaceIsLargeOnly(x, z, fw, fd, surfY, maxVol) {
-  for (const b of _placed) {
-    if (b.w * b.h * b.d >= maxVol * 0.5) continue;
-    if (b.y + b.h !== surfY) continue;
-    if (b.x + b.w <= x || b.x >= x + fw) continue;
-    if (b.z + b.d <= z || b.z >= z + fd) continue;
-    return false;
-  }
-  return true;
-}
-
-// Optional minY: skip any position whose surface height is below this value
-// (used to force small boxes onto already-placed boxes rather than pallet surface).
-function _findPos(fw, fd, lh, maxH, minY=PAL.H) {
-  const xs = new Set([0]), zs = new Set([0]);
-  for (const b of _placed) {
-    xs.add(b.x); xs.add(b.x+b.w);
-    for (let xi = b.x+fw; xi < b.x+b.w; xi += fw) xs.add(xi);
-    zs.add(b.z); zs.add(b.z+b.d);
-    for (let zi = b.z+fd; zi < b.z+b.d; zi += fd) zs.add(zi);
-  }
-  const pcx = PAL.W/2, pcz = PAL.D/2;
-  let best = null;
-  for (const x of xs) {
-    if (x + fw > PAL.W) continue;
-    for (const z of zs) {
-      if (z + fd > PAL.D) continue;
-      const y = _maxSurf(x, z, fw, fd);
-      if (y < minY || y + lh > maxH) continue;
-      if (!_isFlat(x, z, fw, fd, y)) continue;
-      const dc = Math.hypot(x + fw/2 - pcx, z + fd/2 - pcz);
-      if (!best || y < best.y || (y === best.y && dc < best.dc))
-        best = {x, y, z, dc};
-    }
-  }
-  return best;
-}
-
-// Returns [fw, fd, lh] candidates for a given "face down" selection.
-// faceMode: 'auto' | '0' | '1' | '2'
-//   '0' → dims[0]×dims[1] on bottom, height = dims[2]
-//   '1' → dims[0]×dims[2] on bottom, height = dims[1]
-//   '2' → dims[1]×dims[2] on bottom, height = dims[0]
-function faceDownCandidates(dims) {
-  const [A,B,C] = dims;
-  return [
-    [A, B, C],
-    [A, C, B],
-    [B, C, A],
-  ];
-}
-
-// Generate all unique orientations for a package (up to 6):
-// 3 face-down choices × 2 footprint rotations.
-// Returns [[fw, fd, lh, fw0, fd0, lh0], ...]
-// fw/fd/lh = effective dims (with 2*margin padding); fw0/fd0/lh0 = visual dims.
-function genOrients(dims, faceMode, margin) {
-  const m2 = (margin || 0) * 2;
-  const allFaces = faceDownCandidates(dims);
-  const facesToTry = faceMode === 'auto'
-    ? allFaces
-    : [allFaces[parseInt(faceMode)]].filter(Boolean);
-  const seen = new Set(), out = [];
-  for (const [fw0, fd0, lh0] of facesToTry) {
-    for (const [w, d] of [[fw0, fd0], [fd0, fw0]]) {
-      const key = `${w},${d},${lh0}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push([w + m2, d + m2, lh0 + m2, w, d, lh0]);
-    }
-  }
-  return out;
-}
-
-
-// Mixed-type packing using the shared heightmap (_placed / _findPos / _isFlat).
-// Boxes of any type and height are placed wherever they fit on the growing surface,
-// so different types naturally share the same physical layer — no type segregation.
-//
-// initialPlaced: optional existing heightmap state (used to resume packing on a
-// partially-filled pallet when processing the next box type sequentially).
-// Returns finalPlaced so the caller can continue packing on the same pallet.
-function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
-  const placements = [];
-  const groupMap   = new Map();
-  const leftover   = [];
-  const qtysLeft   = new Map(entries.map(({pkg, qty}) => [pkg.id, qty]));
-  for (const {pkg, qty} of entries)
-    groupMap.set(pkg.id, {color: pkg.color, name: pkg.name, placed: 0, qty});
-
-  // Borrow the shared heightmap; restore when done
-  const savedPlaced = _placed;
-  _placed = [...initialPlaced]; // start from provided state (supports resuming a partial pallet)
-
-  // Large boxes first → stable base, lower overall pallet height
-  const sorted = [...entries].sort((a, b) =>
-    b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2] - a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2]
-  );
-
-  // Pack sequentially: exhaust all boxes of each type before moving to smaller types.
-  // This lets large boxes form a complete flat layer first; smaller types then fill
-  // remaining pallet space and stack on top, maximising the flat surface they inherit.
-  for (const {pkg} of sorted) {
-    let placed = true;
-    while (placed) {
-      const qty = qtysLeft.get(pkg.id) || 0;
-      if (qty <= 0) break;
-      placed = false;
-      const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
-
-      // Try every orientation; keep the one with the lowest valid placement y
-      // (then closest to pallet centre as tiebreak).
-      let bestPos = null, bestOrient = null;
-      for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
-        const pos = _findPos(fw, fd, lh, maxH);
-        if (!pos) continue;
-        if (!bestPos || pos.y < bestPos.y ||
-            (pos.y === bestPos.y && fw*fd > bestOrient.fw*bestOrient.fd) ||
-            (pos.y === bestPos.y && fw*fd === bestOrient.fw*bestOrient.fd && pos.dc < bestPos.dc))
-          { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
-      }
-      if (!bestPos) break;
-
-      _placed.push({x: bestPos.x, y: bestPos.y, z: bestPos.z,
-                    w: bestOrient.fw, h: bestOrient.lh, d: bestOrient.fd});
-      placements.push({
-        x: bestPos.x + margin, y: bestPos.y + margin, z: bestPos.z + margin,
-        w: bestOrient.fw0, h: bestOrient.lh0, d: bestOrient.fd0,
-        pkgId: pkg.id, color: pkg.color
-      });
-      qtysLeft.set(pkg.id, qty - 1);
-      groupMap.get(pkg.id).placed++;
-      placed = true;
-    }
-  }
-
-  const finalPlaced = [..._placed]; // snapshot for continuing on same pallet with next type
-  _placed = savedPlaced;
-
-  for (const {pkg} of entries) {
-    const rem = qtysLeft.get(pkg.id) || 0;
-    if (rem > 0) leftover.push({pkg, qty: rem});
-  }
-
-  const totalH = placements.reduce((m, p) => Math.max(m, p.y + p.h), PAL.H);
-  return {
-    count: placements.length,
-    layers: new Set(placements.map(p => p.y)).size,
-    placements, totalH,
-    groups: [...groupMap.entries()].map(([pkgId, g]) => ({pkgId, ...g, layers: []})),
-    leftover,
-    finalPlaced,
-  };
-}
-
-// packMixedOptimal is kept for call-site compatibility.
-function packMixedOptimal(entries, maxH, pkgOrientMap, margin, initialPlaced=[]) {
-  return packMixed(entries, maxH, pkgOrientMap, margin, initialPlaced);
-}
-
-// ═══════════════════════════════════════════════════════
-// PACKAGE MODAL (add / edit)
-// ═══════════════════════════════════════════════════════
-let _modalEditId = null; // null = new package, string = editing existing
-
-function openPkgModal(id) {
-  _modalEditId = id || null;
-  const isNew = !id;
-  const pkg = id ? PKGS.find(p=>p.id===id) : null;
-
-  document.getElementById('modalTitle').textContent = isNew ? 'Nowy karton' : 'Edytuj karton';
-  document.getElementById('mName').value  = pkg?.name  || '';
-  document.getElementById('mDimA').value  = pkg?.dims[0] || '';
-  document.getElementById('mDimB').value  = pkg?.dims[1] || '';
-  document.getElementById('mDimC').value  = pkg?.dims[2] || '';
-  const color = pkg?.color || '#3498db';
-  document.getElementById('mColor').value    = color;
-  document.getElementById('mColorHex').textContent = color;
-
-  // Show delete button only for custom (non-built-in) packages
-  const delBtn = document.getElementById('modalDelBtn');
-  delBtn.classList.toggle('hidden', isNew || BUILTIN_IDS.has(id));
-
-  // Show "restore defaults" hint when editing
-  document.getElementById('modalRestoreRow').style.display = isNew ? 'none' : 'block';
-
-  _previewFaceMode = pkg?.topFace || 'auto';
-  _prevTheta = 0.52; _prevPhi = 0.38;
-  document.getElementById('pkgModal').classList.remove('hidden');
-  _setupPreviewCanvas();
-  setTimeout(()=>{ document.getElementById('mName').focus(); drawPreview(); }, 50);
-}
-
-function modalClose() {
-  document.getElementById('pkgModal').classList.add('hidden');
-  _modalEditId = null;
-}
-
-function modalBgClick(e) {
-  if (e.target === document.getElementById('pkgModal')) modalClose();
-}
-
-function modalSave() {
-  const name = document.getElementById('mName').value.trim();
-  const A = parseInt(document.getElementById('mDimA').value);
-  const B = parseInt(document.getElementById('mDimB').value);
-  const C = parseInt(document.getElementById('mDimC').value);
-  const color = document.getElementById('mColor').value;
-
-  if (!name)          { alert('Podaj nazwę kartonu.'); return; }
-  if (!A||!B||!C||A<=0||B<=0||C<=0) { alert('Podaj prawidłowe wymiary (mm > 0).'); return; }
-
-  if (_modalEditId) {
-    // Edit existing
-    const pkg = PKGS.find(p=>p.id===_modalEditId);
-    if (pkg) { pkg.name=name; pkg.dims=[A,B,C]; pkg.color=color; pkg.topFace=_previewFaceMode; }
-  } else {
-    // New custom package
-    PKGS.push({ id:'pkg_'+Date.now(), name, dims:[A,B,C], color, topFace:_previewFaceMode });
-  }
-  savePkgs();
-  modalClose();
-  _afterPkgsChanged();
-}
-
-function modalDelete() {
-  const id = _modalEditId;
-  if (!id || BUILTIN_IDS.has(id)) return;
-  if (!confirm('Usunąć ten karton?')) return;
-  PKGS = PKGS.filter(p=>p.id!==id);
-  selectedIds.delete(id);
-  if (!selectedIds.size && PKGS.length) selectedIds.add(PKGS[0].id);
-  savePkgs();
-  modalClose();
-  _afterPkgsChanged();
-}
-
-function modalRestoreDefaults() {
-  if (!confirm('Przywrócić wszystkie domyślne kartony i usunąć własne?')) return;
-  PKGS = DEFAULT_PKGS.map(p=>({...p, dims:[...p.dims]}));
-  selectedIds = new Set([PKGS[0].id]);
-  savePkgs();
-  modalClose();
-  _afterPkgsChanged();
-}
-
-// Called after any mutation of PKGS — rebuilds all UI lists
-function _afterPkgsChanged() {
-  buildPkgList();
-  buildManPkgList();
-  // Make sure manSelPkg is still valid
-  if (!PKGS.find(p=>p.id===manSelPkg?.id)) {
-    manSelPkg = PKGS[0];
-    manFaceIdx = 0; manFlipped = false;
-  }
-  manRefreshFaceBtns();
-  // Refresh orient select if in single mode
-  if (mode==='single') {
-    const pkg = PKGS.find(p=>selectedIds.has(p.id));
-    if (pkg) rebuildOrientSelect(pkg);
-  }
-  // Re-render if there's an active result
-  if (lastRes && lastMode==='manual') {
-    const r=buildManualRes(); lastRes=r;
-    buildLegend(r,'manual'); updateManStats(r); draw3D(r);
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// PACKAGE PREVIEW CANVAS (modal)
-// ═══════════════════════════════════════════════════════
-let _previewFaceMode = 'auto';
-let _prevTheta = 0.52, _prevPhi = 0.38;
-let _prevDragActive = false, _prevDragMoved = false;
-let _prevDragX = 0, _prevDragY = 0;
-
-function _prevProj(x, y, z, dimX, dimY, dimZ, cx, cy, sc) {
-  // dimX=A (width), dimY=C (height), dimZ=B (depth) — centre then rotate
-  x -= dimX/2; y -= dimY/2; z -= dimZ/2;
-  const sT=Math.sin(_prevTheta), cT=Math.cos(_prevTheta);
-  const sP=Math.sin(_prevPhi),   cP=Math.cos(_prevPhi);
-  const rx=x*cT-z*sT, rz=x*sT+z*cT;
-  const fx=rx, fy=y*cP-rz*sP, fz=y*sP+rz*cP;
-  const dist=2000, pz=fz+dist;
-  return [(fx/pz)*dist*sc+cx, (-fy/pz)*dist*sc+cy, fz];
-}
-
-function _ptInPoly(px, py, poly) {
-  let inside=false;
-  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-    const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];
-    if(((yi>py)!==(yj>py))&&px<(xj-xi)*(py-yi)/(yj-yi)+xi) inside=!inside;
-  }
-  return inside;
-}
-
-// Generic face computation for any canvas + explicit theta/phi state
-function _computeFacesForCanvas(canvasEl, A, B, C, theta, phi) {
-  const W=canvasEl.width, H=canvasEl.height;
-  const cx=W/2, cy=H/2;
-  const sc=W*0.36/Math.max(A,B,C);
-  const pp=(x,y,z)=>{
-    x-=A/2; y-=C/2; z-=B/2;
-    const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
-    const rx=x*cT-z*sT, rz=x*sT+z*cT;
-    const fx=rx, fy=y*cP-rz*sP, fz=y*sP+rz*cP;
-    const dist=2000, pz=Math.max(fz+dist,1);
-    return[(fx/pz)*dist*sc+cx,(-fy/pz)*dist*sc+cy,fz];
-  };
-  const p=[pp(0,0,0),pp(A,0,0),pp(A,C,0),pp(0,C,0),pp(0,0,B),pp(A,0,B),pp(A,C,B),pp(0,C,B)];
-  const avgZ=f=>f.reduce((s,v)=>s+v[2],0)/f.length;
-  const faces=[
-    {v:[p[3],p[2],p[6],p[7]],shade:.38, type:'0'},
-    {v:[p[4],p[5],p[6],p[7]],shade:.16, type:'1'},
-    {v:[p[0],p[3],p[7],p[4]],shade:.06, type:'2'},
-    {v:[p[1],p[2],p[6],p[5]],shade:-.14,type:'2'},
-    {v:[p[0],p[1],p[2],p[3]],shade:-.26,type:'1'},
-    {v:[p[0],p[1],p[5],p[4]],shade:-.38,type:'0'},
-  ];
-  faces.sort((a,b)=>avgZ(b.v)-avgZ(a.v));
-  return faces;
-}
-
-function _computePreviewFaces(A, B, C) {
-  const pcv=document.getElementById('previewCanvas');
-  if(!pcv) return [];
-  return _computeFacesForCanvas(pcv, A, B, C, _prevTheta, _prevPhi);
-}
-
-// Generic canvas face renderer (shared by modal preview + face picker)
-function _renderFaces(canvasEl, faces, baseColor, faceMode) {
-  const pc=canvasEl.getContext('2d');
-  pc.clearRect(0,0,canvasEl.width,canvasEl.height);
-  faces.forEach(f=>{
-    const isSel=faceMode!=='auto'&&f.type===faceMode;
-    const v2=f.v.map(v=>[v[0],v[1]]);
-    pc.beginPath();pc.moveTo(v2[0][0],v2[0][1]);
-    v2.slice(1).forEach(v=>pc.lineTo(v[0],v[1]));
-    pc.closePath();
-    pc.fillStyle=isSel?col(baseColor,.55):col(baseColor,f.shade);
-    pc.fill();
-    pc.strokeStyle=isSel?'#fff':'rgba(0,0,0,.22)';
-    pc.lineWidth=isSel?2:.7;
-    pc.stroke();
-    if(isSel){
-      const fcx=v2.reduce((s,v)=>s+v[0],0)/v2.length;
-      const fcy=v2.reduce((s,v)=>s+v[1],0)/v2.length;
-      pc.fillStyle='rgba(255,255,255,.9)';
-      pc.font=`bold ${Math.round(canvasEl.width*.12)}px Segoe UI`;
-      pc.textAlign='center';pc.textBaseline='middle';
-      pc.fillText('↑',fcx,fcy);
-      pc.textAlign='start';pc.textBaseline='alphabetic';
-    }
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-// FACE PICKER (popup for per-package face selection in mixed mode)
-// ═══════════════════════════════════════════════════════
-let _fpFaceMode='auto', _fpTheta=0.52, _fpPhi=0.38, _fpPkgId=null;
-let _fpDragActive=false, _fpDragMoved=false, _fpDragX=0, _fpDragY=0;
-
-function _applyFaceBtnLabel(btn, dims, face) {
-  if(!btn) return;
-  const [A,B,C]=dims;
-  const labels={'0':`${A}×${B}`,'1':`${A}×${C}`,'2':`${B}×${C}`};
-  btn.dataset.face=face;
-  btn.textContent=face==='auto'?'↑ Auto':'↑ '+labels[face];
-}
-
-function _fpFaceNames(dims) {
-  const [A,B,C]=dims;
-  return {'auto':'Auto','0':`${A}×${B} ↑`,'1':`${A}×${C} ↑`,'2':`${B}×${C} ↑`};
-}
-
-function drawFacePicker() {
-  const pcv=document.getElementById('facePickerCanvas');
-  if(!pcv) return;
-  const pkg=PKGS.find(p=>p.id===_fpPkgId);
-  if(!pkg) return;
-  const [A,B,C]=pkg.dims;
-  const faces=_computeFacesForCanvas(pcv,A,B,C,_fpTheta,_fpPhi);
-  _renderFaces(pcv,faces,pkg.color,_fpFaceMode);
-  const lbl=document.getElementById('facePickerLabel');
-  if(lbl) lbl.textContent=_fpFaceNames(pkg.dims)[_fpFaceMode]||'Auto';
-}
-
-function _fpHit(clientX,clientY){
-  const pcv=document.getElementById('facePickerCanvas');
-  if(!pcv) return null;
-  const rect=pcv.getBoundingClientRect();
-  const sx=(clientX-rect.left)*(pcv.width/rect.width);
-  const sy=(clientY-rect.top)*(pcv.height/rect.height);
-  const pkg=PKGS.find(p=>p.id===_fpPkgId);
-  if(!pkg) return null;
-  const [A,B,C]=pkg.dims;
-  const faces=_computeFacesForCanvas(pcv,A,B,C,_fpTheta,_fpPhi);
-  for(let i=faces.length-1;i>=0;i--)
-    if(_ptInPoly(sx,sy,faces[i].v.map(v=>[v[0],v[1]]))) return faces[i].type;
-  return null;
-}
-
-function _fpApplyAndSave(face){
-  _fpFaceMode=face;
-  drawFacePicker();
-  const btn=document.querySelector(`.pkg-face-btn[data-id="${_fpPkgId}"]`);
-  const pkg=PKGS.find(p=>p.id===_fpPkgId);
-  if(btn&&pkg) _applyFaceBtnLabel(btn,pkg.dims,face);
-}
-
-function openFacePicker(pkgId){
-  _fpPkgId=pkgId;
-  _fpTheta=0.52; _fpPhi=0.38;
-  const btn=document.querySelector(`.pkg-face-btn[data-id="${pkgId}"]`);
-  _fpFaceMode=btn?.dataset?.face||'auto';
-  const pkg=PKGS.find(p=>p.id===pkgId);
-  document.getElementById('facePickerSub').textContent=pkg?.name||'';
-  document.getElementById('facePickerModal').classList.remove('hidden');
-  _setupFacePickerCanvas();
-  setTimeout(()=>drawFacePicker(),20);
-}
-
-function closeFacePicker(){
-  document.getElementById('facePickerModal').classList.add('hidden');
-}
-
-function fpSetAuto(){ _fpApplyAndSave('auto'); }
-function fpBgClick(e){ if(e.target.id==='facePickerModal') closeFacePicker(); }
-
-function _setupFacePickerCanvas(){
-  const old=document.getElementById('facePickerCanvas');
-  if(!old) return;
-  const pcv=old.cloneNode(false);
-  old.parentNode.replaceChild(pcv,old);
-
-  pcv.addEventListener('mousedown',e=>{
-    _fpDragActive=true;_fpDragMoved=false;
-    _fpDragX=e.clientX;_fpDragY=e.clientY;e.preventDefault();
-  },{passive:false});
-  pcv.addEventListener('mousemove',e=>{
-    if(!_fpDragActive) return;
-    const dx=e.clientX-_fpDragX,dy=e.clientY-_fpDragY;
-    if(Math.hypot(dx,dy)>3)_fpDragMoved=true;
-    _fpTheta-=dx*.015;_fpPhi=Math.max(.05,Math.min(1.5,_fpPhi-dy*.015));
-    _fpDragX=e.clientX;_fpDragY=e.clientY;drawFacePicker();
-  });
-  pcv.addEventListener('mouseup',e=>{
-    if(!_fpDragMoved){const hit=_fpHit(e.clientX,e.clientY);_fpApplyAndSave(hit&&hit!==_fpFaceMode?hit:'auto');}
-    _fpDragActive=false;
-  });
-  pcv.addEventListener('mouseleave',()=>_fpDragActive=false);
-
-  let tFpStart=null;
-  pcv.addEventListener('touchstart',e=>{
-    e.preventDefault();_fpDragActive=true;_fpDragMoved=false;
-    _fpDragX=e.touches[0].clientX;_fpDragY=e.touches[0].clientY;
-    tFpStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
-  },{passive:false});
-  pcv.addEventListener('touchmove',e=>{
+  function closeMBg(e,id){if(e.target===e.currentTarget)closeModal(id);}
+  function switchModal(from,to){closeModal(from);setTimeout(()=>document.getElementById(to).classList.add('open'),150);}
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('loginModal');closeModal('signupModal');}});
+
+  /* ── Form handlers (UI only — no backend) ── */
+  function handleSignup(e){
     e.preventDefault();
-    const dx=e.touches[0].clientX-_fpDragX,dy=e.touches[0].clientY-_fpDragY;
-    if(Math.hypot(dx,dy)>3)_fpDragMoved=true;
-    _fpTheta-=dx*.015;_fpPhi=Math.max(.05,Math.min(1.5,_fpPhi-dy*.015));
-    _fpDragX=e.touches[0].clientX;_fpDragY=e.touches[0].clientY;drawFacePicker();
-  },{passive:false});
-  pcv.addEventListener('touchend',e=>{
-    if(!_fpDragMoved&&tFpStart){
-      const t=e.changedTouches[0];
-      const hit=_fpHit(t.clientX,t.clientY);
-      _fpApplyAndSave(hit&&hit!==_fpFaceMode?hit:'auto');
-    }
-    _fpDragActive=false;
-  },{passive:true});
-}
-window.openFacePicker=openFacePicker;window.closeFacePicker=closeFacePicker;
-window.fpSetAuto=fpSetAuto;window.fpBgClick=fpBgClick;
-
-function drawPreview() {
-  const pcv=document.getElementById('previewCanvas');
-  if(!pcv) return;
-  const A=parseInt(document.getElementById('mDimA').value)||300;
-  const B=parseInt(document.getElementById('mDimB').value)||200;
-  const C=parseInt(document.getElementById('mDimC').value)||150;
-  const baseColor=document.getElementById('mColor')?.value||'#3498db';
-  const faceNames={'0':`${A}×${B} ↑`,'1':`${A}×${C} ↑`,'2':`${B}×${C} ↑`};
-  _renderFaces(pcv,_computePreviewFaces(A,B,C),baseColor,_previewFaceMode);
-  const lbl=document.getElementById('prevFaceLabel');
-  if(lbl) lbl.textContent=_previewFaceMode==='auto'?'Auto':(faceNames[_previewFaceMode]||'Auto');
-}
-
-function _setupPreviewCanvas() {
-  const pcv=document.getElementById('previewCanvas');
-  if(!pcv||pcv._previewBound) return;
-  pcv._previewBound=true;
-
-  const hitTest=(clientX,clientY)=>{
-    const rect=pcv.getBoundingClientRect();
-    const sx=(clientX-rect.left)*(pcv.width/rect.width);
-    const sy=(clientY-rect.top)*(pcv.height/rect.height);
-    const A=parseInt(document.getElementById('mDimA').value)||300;
-    const B=parseInt(document.getElementById('mDimB').value)||200;
-    const C=parseInt(document.getElementById('mDimC').value)||150;
-    const faces=_computePreviewFaces(A,B,C);
-    for(let i=faces.length-1;i>=0;i--){
-      if(_ptInPoly(sx,sy,faces[i].v.map(v=>[v[0],v[1]]))) return faces[i].type;
-    }
-    return null;
-  };
-
-  pcv.addEventListener('mousedown',e=>{
-    _prevDragActive=true;_prevDragMoved=false;
-    _prevDragX=e.clientX;_prevDragY=e.clientY;
-    e.preventDefault();
-  });
-  pcv.addEventListener('mousemove',e=>{
-    if(!_prevDragActive) return;
-    const dx=e.clientX-_prevDragX,dy=e.clientY-_prevDragY;
-    if(Math.hypot(dx,dy)>3)_prevDragMoved=true;
-    _prevTheta-=dx*.015;
-    _prevPhi=Math.max(.05,Math.min(1.5,_prevPhi-dy*.015));
-    _prevDragX=e.clientX;_prevDragY=e.clientY;
-    drawPreview();
-  });
-  pcv.addEventListener('mouseup',e=>{
-    if(!_prevDragMoved){
-      const hit=hitTest(e.clientX,e.clientY);
-      _previewFaceMode=(hit&&hit!==_previewFaceMode)?hit:'auto';
-      drawPreview();
-    }
-    _prevDragActive=false;
-  });
-  pcv.addEventListener('mouseleave',()=>{_prevDragActive=false;});
-
-  pcv.addEventListener('touchstart',e=>{
-    e.preventDefault();
-    _prevDragActive=true;_prevDragMoved=false;
-    _prevDragX=e.touches[0].clientX;_prevDragY=e.touches[0].clientY;
-  },{passive:false});
-  pcv.addEventListener('touchmove',e=>{
-    e.preventDefault();
-    if(!_prevDragActive) return;
-    const dx=e.touches[0].clientX-_prevDragX,dy=e.touches[0].clientY-_prevDragY;
-    if(Math.hypot(dx,dy)>3)_prevDragMoved=true;
-    _prevTheta-=dx*.015;
-    _prevPhi=Math.max(.05,Math.min(1.5,_prevPhi-dy*.015));
-    _prevDragX=e.touches[0].clientX;_prevDragY=e.touches[0].clientY;
-    drawPreview();
-  },{passive:false});
-  pcv.addEventListener('touchend',e=>{
-    if(!_prevDragMoved){
-      const t=e.changedTouches[0];
-      const hit=hitTest(t.clientX,t.clientY);
-      _previewFaceMode=(hit&&hit!==_previewFaceMode)?hit:'auto';
-      drawPreview();
-    }
-    _prevDragActive=false;
-  },{passive:true});
-}
-
-window.drawPreview=drawPreview;
-
-// Checks if any placed box type A, in its current orientation (height), is
-// preventing leftover box type B from fitting above it. Returns human-readable
-// hints per unique (A, B) type pair.
-function buildOrientationHints(res, maxH, margin) {
-  if (!res || !res.leftover || res.leftover.length === 0) return [];
-  const seen = new Set();
-  const hints = [];
-  for (const lb of res.leftover) {
-    const bMinH = Math.min(...lb.pkg.dims);
-    for (const pA of res.placements) {
-      if (pA.pkgId === lb.pkg.id) continue;
-      const key = `${pA.pkgId}|${lb.pkg.id}`;
-      if (seen.has(key)) continue;
-      // B can't fit on top of this A placement at current height
-      if (pA.y + pA.h + bMinH <= maxH) continue;
-      const aPkg = PKGS.find(p => p.id === pA.pkgId);
-      if (!aPkg) continue;
-      // Find minimum actual height A could use in any orientation
-      const allOrients = genOrients(aPkg.dims, 'auto', margin);
-      const minAH = Math.min(...allOrients.map(o => o[5])); // o[5] = lh0, actual box height
-      if (pA.h <= minAH) continue; // already at minimum — orientation can't help
-      // With shorter A, would B fit?
-      if (pA.y + minAH + bMinH <= maxH) {
-        seen.add(key);
-        hints.push(`Karton „${aPkg.name}" ułożony na wys. ${pA.h} mm — inna orientacja (min. ${minAH} mm) może zwolnić miejsce dla „${lb.pkg.name}"`);
-      }
-    }
+    const btn=e.target;
+    btn.textContent='Tworzenie konta…';btn.disabled=true;
+    setTimeout(()=>{
+      btn.textContent='Konto gotowe! Otwieranie kalkulatora…';
+      setTimeout(()=>window.location.href='app.html',900);
+    },1200);
   }
-  return hints;
-}
-
-// Shift each pallet's placements so the loaded area is centred on that pallet.
-// Only moves x/z — never affects y, count, or layers. Safe to apply after any
-// packing run. Each pallet's boxes are centred independently.
-function centrePlacements(placements) {
-  if (!placements.length) return placements;
-  const byPallet = new Map();
-  placements.forEach(p => {
-    const pi = p.palletIdx ?? 0;
-    if (!byPallet.has(pi)) byPallet.set(pi, []);
-    byPallet.get(pi).push(p);
-  });
-  const out = [];
-  for (const [pi, grp] of byPallet) {
-    const ox = pi * (PAL.W + PAL_GAP);
-    const lx0 = Math.min(...grp.map(p => p.x - ox));
-    const lx1 = Math.max(...grp.map(p => p.x - ox + p.w));
-    const lz0 = Math.min(...grp.map(p => p.z));
-    const lz1 = Math.max(...grp.map(p => p.z + p.d));
-    const sx = (PAL.W - (lx1 - lx0)) / 2 - lx0;
-    const sz = (PAL.D - (lz1 - lz0)) / 2 - lz0;
-    grp.forEach(p => out.push({...p, x: p.x + sx, z: p.z + sz}));
+  function handleLogin(e){
+    e.preventDefault();
+    const btn=e.target;
+    btn.textContent='Logowanie…';btn.disabled=true;
+    setTimeout(()=>{
+      btn.textContent='Zalogowano! Otwieranie…';
+      setTimeout(()=>window.location.href='app.html',800);
+    },1000);
   }
-  return out;
-}
 
-// ═══════════════════════════════════════════════════════
-// CALCULATE
-// ═══════════════════════════════════════════════════════
-let lastRes=null, lastMode=null;
+  /* ── Scroll fade-in ── */
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(el=>{if(el.isIntersecting)el.target.classList.add('visible');});
+  },{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
 
-window.calculate=function(){
-  const orientMode=document.getElementById('orient').value;
-  const margin=parseInt(document.getElementById('margin').value)||0;
-  const maxPallets=Math.max(1,parseInt(document.getElementById('maxPallets').value)||1);
-  let res, warns=[];
-
-  if(mode==='single'){
-    if(!selectedIds.size){alert('Zaznacz karton!');return;}
-    const pkgId=[...selectedIds][0];
-    const pkg=PKGS.find(p=>p.id===pkgId);
-    const qty=parseInt(document.getElementById('qty').value)||1;
-    const maxH=parseInt(document.getElementById('maxH').value)||1800;
-
-    // pack across multiple pallets: each pallet gets a fresh run until all boxes placed
-    const allPlacements=[];
-    const groupAccum=new Map();
-    let remQty=qty, numPallets=0;
-    for(let pi=0;pi<maxPallets&&remQty>0;pi++){
-      const r=packSingle(pkg,remQty,maxH,orientMode,margin);
-      if(!r||r.count===0) break;
-      const ox=pi*(PAL.W+PAL_GAP);
-      r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx:pi}));
-      remQty-=r.count; numPallets=pi+1;
-      res=r; // keep last for metadata (layers, perLayer, totalH)
-      r.groups?.forEach(g=>{
-        if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
-        groupAccum.get(g.pkgId).placed+=g.placed;
-      });
-    }
-    if(!res||allPlacements.length===0) warns.push('Paczka nie mieści się w podanej wysokości!');
-    else if(remQty>0 && numPallets>=maxPallets) warns.push(`Zostało ${remQty} paczek – zwiększ liczbę palet.`);
-    res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
-         groups:[...groupAccum.values()]};
-    document.getElementById('rTotal').textContent=res.count;
-    document.getElementById('rLayers').textContent=res.layers||0;
-    document.getElementById('rHeight').textContent=res.totalH||'—';
-    document.getElementById('rPerLayer').textContent=res.perLayer||0;
-    document.getElementById('sPerLayer').style.display='';
-    document.getElementById('rLeft').textContent=remQty;
-
-  } else {
-    if(!selectedIds.size){alert('Zaznacz przynajmniej jeden karton!');return;}
-    const maxH=parseInt(document.getElementById('maxHMixed').value)||1800;
-    const pkgOrientMap=new Map();
-    let initEntries=[]; let totalReq=0;
-    selectedIds.forEach(id=>{
-      const pkg=PKGS.find(p=>p.id===id);
-      const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
-      const faceEl=document.querySelector(`.pkg-face-btn[data-id="${id}"]`);
-      const qty=parseInt(qtyEl?.value)||0;
-      if(qty<=0) return;
-      pkgOrientMap.set(id, faceEl?.dataset?.face||'auto');
-      initEntries.push({pkg,qty}); totalReq+=qty;
+  /* ── Smooth scroll for nav links ── */
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click',e=>{
+      const t=document.querySelector(a.getAttribute('href'));
+      if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
     });
-
-    const allPlacements=[];
-    const groupAccum=new Map();
-    // Sort largest types first: each type fills complete pallets before smaller
-    // types start. Smaller types share remaining space on the last pallet.
-    const sortedEntries=[...initEntries].sort((a,b)=>{
-      const va=a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2];
-      const vb=b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2];
-      return vb-va;
-    });
-    let palletIdx=0, palletState=[];
-    const leftover=[];
-    res={count:0,layers:0,placements:[],totalH:PAL.H,groups:[],leftover:[],numPallets:1};
-
-    for (const entry of sortedEntries) {
-      if (palletIdx>=maxPallets){leftover.push({pkg:entry.pkg,qty:entry.qty});continue;}
-      let remQty=entry.qty;
-      while (remQty>0 && palletIdx<maxPallets) {
-        const r=packMixedOptimal([{pkg:entry.pkg,qty:remQty}],maxH,pkgOrientMap,margin,palletState);
-        if (r.count===0) {
-          // Nothing fits on current pallet — start a fresh one
-          if (palletState.length===0) break; // can't fit even on an empty pallet
-          palletIdx++; palletState=[];
-          continue;
-        }
-        const ox=palletIdx*(PAL.W+PAL_GAP);
-        r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx}));
-        r.groups?.forEach(g=>{
-          if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
-          groupAccum.get(g.pkgId).placed+=g.placed;
-        });
-        palletState=r.finalPlaced||[];
-        remQty-=r.count;
-        res=r;
-      }
-      if (remQty>0) leftover.push({pkg:entry.pkg,qty:remQty});
-    }
-    const numPallets=allPlacements.length>0
-      ? Math.max(...allPlacements.map(p=>p.palletIdx))+1 : 1;
-    const totalLeft=leftover.reduce((s,l)=>s+l.qty,0);
-    res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
-         groups:[...groupAccum.values()],leftover};
-    document.getElementById('rTotal').textContent=res.count;
-    document.getElementById('rLayers').textContent=res.layers||0;
-    document.getElementById('rHeight').textContent=res.totalH||'—';
-    document.getElementById('sPerLayer').style.display='none';
-    document.getElementById('rLeft').textContent=totalLeft;
-    if(leftover.length&&numPallets>=maxPallets){
-      warns.push('Nie zmieściło się (zwiększ liczbę palet): '+leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', '));
-    }
-  }
-
-  // pallets counter in stats bar
-  const numP=res?.numPallets||1;
-  document.getElementById('rPallets').textContent=numP;
-  document.getElementById('sPallets').style.display=numP>1?'':'none';
-
-  const sb=document.getElementById('statsBar');
-  sb.style.display='flex';
-  const wb=document.getElementById('warnBar');
-  if(warns.length){ wb.textContent=warns.join(' | '); wb.style.display='block'; }
-  else wb.style.display='none';
-
-  // Orientation hints: warn if a different orientation of a placed type could
-  // free up vertical space for a leftover type
-  const curMaxH = mode==='single'
-    ? (parseInt(document.getElementById('maxH').value)||1800)
-    : (parseInt(document.getElementById('maxHMixed').value)||1800);
-  const ohints = buildOrientationHints(res, curMaxH, margin);
-  const ohb = document.getElementById('orientHintBar');
-  ohb.textContent = ohints.join(' · ');
-  ohb.style.display = ohints.length ? '' : 'none';
-
-  lastRes=res; lastMode=mode;
-  buildLegend(res,mode);
-  if(window.innerWidth<760&&drawerOpen) toggleDrawer();
-  draw3D(res);
-};
-
-// ═══════════════════════════════════════════════════════
-// 3D ENGINE
-// ═══════════════════════════════════════════════════════
-const canvas=document.getElementById('canvas3d');
-const ctx=canvas.getContext('2d');
-let camTheta=0.52,camPhi=0.45,camDist=3800,camZoom=1,panX=0,panY=0;
-let camTargetY=PAL.H/2; // vertical focal point; updated each draw
-
-// mouse
-let drag=false,lmx=0,lmy=0,rmb=false,tapStart=null;
-canvas.addEventListener('mousedown',e=>{
-  drag=true;lmx=e.clientX;lmy=e.clientY;rmb=e.button===2;
-  tapStart={x:e.clientX,y:e.clientY};
-});
-canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('mousemove',e=>{
-  if(mode==='manual' && !drag){
-    if(manRemoveMode){
-      const {W,H,sc}=manScreenSc(); const cx=W/2,cy=H/2;
-      const rect=canvas.getBoundingClientRect();
-      const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
-      let best=-1, bd=50;
-      for(let i=0;i<manBoxes.length;i++){
-        const b=manBoxes[i];
-        const [px,py]=proj(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2,cx,cy,sc);
-        const d=Math.hypot(px-sx,py-sy);
-        if(d<bd){bd=d;best=i;}
-      }
-      manHoverRemoveIdx=best;
-    } else {
-      const w=manHoverToWorld(e);
-      if(w){const {fw,fd}=manGetDims();const G=50;
-        manGhostX=Math.max(0,Math.min(PAL.W-fw,Math.round(w.x/G)*G));
-        manGhostZ=Math.max(0,Math.min(PAL.D-fd,Math.round(w.z/G)*G));
-      } else { manGhostX=null; }
-    }
-    if(lastRes)draw3D(lastRes); return;
-  }
-  if(!drag)return;
-  const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
-  if(rmb){panX+=dx*1.8;panY+=dy*1.8;}
-  else{camTheta-=dx*.007;camPhi-=dy*.007;}
-  if(lastRes)draw3D(lastRes);
-});
-canvas.addEventListener('mouseup',e=>{
-  if(mode==='manual' && tapStart && !rmb){
-    const moved=Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y);
-    if(moved<6){
-      if(manRemoveMode){
-        const i=manPickBox(e);
-        if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;const r=buildManualRes();lastRes=r;lastMode='manual';buildLegend(r,'manual');updateManStats(r);draw3D(r);}
-      } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
-    }
-  }
-  drag=false; tapStart=null;
-});
-canvas.addEventListener('mouseleave',()=>{drag=false; if(mode==='manual'){manGhostX=null;if(lastRes)draw3D(lastRes);}});
-canvas.addEventListener('wheel',e=>{camZoom=Math.max(0.15,Math.min(5,camZoom*(e.deltaY>0?0.92:1.087)));if(lastRes)draw3D(lastRes);},{passive:true});
-
-// touch
-let tpts={},pinch0=null,tTapStart=null;
-canvas.addEventListener('touchstart',e=>{
-  e.preventDefault();
-  Array.from(e.changedTouches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
-  if(e.touches.length===1) tTapStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
-  if(e.touches.length===2){const[a,b]=[e.touches[0],e.touches[1]];pinch0=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);}
-},{passive:false});
-canvas.addEventListener('touchmove',e=>{
-  e.preventDefault();
-  if(e.touches.length===2){
-    const[a,b]=[e.touches[0],e.touches[1]];
-    const d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
-    if(pinch0){camZoom=Math.max(0.15,Math.min(5,camZoom*(d/pinch0)));pinch0=d;}
-  } else if(e.touches.length===1){
-    const t=e.touches[0],pr=tpts[t.identifier];
-    if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;
-      camTheta-=dx*.007;camPhi-=dy*.007;
-    }
-    tpts[t.identifier]={x:t.clientX,y:t.clientY};
-  }
-  if(lastRes)draw3D(lastRes);
-},{passive:false});
-canvas.addEventListener('touchend',e=>{
-  if(mode==='manual' && e.touches.length===0 && tTapStart){
-    const t=e.changedTouches[0];
-    const moved=Math.hypot(t.clientX-tTapStart.x,t.clientY-tTapStart.y);
-    if(moved<12){
-      if(manRemoveMode){
-        const i=manPickBox(e);
-        if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;const r=buildManualRes();lastRes=r;lastMode='manual';buildLegend(r,'manual');updateManStats(r);draw3D(r);}
-      } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
-    }
-  }
-  Array.from(e.changedTouches).forEach(t=>delete tpts[t.identifier]);
-  if(e.touches.length<2)pinch0=null;
-  if(e.touches.length===0)tTapStart=null;
-},{passive:true});
-
-// projection — orbit centre is the geometric centre of the scene in all 3 axes
-let _sceneCenterX = PAL.W/2; // updated by draw3D for multi-pallet scenes
-function proj(x,y,z,cx,cy,sc){
-  x -= _sceneCenterX; // centre on scene X midpoint (multi-pallet aware)
-  z -= PAL.D/2;       // centre on pallet Z midpoint
-  y -= camTargetY;   // centre on vertical midpoint of scene
-  const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
-  const sP=Math.sin(camPhi),cP=Math.cos(camPhi);
-  const rx=x*cT-z*sT,rz=x*sT+z*cT;
-  const fx=rx,fy=y*cP-rz*sP,fz=y*sP+rz*cP;
-  const pz=fz+camDist;
-  return[(fx/pz)*camDist*sc+cx+panX,(-fy/pz)*camDist*sc+cy+panY,fz];
-}
-
-function col(hex,f){
-  const c=parseInt(hex.replace('#',''),16);
-  let r=(c>>16)&255,g=(c>>8)&255,b=c&255;
-  if(f>=0){r=Math.min(255,r+(255-r)*f);g=Math.min(255,g+(255-g)*f);b=Math.min(255,b+(255-b)*f);}
-  else{r=Math.max(0,r*(1+f));g=Math.max(0,g*(1+f));b=Math.max(0,b*(1+f));}
-  return`rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
-}
-
-function drawFace(verts,fill,stroke){
-  ctx.beginPath();ctx.moveTo(verts[0][0],verts[0][1]);
-  verts.slice(1).forEach(v=>ctx.lineTo(v[0],v[1]));
-  ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=.7;ctx.stroke();
-}
-
-function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
-  const p=[
-    [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
-    [x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]
-  ].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
-  const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
-  const sP=Math.sin(camPhi),  cP=Math.cos(camPhi);
-  const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
-  return[
-    {v:[p[7],p[6],p[2],p[3]],f:col(color,.38), s:'rgba(0,0,0,.18)',n:[0, 1,0]},
-    {v:[p[4],p[5],p[6],p[7]],f:col(color,.16), s:'rgba(0,0,0,.18)',n:[0, 0,1]},
-    {v:[p[4],p[7],p[3],p[0]],f:col(color,.06), s:'rgba(0,0,0,.18)',n:[-1,0,0]},
-    {v:[p[1],p[2],p[6],p[5]],f:col(color,-.14),s:'rgba(0,0,0,.18)',n:[1, 0,0]},
-    {v:[p[3],p[2],p[1],p[0]],f:col(color,-.26),s:'rgba(0,0,0,.18)',n:[0, 0,-1]},
-    {v:[p[0],p[1],p[5],p[4]],f:col(color,-.38),s:'rgba(0,0,0,.18)',n:[0,-1,0]},
-  ].filter(f=>!cull || f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
-   .map(face=>{
-    const v=face.v;
-    return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};
   });
-}
-
-function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
-  getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy)
-    .sort((a,b)=>b.depth-a.depth)
-    .forEach(f=>drawFace(f.v,f.f,f.s));
-}
-
-// Returns box specs for one pallet at X-offset ox (used in unified depth sort)
-function palletBoxes(ox){
-  const {W,D,H}=PAL, b=[];
-  for(let i=0;i<6;i++) b.push({x:ox+i*200,y:H-22,z:0,w:120,h:22,d:D,color:'#c8a86a'});
-  [0,D/2-50,D-100].forEach(bz=>b.push({x:ox,y:0,z:bz,w:W,h:20,d:100,color:'#b8965a'}));
-  [0,W/2-50,W-100].forEach(bx=>[0,D/2-50,D-100].forEach(bz=>
-    b.push({x:ox+bx,y:20,z:bz,w:100,h:72,d:100,color:'#9a6e38'})));
-  [0,D/2-40,D-80].forEach(bz=>b.push({x:ox,y:92,z:bz,w:W,h:20,d:80,color:'#b8965a'}));
-  return b;
-}
-
-const PAL_GAP = 200; // gap between pallets in mm
-
-function draw3D(res){
-  const vw=document.getElementById('view3d');
-  const W=vw.clientWidth,H=vw.clientHeight;
-  const dpr=Math.min(devicePixelRatio,2);
-  canvas.width=W*dpr;canvas.height=H*dpr;
-  canvas.style.width=W+'px';canvas.style.height=H+'px';
-  ctx.scale(dpr,dpr);
-
-  const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-
-  if(!res)return;
-
-  const numPallets = res.numPallets || 1;
-  const sceneW = numPallets * PAL.W + (numPallets-1) * PAL_GAP;
-  _sceneCenterX = sceneW / 2; // update proj() orbit centre
-
-  const totalH=res.totalH||PAL.H+100;
-  camTargetY=totalH/2;
-  const maxDim=Math.max(sceneW,PAL.D,totalH);
-  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim*camZoom;
-  const cx=W/2,cy=H/2;
-
-  // Floor shadows first (always behind everything)
-  for(let i=0;i<numPallets;i++){
-    const ox=i*(PAL.W+PAL_GAP);
-    const sh=[[ox,0,0],[ox+PAL.W,0,0],[ox+PAL.W,0,PAL.D],[ox,0,PAL.D]]
-      .map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
-    ctx.beginPath();sh.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
-    ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
-  }
-
-  // Two-pass rendering: pallet uses back-face culling (prevents Z-fighting at internal
-  // coincident Y planes). Packages use no culling (prevents grazing-angle flicker).
-  // Pass order depends on camera height: when camera is above the pallet top surface
-  // (PAL.H), packages are closer so pallet is drawn first (behind); when camera is
-  // below, pallet is closer so packages are drawn first (behind).
-  // Using a single depth-sorted list fails here because wide pallet boards (1200 mm)
-  // have bimodal rz distributions whose average fz does not reflect physical Y order.
-  const sP=Math.sin(camPhi);
-  const cameraAbovePal = sP < (camTargetY - PAL.H) / camDist;
-
-  const palFaces=[], pkgFaces=[];
-  for(let i=0;i<numPallets;i++)
-    for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
-  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy)));
-
-  palFaces.sort((a,b)=>b.depth-a.depth);
-  pkgFaces.sort((a,b)=>b.depth-a.depth);
-
-  if(cameraAbovePal){
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-    pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-  } else {
-    pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-  }
-
-  // manual mode overlays (always single pallet)
-  if(mode==='manual'){
-    if(manRemoveMode && manHoverRemoveIdx>=0 && manHoverRemoveIdx<manBoxes.length){
-      const b=manBoxes[manHoverRemoveIdx];
-      ctx.globalAlpha=0.55;
-      drawBox(b.x,b.y,b.z,b.w,b.h,b.d,'#e74c3c',sc,cx,cy);
-      ctx.globalAlpha=1;
-    } else if(!manRemoveMode && manGhostX!==null){
-      const {fw,fd,lh}=manGetDims();
-      const gy=manSurfAt(manGhostX,manGhostZ,fw,fd);
-      ctx.globalAlpha=0.38;
-      drawBox(manGhostX,gy,manGhostZ,fw,lh,fd,manSelPkg.color,sc,cx,cy);
-      ctx.globalAlpha=1;
-    }
-  }
-
-  // height lines — one per pallet, using the actual height of that pallet's boxes
-  const fs=Math.max(11,Math.min(15,W/28));
-  ctx.font=`bold ${fs}px Segoe UI`;
-  for (let pi=0; pi<numPallets; pi++) {
-    const ox=pi*(PAL.W+PAL_GAP);
-    const palH=res.placements
-      .filter(p=>(p.palletIdx??0)===pi)
-      .reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-    const [lx0,ly0]=proj(ox+PAL.W+90,0,PAL.D/2,cx,cy,sc);
-    const [lx1,ly1]=proj(ox+PAL.W+90,palH,PAL.D/2,cx,cy,sc);
-    ctx.beginPath();ctx.moveTo(lx0,ly0);ctx.lineTo(lx1,ly1);
-    ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
-    [[lx0,ly0],[lx1,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
-    ctx.fillStyle='#1a3c5e';
-    ctx.fillText(palH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
-    if(numPallets>1){ctx.fillStyle='#1a3c5e80';ctx.fillText('P'+(pi+1),lx1+8,ly1-fs);}
-  }
-
-  document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: obracaj · 2 palce: zoom · przyciski: zoom/obrót':'Mysz: obracaj · Scroll: zoom · PPM: przesuń';
-}
-
-function buildLegend(res,mode){
-  const leg=document.getElementById('legend');
-  const usedIds=new Set(res.placements.map(p=>p.pkgId));
-  let html='<div style="font-weight:700;margin-bottom:5px;">Legenda</div>';
-  html+=`<div class="lr"><div class="ls" style="background:#c8a86a"></div>Europaleta 1200×800 mm</div>`;
-  PKGS.filter(p=>usedIds.has(p.id)).forEach(p=>{
-    const grp=res.groups?.find(g=>g.pkgId===p.id);
-    const cnt=grp?grp.placed:res.count;
-    html+=`<div class="lr"><div class="ls" style="background:${p.color}"></div>${p.name} ×${cnt}</div>`;
-  });
-  leg.innerHTML=html;
-  leg.style.display='block';
-}
-
-// INIT
-(function(){
-  const vw=document.getElementById('view3d');
-  const W=vw.clientWidth||window.innerWidth,H=vw.clientHeight||(window.innerHeight-50);
-  canvas.width=W;canvas.height=H;
-  const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(15,30,58,.75)';
-  const fs=Math.max(13,Math.min(17,W/24));
-  ctx.font=`${fs}px Segoe UI`;ctx.textAlign='center';
-  ctx.fillText('Wybierz karton i naciśnij „Oblicz i wizualizuj"',W/2,H/2);
-  ctx.textAlign='start';
-})();
-
-window.addEventListener('resize',()=>{if(lastRes)draw3D(lastRes);});
-
-// Camera control buttons
-const CAM_DEF={theta:0.52,phi:0.45};
-function camZoomIn(){camZoom=Math.min(5,camZoom*1.25);if(lastRes)draw3D(lastRes);}
-function camZoomOut(){camZoom=Math.max(0.15,camZoom*0.8);if(lastRes)draw3D(lastRes);}
-function camRotL(){camTheta-=0.18;if(lastRes)draw3D(lastRes);}
-function camRotR(){camTheta+=0.18;if(lastRes)draw3D(lastRes);}
-function camRotUp(){camPhi-=0.18;if(lastRes)draw3D(lastRes);}
-function camRotDn(){camPhi+=0.18;if(lastRes)draw3D(lastRes);}
-function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camZoom=1;panX=0;panY=0;camTargetY=PAL.H/2;_sceneCenterX=PAL.W/2;if(lastRes)draw3D(lastRes);}
-window.camZoomIn=camZoomIn;window.camZoomOut=camZoomOut;
-window.camRotL=camRotL;window.camRotR=camRotR;window.camReset=camReset;
-window.camRotUp=camRotUp;window.camRotDn=camRotDn;
-window.openPkgModal=openPkgModal;window.modalSave=modalSave;
-window.modalDelete=modalDelete;window.modalClose=modalClose;
-window.modalBgClick=modalBgClick;window.modalRestoreDefaults=modalRestoreDefaults;
 </script>
 </body>
 </html>
