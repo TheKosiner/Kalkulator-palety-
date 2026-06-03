@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kalkulator Palety 3D – Optymalizuj załadunek</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0a1020;--surface:#111827;--surface-2:#1a2740;--surface-3:#223051;
+      --border:#1e2e45;--border-2:#2d4060;
+      --text:#e8edf4;--text-2:#8fa3bc;--text-3:#546a84;
+      --accent:#3b82f6;--accent-h:#60a5fa;--accent-dim:rgba(59,130,246,.14);
+      --accent-glow:rgba(59,130,246,.28);
+      --green:#22c55e;--orange:#f59e0b;--red:#f87171;
+      --r:10px;--rl:16px;--rxl:24px;
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%}
+
+    /* ─── NAV ─── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 24px;height:64px;display:flex;align-items:center;gap:16px;background:rgba(10,16,32,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1rem;letter-spacing:-.02em;flex:1}
+    .nav-logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .nav-links{display:flex;gap:28px;font-size:.85rem;color:var(--text-2)}
+    .nav-links a:hover{color:var(--text)}
+    .nav-actions{display:flex;gap:10px;align-items:center;margin-left:16px}
+    .btn-ghost{padding:8px 16px;border:1px solid var(--border-2);border-radius:var(--r);font-size:.84rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-2);transition:color .15s,border-color .15s}
+    .btn-ghost:hover{color:var(--text);border-color:var(--text-3)}
+    .btn-primary{padding:9px 20px;background:var(--accent);border:none;border-radius:var(--r);font-size:.85rem;font-weight:700;cursor:pointer;color:#fff;transition:background .15s,box-shadow .15s;box-shadow:0 2px 14px var(--accent-glow)}
+    .btn-primary:hover{background:var(--accent-h);box-shadow:0 2px 20px rgba(96,165,250,.35)}
+    .nav-mobile-menu{display:none;background:none;border:none;color:var(--text-2);font-size:1.4rem;cursor:pointer;padding:4px 8px}
+
+    /* ─── HERO ─── */
+    .hero{min-height:100vh;padding:120px 24px 80px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.12) 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 80% 60%,rgba(99,102,241,.08) 0%,transparent 60%);pointer-events:none}
+    .hero-grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(59,130,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.04) 1px,transparent 1px);background-size:64px 64px;pointer-events:none}
+    .hero-inner{max-width:1160px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;position:relative;z-index:1}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.3);border-radius:20px;padding:5px 14px;font-size:.75rem;font-weight:600;color:var(--accent-h);margin-bottom:20px}
+    .hero-badge span{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .hero h1{font-size:3.2rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;margin-bottom:20px}
+    .hero h1 em{font-style:normal;color:var(--accent-h)}
+    .hero-sub{font-size:1.05rem;color:var(--text-2);line-height:1.6;max-width:480px;margin-bottom:36px}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .btn-hero-primary{padding:14px 28px;background:var(--accent);border:none;border-radius:var(--r);font-size:.96rem;font-weight:700;cursor:pointer;color:#fff;transition:background .15s,box-shadow .15s,transform .1s;box-shadow:0 4px 24px var(--accent-glow)}
+    .btn-hero-primary:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 6px 28px rgba(96,165,250,.4)}
+    .btn-hero-secondary{padding:14px 28px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r);font-size:.96rem;font-weight:700;cursor:pointer;color:var(--text);transition:border-color .15s,background .15s}
+    .btn-hero-secondary:hover{border-color:var(--text-3);background:var(--surface-3)}
+    .hero-note{margin-top:16px;font-size:.78rem;color:var(--text-3);display:flex;align-items:center;gap:6px}
+    .hero-note::before{content:'';width:4px;height:4px;background:var(--green);border-radius:50%;flex-shrink:0}
+
+    /* ─── APP MOCKUP ─── */
+    .app-mockup{position:relative}
+    .app-mockup::before{content:'';position:absolute;inset:-2px;border-radius:calc(var(--rl) + 2px);background:linear-gradient(135deg,rgba(59,130,246,.4),rgba(99,102,241,.2),transparent 50%);z-index:-1}
+    .app-window{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--rl);overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04)}
+    .app-titlebar{height:36px;background:var(--surface-2);display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:1px solid var(--border)}
+    .app-dots{display:flex;gap:6px}
+    .app-dots span{width:11px;height:11px;border-radius:50%}
+    .app-dots span:nth-child(1){background:#ff5f56}
+    .app-dots span:nth-child(2){background:#ffbd2e}
+    .app-dots span:nth-child(3){background:#27c93f}
+    .app-titlebar-name{font-size:.72rem;color:var(--text-3);flex:1;text-align:center;font-weight:500}
+    .app-body{display:flex;height:320px}
+    .app-sidebar-mock{width:140px;background:var(--bg);border-right:1px solid var(--border);padding:12px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+    .mock-label{font-size:.55rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+    .mock-tabs{display:flex;gap:3px;background:var(--surface);border-radius:5px;padding:2px}
+    .mock-tab{flex:1;padding:3px;border-radius:4px;font-size:.5rem;color:var(--text-3);text-align:center}
+    .mock-tab.a{background:var(--accent);color:#fff}
+    .mock-pkg{display:flex;align-items:center;gap:6px;padding:5px 7px;background:var(--surface);border-radius:5px;border:1px solid transparent}
+    .mock-pkg.sel{border-color:var(--accent);background:var(--accent-dim)}
+    .mock-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+    .mock-pkg-info{flex:1;min-width:0}
+    .mock-pkg-name{font-size:.52rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mock-pkg-dim{font-size:.45rem;color:var(--text-3)}
+    .mock-input-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .mock-input{height:22px;background:var(--surface);border:1px solid var(--border);border-radius:4px}
+    .mock-btn{height:26px;background:var(--accent);border-radius:5px;margin-top:4px;box-shadow:0 2px 8px var(--accent-glow)}
+
+    /* viewport with 3D boxes */
+    .app-viewport-mock{flex:1;background:linear-gradient(160deg,#dce8f2 0%,#b4c8d8 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .box-scene-wrap{perspective:500px;perspective-origin:55% 40%}
+    .box-scene{transform-style:preserve-3d;transform:rotateX(26deg) rotateY(-28deg);position:relative;width:210px;height:140px}
+    /* pallet base */
+    .pal-base{position:absolute;bottom:0;left:0;width:210px;height:140px;background:#b8965a;border-radius:2px;transform:translateZ(0)}
+    .pal-boards{position:absolute;bottom:0;left:0;width:210px;height:140px;background:repeating-linear-gradient(90deg,#c8a870 0px,#c8a870 28px,transparent 28px,transparent 32px);border-radius:2px;transform:translateZ(2px)}
+    /* CSS 3D boxes using helper class */
+    .b{position:absolute;transform-style:preserve-3d}
+    .b .f{position:absolute;width:100%;height:100%}
+    .b .top{transform-origin:top;transform:rotateX(-90deg);top:0;transform-origin:top center}
+    .b .front{transform:translateZ(0)}
+    .b .right{right:0;transform-origin:right center;transform:rotateY(90deg)}
+
+    /* Stats overlay in mockup */
+    .mock-stats{position:absolute;top:8px;left:8px;right:8px;background:rgba(10,16,32,.8);backdrop-filter:blur(6px);border-radius:8px;padding:7px 12px;display:flex;gap:14px;border:1px solid rgba(255,255,255,.07)}
+    .mock-stat{display:flex;flex-direction:column;align-items:center}
+    .mock-stat-v{font-size:.85rem;font-weight:800;color:#fff}
+    .mock-stat-l{font-size:.44rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
+
+    /* ─── STATS STRIP ─── */
+    .stats-strip{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:36px 24px}
+    .stats-inner{max-width:900px;margin:0 auto;display:flex;justify-content:space-around;gap:24px;flex-wrap:wrap}
+    .stat-item{text-align:center}
+    .stat-num{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;color:#fff;line-height:1}
+    .stat-label{font-size:.78rem;color:var(--text-3);margin-top:4px}
+    .stat-num em{font-style:normal;color:var(--accent-h)}
+
+    /* ─── SECTION COMMONS ─── */
+    .section{padding:96px 24px}
+    .section-inner{max-width:1160px;margin:0 auto}
+    .section-tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+    .section-title{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
+    .section-sub{font-size:1rem;color:var(--text-2);line-height:1.6;max-width:540px}
+    .section-header{margin-bottom:56px}
+    .section-header.center{text-align:center}
+    .section-header.center .section-sub{margin:0 auto}
+
+    /* ─── HOW IT WORKS ─── */
+    .how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
+    .how-steps::before{content:'';position:absolute;top:48px;left:calc(16.66% + 24px);right:calc(16.66% + 24px);height:1px;background:linear-gradient(90deg,var(--border-2),var(--border-2));z-index:0}
+    .how-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;position:relative;z-index:1;transition:border-color .2s,transform .2s}
+    .how-step:hover{border-color:var(--border-2);transform:translateY(-4px)}
+    .step-num{width:48px;height:48px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--accent);margin-bottom:20px}
+    .step-title{font-size:1.08rem;font-weight:700;margin-bottom:8px;color:var(--text)}
+    .step-desc{font-size:.87rem;color:var(--text-2);line-height:1.6}
+
+    /* ─── FEATURES ─── */
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;transition:border-color .2s,background .2s}
+    .feat-card:hover{border-color:var(--border-2);background:var(--surface-2)}
+    .feat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:16px}
+    .feat-title{font-size:.96rem;font-weight:700;margin-bottom:8px}
+    .feat-desc{font-size:.85rem;color:var(--text-2);line-height:1.6}
+    .fi-blue{background:rgba(59,130,246,.15)}
+    .fi-green{background:rgba(34,197,94,.12)}
+    .fi-orange{background:rgba(245,158,11,.12)}
+    .fi-purple{background:rgba(168,85,247,.12)}
+    .fi-teal{background:rgba(20,184,166,.12)}
+    .fi-pink{background:rgba(236,72,153,.12)}
+
+    /* ─── ACCOUNT BENEFITS ─── */
+    .account-section{background:var(--surface)}
+    .account-inner{max-width:1160px;margin:0 auto;padding:96px 24px;display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+    .account-visual{background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--rl);padding:32px;position:relative;overflow:hidden}
+    .account-visual::after{content:'';position:absolute;bottom:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,var(--accent-dim) 0%,transparent 70%);pointer-events:none}
+    .profile-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+    .profile-avatar{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),#6366f1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:#fff;flex-shrink:0}
+    .profile-name{font-size:1rem;font-weight:700}
+    .profile-plan{font-size:.75rem;color:var(--accent-h);font-weight:600;background:var(--accent-dim);padding:2px 10px;border-radius:20px;display:inline-block;margin-top:3px}
+    .saved-pkgs-list{display:flex;flex-direction:column;gap:8px}
+    .saved-pkg{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+    .saved-pkg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+    .saved-pkg-name{font-size:.82rem;font-weight:600}
+    .saved-pkg-dim{font-size:.68rem;color:var(--text-3)}
+    .saved-pkg-badge{margin-left:auto;font-size:.62rem;color:var(--accent-h);background:var(--accent-dim);padding:2px 8px;border-radius:10px}
+    .benefit-list{list-style:none;display:flex;flex-direction:column;gap:18px}
+    .benefit-list li{display:flex;align-items:flex-start;gap:14px}
+    .benefit-check{width:28px;height:28px;background:rgba(34,197,94,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:.9rem;flex-shrink:0;margin-top:1px}
+    .benefit-text strong{display:block;font-size:.94rem;font-weight:700;margin-bottom:3px}
+    .benefit-text span{font-size:.84rem;color:var(--text-2);line-height:1.5}
+
+    /* ─── PRICING ─── */
+    .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+    .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;transition:border-color .2s,transform .2s;position:relative}
+    .price-card.popular{border-color:var(--accent);transform:scale(1.02);box-shadow:0 0 0 1px var(--accent),0 24px 48px rgba(59,130,246,.18)}
+    .popular-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.68rem;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap;letter-spacing:.05em}
+    .price-plan{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
+    .price-amount{font-size:2.6rem;font-weight:800;letter-spacing:-.04em;line-height:1;color:#fff;margin-bottom:4px}
+    .price-amount sup{font-size:1rem;vertical-align:top;margin-top:.4em;font-weight:600;color:var(--text-2)}
+    .price-amount sub{font-size:.85rem;font-weight:500;color:var(--text-3);vertical-align:baseline}
+    .price-amount.free-tag{font-size:2rem;color:var(--green)}
+    .price-desc{font-size:.82rem;color:var(--text-2);margin-bottom:24px;line-height:1.5;min-height:2.6em}
+    .price-divider{border:none;border-top:1px solid var(--border);margin:20px 0}
+    .price-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px}
+    .price-features li{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--text-2)}
+    .price-features li::before{content:'✓';color:var(--green);font-weight:700;font-size:.88rem;flex-shrink:0}
+    .price-features li.off{color:var(--text-3)}
+    .price-features li.off::before{content:'–';color:var(--text-3)}
+    .btn-plan{width:100%;padding:12px;border:none;border-radius:var(--r);font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s,box-shadow .15s}
+    .btn-plan-primary{background:var(--accent);color:#fff;box-shadow:0 2px 14px var(--accent-glow)}
+    .btn-plan-primary:hover{background:var(--accent-h);box-shadow:0 2px 20px rgba(96,165,250,.35)}
+    .btn-plan-outline{background:transparent;color:var(--text);border:1px solid var(--border-2)}
+    .btn-plan-outline:hover{border-color:var(--text-3);background:var(--surface-2)}
+    .btn-plan-ghost{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+    .btn-plan-ghost:hover{background:var(--surface-3);color:var(--text)}
+    .price-note{text-align:center;font-size:.75rem;color:var(--text-3);margin-top:24px}
+
+    /* ─── SIGNUP CTA ─── */
+    .signup-cta{padding:96px 24px;background:radial-gradient(ellipse 70% 80% at 50% 50%,rgba(59,130,246,.09) 0%,transparent 65%)}
+    .signup-box{max-width:480px;margin:0 auto;text-align:center}
+    .signup-box h2{font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:12px}
+    .signup-box p{color:var(--text-2);margin-bottom:36px;line-height:1.6}
+    .signup-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;text-align:left}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-size:.76rem;font-weight:500;color:var(--text-2);margin-bottom:5px}
+    .form-group input{width:100%;padding:11px 13px;background:var(--bg);border:1px solid var(--border-2);border-radius:var(--r);font-size:.93rem;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+    .form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
+    .form-group input::placeholder{color:var(--text-3)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn-signup-submit{width:100%;padding:13px;background:var(--accent);border:none;border-radius:var(--r);font-size:.95rem;font-weight:700;color:#fff;cursor:pointer;margin-top:8px;transition:background .15s,box-shadow .15s;box-shadow:0 2px 18px var(--accent-glow)}
+    .btn-signup-submit:hover{background:var(--accent-h)}
+    .form-terms{font-size:.71rem;color:var(--text-3);text-align:center;margin-top:12px;line-height:1.5}
+    .form-terms a{color:var(--accent-h)}
+    .form-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text-3);font-size:.75rem}
+    .form-divider::before,.form-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    .login-link{text-align:center;margin-top:16px;font-size:.83rem;color:var(--text-2)}
+    .login-link a{color:var(--accent-h);font-weight:600}
+
+    /* ─── FOOTER ─── */
+    footer{background:var(--surface);border-top:1px solid var(--border);padding:48px 24px 32px}
+    .footer-inner{max-width:1160px;margin:0 auto}
+    .footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+    .footer-brand p{font-size:.85rem;color:var(--text-3);margin-top:12px;line-height:1.6;max-width:260px}
+    .footer-col h4{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:14px}
+    .footer-col a{display:block;font-size:.85rem;color:var(--text-2);margin-bottom:9px;transition:color .15s}
+    .footer-col a:hover{color:var(--text)}
+    .footer-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    .footer-copy{font-size:.78rem;color:var(--text-3)}
+    .footer-legal{display:flex;gap:20px}
+    .footer-legal a{font-size:.78rem;color:var(--text-3)}
+    .footer-legal a:hover{color:var(--text-2)}
+
+    /* ─── MODAL ─── */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-backdrop.open{opacity:1;pointer-events:all}
+    .modal{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--rl);width:100%;max-width:420px;padding:32px;box-shadow:0 32px 80px rgba(0,0,0,.6);transform:translateY(20px) scale(.97);transition:transform .22s,opacity .22s}
+    .modal-backdrop.open .modal{transform:none}
+    .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-3);font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s}
+    .modal-close:hover{color:var(--text)}
+    .modal-title{font-size:1.2rem;font-weight:800;margin-bottom:6px}
+    .modal-sub{font-size:.85rem;color:var(--text-2);margin-bottom:24px}
+
+    /* ─── ANIMATIONS ─── */
+    .fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+    .fade-in.visible{opacity:1;transform:none}
+
+    /* ─── RESPONSIVE ─── */
+    @media(max-width:900px){
+      .hero-inner{grid-template-columns:1fr;gap:48px;text-align:center}
+      .hero h1{font-size:2.4rem}
+      .hero-sub{margin:0 auto 36px}
+      .hero-actions{justify-content:center}
+      .hero-note{justify-content:center}
+      .app-mockup::before{display:none}
+      .how-steps{grid-template-columns:1fr}
+      .how-steps::before{display:none}
+      .features-grid{grid-template-columns:1fr 1fr}
+      .account-inner{grid-template-columns:1fr;gap:40px;padding:64px 24px}
+      .pricing-grid{grid-template-columns:1fr;max-width:400px;margin:0 auto}
+      .price-card.popular{transform:none}
+      .footer-top{grid-template-columns:1fr 1fr;gap:24px}
+      .nav-links{display:none}
+      .nav-mobile-menu{display:block}
+    }
+    @media(max-width:560px){
+      .features-grid{grid-template-columns:1fr}
+      .hero h1{font-size:2rem}
+      .section-title{font-size:1.8rem}
+      .stats-inner{gap:32px}
+      .footer-top{grid-template-columns:1fr}
+      .footer-bottom{flex-direction:column;text-align:center}
+      .form-row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">&#9633;</div>
+    Kalkulator Palety 3D
+  </div>
+  <div class="nav-links">
+    <a href="#jak-dziala">Jak to działa</a>
+    <a href="#funkcje">Funkcje</a>
+    <a href="#cennik">Cennik</a>
+    <a href="#zaloz-konto">Konto</a>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-ghost" onclick="openModal('login')">Zaloguj się</button>
+    <button class="btn-primary" onclick="openModal('signup')">Załóż konto</button>
+  </div>
+  <button class="nav-mobile-menu" onclick="openModal('signup')">☰</button>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-lines"></div>
+  <div class="hero-inner">
+
+    <div class="hero-content">
+      <div class="hero-badge"><span></span>Nowa wersja z wizualizacją 3D</div>
+      <h1>Optymalizuj załadunek<br><em>palet w 3D</em></h1>
+      <p class="hero-sub">Oblicz idealny układ kartonów na europalecie — w kilka sekund, z interaktywną wizualizacją 3D. Oszczędzaj przestrzeń, czas i pieniądze.</p>
+      <div class="hero-actions">
+        <a href="index.html"><button class="btn-hero-primary">Wypróbuj bezpłatnie</button></a>
+        <button class="btn-hero-secondary" onclick="openModal('signup')">Załóż konto</button>
+      </div>
+      <div class="hero-note">Brak karty kredytowej &nbsp;·&nbsp; Dostęp instant &nbsp;·&nbsp; Bezpłatny plan na zawsze</div>
+    </div>
+
+    <!-- App mockup -->
+    <div class="app-mockup fade-in">
+      <div class="app-window">
+        <div class="app-titlebar">
+          <div class="app-dots"><span></span><span></span><span></span></div>
+          <span class="app-titlebar-name">Kalkulator Palety 3D</span>
+        </div>
+        <div class="app-body">
+          <div class="app-sidebar-mock">
+            <div class="mock-label">Tryb</div>
+            <div class="mock-tabs">
+              <div class="mock-tab a">Jeden</div>
+              <div class="mock-tab">Mieszane</div>
+              <div class="mock-tab">Ręcznie</div>
+            </div>
+            <div class="mock-label" style="margin-top:8px">Kartony</div>
+            <div class="mock-pkg sel">
+              <div class="mock-dot" style="background:#e74c3c"></div>
+              <div class="mock-pkg-info">
+                <div class="mock-pkg-name">Karton RF4</div>
+                <div class="mock-pkg-dim">770×380×533</div>
+              </div>
+            </div>
+            <div class="mock-pkg">
+              <div class="mock-dot" style="background:#e67e22"></div>
+              <div class="mock-pkg-info">
+                <div class="mock-pkg-name">Karton RP</div>
+                <div class="mock-pkg-dim">770×380×650</div>
+              </div>
+            </div>
+            <div class="mock-pkg">
+              <div class="mock-dot" style="background:#27ae60"></div>
+              <div class="mock-pkg-info">
+                <div class="mock-pkg-name">Stojak NOWY</div>
+                <div class="mock-pkg-dim">770×195×380</div>
+              </div>
+            </div>
+            <div class="mock-label" style="margin-top:6px">Parametry</div>
+            <div class="mock-input-row">
+              <div class="mock-input"></div>
+              <div class="mock-input"></div>
+            </div>
+            <div class="mock-btn"></div>
+          </div>
+
+          <div class="app-viewport-mock">
+            <!-- Stats overlay -->
+            <div class="mock-stats">
+              <div class="mock-stat"><div class="mock-stat-v">24</div><div class="mock-stat-l">Paczek</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">3</div><div class="mock-stat-l">Warstw</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">1598</div><div class="mock-stat-l">Wys. mm</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">0</div><div class="mock-stat-l">Zostało</div></div>
+            </div>
+            <!-- 3D box scene -->
+            <div class="box-scene-wrap">
+              <div class="box-scene">
+                <!-- pallet base -->
+                <div style="position:absolute;bottom:0;left:0;width:210px;height:140px;background:#b8965a;border-radius:2px;transform:translateZ(0)"></div>
+                <div style="position:absolute;bottom:0;left:0;width:210px;height:140px;background:repeating-linear-gradient(90deg,#c8a870 0,#c8a870 26px,transparent 26px,transparent 30px);border-radius:2px;transform:translateZ(1px)"></div>
+
+                <!-- Row 1 col 1 -->
+                <div style="position:absolute;left:4px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0;transform:skewX(0)"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 1 col 2 -->
+                <div style="position:absolute;left:70px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 1 col 3 -->
+                <div style="position:absolute;left:136px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+
+                <!-- Row 2 col 1 -->
+                <div style="position:absolute;left:4px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 2 col 2 -->
+                <div style="position:absolute;left:70px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Row 2 col 3 -->
+                <div style="position:absolute;left:136px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
+                </div>
+
+                <!-- Layer 2 row 1 col 1 -->
+                <div style="position:absolute;left:4px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Layer 2 row 1 col 2 -->
+                <div style="position:absolute;left:70px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
+                </div>
+                <!-- Layer 2 row 1 col 3 -->
+                <div style="position:absolute;left:136px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
+                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
+                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
+                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══ STATS STRIP ═══ -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>23%</em></div>
+      <div class="stat-label">Średnia oszczędność miejsca</div>
+    </div>
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>&lt;2s</em></div>
+      <div class="stat-label">Czas obliczenia</div>
+    </div>
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>100%</em></div>
+      <div class="stat-label">Przeglądarkowy – bez instalacji</div>
+    </div>
+    <div class="stat-item fade-in">
+      <div class="stat-num"><em>1200×800</em></div>
+      <div class="stat-label">Europaleta (norma ISO 6780)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="section" id="jak-dziala">
+  <div class="section-inner">
+    <div class="section-header center fade-in">
+      <div class="section-tag">Jak to działa</div>
+      <h2 class="section-title">Od kartonów do gotowej palety<br>w trzech krokach</h2>
+      <p class="section-sub">Nie trzeba żadnych specjalistycznych narzędzi ani wiedzy. Wystarczy podać wymiary i ilości kartonów.</p>
+    </div>
+    <div class="how-steps">
+      <div class="how-step fade-in">
+        <div class="step-num">1</div>
+        <div class="step-title">Zdefiniuj kartony</div>
+        <p class="step-desc">Wprowadź wymiary i ilości kartonów. Możesz wybrać spośród predefiniowanych typów lub dodać własne — zapisane na Twoim koncie.</p>
+      </div>
+      <div class="how-step fade-in">
+        <div class="step-num">2</div>
+        <div class="step-title">Oblicz układ</div>
+        <p class="step-desc">Kliknij „Oblicz i wizualizuj". Algorytm automatycznie dobiera optymalną orientację i rozplanowanie kartonów na palecie.</p>
+      </div>
+      <div class="how-step fade-in">
+        <div class="step-num">3</div>
+        <div class="step-title">Wizualizuj w 3D</div>
+        <p class="step-desc">Obejrzyj wynik w interaktywnej wizualizacji 3D — obracaj, zoomuj i analizuj układ z dowolnej perspektywy. Tryb ręczny daje pełną kontrolę.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="section" id="funkcje" style="background:var(--surface);padding-top:80px;padding-bottom:80px">
+  <div class="section-inner">
+    <div class="section-header fade-in">
+      <div class="section-tag">Funkcje</div>
+      <h2 class="section-title">Wszystko czego potrzebujesz<br>do planowania załadunku</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-blue">&#9671;</div>
+        <div class="feat-title">Wizualizacja 3D w czasie rzeczywistym</div>
+        <p class="feat-desc">Interaktywny widok 3D z pełną kontrolą kamery — obracanie, zoom, panorama. Dokładne odwzorowanie europalety 1200×800 mm.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-green">&#9632;</div>
+        <div class="feat-title">Algorytm optymalnego upakowania</div>
+        <p class="feat-desc">Automatyczne dobieranie orientacji i kolejności układania. Obsługa wielu typów kartonów jednocześnie (tryb mieszany).</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-orange">&#9670;</div>
+        <div class="feat-title">Tryb ręczny</div>
+        <p class="feat-desc">Układaj kartony ręcznie — kliknij na paletę aby postawić karton. Narzędzia cofnij, wypełnij i usuń dla pełnej elastyczności.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-purple">&#9651;</div>
+        <div class="feat-title">Wiele palet jednocześnie</div>
+        <p class="feat-desc">Nadwyżka kartonów automatycznie przechodzi na kolejną paletę. Skonfiguruj maksymalną liczbę palet i wysokość załadunku.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-teal">&#9654;</div>
+        <div class="feat-title">Wybór ściany nośnej</div>
+        <p class="feat-desc">Dla każdego kartonu określ, która ściana ma leżeć na dole. Interaktywny selektor 3D umożliwia precyzyjny wybór orientacji.</p>
+      </div>
+      <div class="feat-card fade-in">
+        <div class="feat-icon fi-pink">&#9650;</div>
+        <div class="feat-title">Margines bezpieczeństwa</div>
+        <p class="feat-desc">Ustaw margines bezpieczeństwa od krawędzi palety. Obsługa folii stretch i innych wymogów logistycznych.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ACCOUNT BENEFITS ═══ -->
+<section class="account-section" id="zaloz-konto">
+  <div class="account-inner">
+    <div class="fade-in">
+      <div class="section-tag">Twoje konto</div>
+      <h2 class="section-title">Własne konto odblokowuje<br>pełne możliwości</h2>
+      <p class="section-sub" style="margin-bottom:36px">Zapisuj własne typy kartonów w chmurze, korzystaj z historii obliczeń i synchronizuj dane między urządzeniami.</p>
+      <ul class="benefit-list">
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Własne kartony zapisane w chmurze</strong>
+            <span>Dodawaj nieograniczoną liczbę typów kartonów z dowolnymi wymiarami, nazwami i kolorami. Dostępne na każdym urządzeniu po zalogowaniu.</span>
+          </div>
+        </li>
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Historia obliczeń</strong>
+            <span>Każde obliczenie zostaje zapisane. Wróć do dowolnego wcześniejszego układu palety bez przeliczania od nowa.</span>
+          </div>
+        </li>
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Szablony konfiguracji</strong>
+            <span>Zapisuj zestawy kartonów jako szablony. Jednym kliknięciem załaduj ulubiony schemat załadunku.</span>
+          </div>
+        </li>
+        <li>
+          <div class="benefit-check">&#10003;</div>
+          <div class="benefit-text">
+            <strong>Synchronizacja między urządzeniami</strong>
+            <span>Zacznij obliczenie na komputerze, sprawdź wynik na tablecie w magazynie — Twoje dane są zawsze aktualne.</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div class="account-visual fade-in">
+      <div class="profile-header">
+        <div class="profile-avatar">MW</div>
+        <div>
+          <div class="profile-name">Marek Wiśniewski</div>
+          <div class="profile-plan">Standard</div>
+        </div>
+      </div>
+      <div style="font-size:.7rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:10px">Moje kartony (8)</div>
+      <div class="saved-pkgs-list">
+        <div class="saved-pkg">
+          <div class="saved-pkg-dot" style="background:#e74c3c"></div>
+          <div>
+            <div class="saved-pkg-name">Karton RF4</div>
+            <div class="saved-pkg-dim">770 × 380 × 533 mm</div>
+          </div>
+          <div class="saved-pkg-badge">własny</div>
+        </div>
+        <div class="saved-pkg">
+          <div class="saved-pkg-dot" style="background:#e67e22"></div>
+          <div>
+            <div class="saved-pkg-name">Opakowanie XL premium</div>
+            <div class="saved-pkg-dim">900 × 500 × 600 mm</div>
+          </div>
+          <div class="saved-pkg-badge">własny</div>
+        </div>
+        <div class="saved-pkg">
+          <div class="saved-pkg-dot" style="background:#27ae60"></div>
+          <div>
+            <div class="saved-pkg-name">Karton sezonowy</div>
+            <div class="saved-pkg-dim">400 × 300 × 250 mm</div>
+          </div>
+          <div class="saved-pkg-badge">własny</div>
+        </div>
+        <div class="saved-pkg" style="opacity:.5">
+          <div class="saved-pkg-dot" style="background:#2980b9"></div>
+          <div>
+            <div class="saved-pkg-name">+ 5 więcej kartonów...</div>
+            <div class="saved-pkg-dim">zapisanych na Twoim koncie</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:24px;padding:12px" onclick="openModal('signup')">Załóż konto i dodaj własne kartony</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═══ -->
+<section class="section" id="cennik">
+  <div class="section-inner">
+    <div class="section-header center fade-in">
+      <div class="section-tag">Cennik</div>
+      <h2 class="section-title">Prosto i przejrzyście</h2>
+      <p class="section-sub">Zacznij za darmo. Płać tylko jeśli potrzebujesz więcej.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- FREE -->
+      <div class="price-card fade-in">
+        <div class="price-plan">Bezpłatny</div>
+        <div class="price-amount free-tag">0 zł</div>
+        <p class="price-desc">Idealny do testowania i okazjonalnego użycia.</p>
+        <hr class="price-divider"/>
+        <ul class="price-features">
+          <li>Dostęp do kalkulatora 3D</li>
+          <li>7 predefiniowanych kartonów</li>
+          <li>1 europaleta jednocześnie</li>
+          <li>Tryb automatyczny i ręczny</li>
+          <li class="off">Własne kartony (konto)</li>
+          <li class="off">Historia obliczeń</li>
+          <li class="off">Szablony konfiguracji</li>
+        </ul>
+        <a href="index.html"><button class="btn-plan btn-plan-ghost">Otwórz kalkulator</button></a>
+      </div>
+
+      <!-- STANDARD (popular) -->
+      <div class="price-card popular fade-in">
+        <div class="popular-badge">NAJPOPULARNIEJSZY</div>
+        <div class="price-plan">Standard</div>
+        <div class="price-amount"><sup>zł</sup>29<sub>/mies.</sub></div>
+        <p class="price-desc">Dla firm korzystających z kalkulatora regularnie.</p>
+        <hr class="price-divider"/>
+        <ul class="price-features">
+          <li>Wszystko z planu Bezpłatny</li>
+          <li>Konto i logowanie</li>
+          <li>Nielimitowane własne kartony</li>
+          <li>Historia ostatnich 50 obliczeń</li>
+          <li>3 europalety jednocześnie</li>
+          <li>Szablony konfiguracji (5 szt.)</li>
+          <li class="off">Eksport PDF / Excel</li>
+        </ul>
+        <button class="btn-plan btn-plan-primary" onclick="openModal('signup')">Zacznij — 14 dni gratis</button>
+      </div>
+
+      <!-- PRO -->
+      <div class="price-card fade-in">
+        <div class="price-plan">Pro</div>
+        <div class="price-amount"><sup>zł</sup>79<sub>/mies.</sub></div>
+        <p class="price-desc">Dla zespołów i zaawansowanych zastosowań logistycznych.</p>
+        <hr class="price-divider"/>
+        <ul class="price-features">
+          <li>Wszystko z planu Standard</li>
+          <li>Do 5 użytkowników w firmie</li>
+          <li>Nielimitowana historia</li>
+          <li>Nielimitowane palety i szablony</li>
+          <li>Eksport do PDF i Excel</li>
+          <li>Priorytetowe wsparcie techniczne</li>
+          <li>Własne logo i branding</li>
+        </ul>
+        <button class="btn-plan btn-plan-outline" onclick="openModal('signup')">Wypróbuj Pro gratis</button>
+      </div>
+
+    </div>
+    <p class="price-note">Ceny netto, + 23% VAT &nbsp;·&nbsp; Płatność miesięczna lub roczna (–20%) &nbsp;·&nbsp; Anuluj w dowolnym momencie</p>
+  </div>
+</section>
+
+<!-- ═══ SIGNUP CTA ═══ -->
+<section class="signup-cta" id="zaloz-konto-form">
+  <div class="signup-box">
+    <div class="fade-in">
+      <div class="section-tag" style="display:block;text-align:center;margin-bottom:10px">Zacznij teraz</div>
+      <h2>Załóż konto<br>w 30 sekund</h2>
+      <p>Bez karty kredytowej. 14 dni planu Standard gratis, potem bezpłatny plan lub subskrypcja.</p>
+    </div>
+    <div class="signup-form fade-in">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Imię</label>
+          <input type="text" placeholder="Jan"/>
+        </div>
+        <div class="form-group">
+          <label>Nazwisko</label>
+          <input type="text" placeholder="Kowalski"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Adres e-mail</label>
+        <input type="email" placeholder="jan@firma.pl"/>
+      </div>
+      <div class="form-group">
+        <label>Hasło</label>
+        <input type="password" placeholder="Min. 8 znaków"/>
+      </div>
+      <div class="form-group">
+        <label>Firma (opcjonalnie)</label>
+        <input type="text" placeholder="Nazwa firmy"/>
+      </div>
+      <button class="btn-signup-submit" onclick="handleSignup(event)">Utwórz konto bezpłatnie</button>
+      <p class="form-terms">Rejestrując się akceptujesz <a href="#">Regulamin</a> i <a href="#">Politykę prywatności</a>.</p>
+      <div class="form-divider">lub</div>
+      <div class="login-link">Masz już konto? <a href="#" onclick="openModal('login');return false">Zaloguj się</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="nav-logo" style="flex:none">
+          <div class="nav-logo-icon">&#9633;</div>
+          Kalkulator Palety 3D
+        </div>
+        <p>Profesjonalne narzędzie do optymalizacji załadunku europalety. Szybko, precyzyjnie, wizualnie.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Produkt</h4>
+        <a href="#jak-dziala">Jak to działa</a>
+        <a href="#funkcje">Funkcje</a>
+        <a href="#cennik">Cennik</a>
+        <a href="index.html">Otwórz kalkulator</a>
+      </div>
+      <div class="footer-col">
+        <h4>Konto</h4>
+        <a href="#" onclick="openModal('signup');return false">Rejestracja</a>
+        <a href="#" onclick="openModal('login');return false">Logowanie</a>
+        <a href="#cennik">Subskrypcja</a>
+        <a href="#">Moje kartony</a>
+      </div>
+      <div class="footer-col">
+        <h4>Pomoc</h4>
+        <a href="#">Dokumentacja</a>
+        <a href="#">FAQ</a>
+        <a href="#">Kontakt</a>
+        <a href="#">Status systemu</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">&copy; 2025 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
+      <div class="footer-legal">
+        <a href="#">Regulamin</a>
+        <a href="#">Polityka prywatności</a>
+        <a href="#">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══ LOGIN MODAL ═══ -->
+<div class="modal-backdrop" id="loginModal" onclick="closeMBg(event,'loginModal')">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+    <div class="modal-title">Zaloguj się</div>
+    <p class="modal-sub">Witaj z powrotem! Wprowadź swoje dane.</p>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" placeholder="jan@firma.pl"/>
+    </div>
+    <div class="form-group">
+      <label>Hasło</label>
+      <input type="password" placeholder="Twoje hasło"/>
+    </div>
+    <button class="btn-signup-submit" onclick="handleLogin(event)">Zaloguj się</button>
+    <p class="form-terms" style="margin-top:12px"><a href="#">Zapomniałem hasła</a></p>
+    <div class="form-divider">lub</div>
+    <div class="login-link">Nie masz konta? <a href="#" onclick="switchModal('loginModal','signupModal');return false">Zarejestruj się</a></div>
+  </div>
+</div>
+
+<!-- ═══ SIGNUP MODAL ═══ -->
+<div class="modal-backdrop" id="signupModal" onclick="closeMBg(event,'signupModal')">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
+    <div class="modal-title">Utwórz konto</div>
+    <p class="modal-sub">14 dni planu Standard gratis. Bez karty kredytowej.</p>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Imię</label><input type="text" placeholder="Jan"/></div>
+      <div class="form-group"><label>Nazwisko</label><input type="text" placeholder="Kowalski"/></div>
+    </div>
+    <div class="form-group"><label>E-mail</label><input type="email" placeholder="jan@firma.pl"/></div>
+    <div class="form-group"><label>Hasło</label><input type="password" placeholder="Min. 8 znaków"/></div>
+    <button class="btn-signup-submit" onclick="handleSignup(event)">Utwórz konto bezpłatnie</button>
+    <p class="form-terms" style="margin-top:10px">Akceptujesz <a href="#">Regulamin</a> i <a href="#">Politykę prywatności</a>.</p>
+    <div class="form-divider">lub</div>
+    <div class="login-link">Masz już konto? <a href="#" onclick="switchModal('signupModal','loginModal');return false">Zaloguj się</a></div>
+  </div>
+</div>
+
+<script>
+  /* ── Modals ── */
+  function openModal(which){
+    document.getElementById(which==='signup'?'signupModal':'loginModal').classList.add('open');
+    document.body.style.overflow='hidden';
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.style.overflow='';
+  }
+  function closeMBg(e,id){if(e.target===e.currentTarget)closeModal(id);}
+  function switchModal(from,to){closeModal(from);setTimeout(()=>document.getElementById(to).classList.add('open'),150);}
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('loginModal');closeModal('signupModal');}});
+
+  /* ── Form handlers (UI only — no backend) ── */
+  function handleSignup(e){
+    e.preventDefault();
+    const btn=e.target;
+    btn.textContent='Tworzenie konta…';btn.disabled=true;
+    setTimeout(()=>{
+      btn.textContent='Konto gotowe! Otwieranie kalkulatora…';
+      setTimeout(()=>window.location.href='index.html',900);
+    },1200);
+  }
+  function handleLogin(e){
+    e.preventDefault();
+    const btn=e.target;
+    btn.textContent='Logowanie…';btn.disabled=true;
+    setTimeout(()=>{
+      btn.textContent='Zalogowano! Otwieranie…';
+      setTimeout(()=>window.location.href='index.html',800);
+    },1000);
+  }
+
+  /* ── Scroll fade-in ── */
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(el=>{if(el.isIntersecting)el.target.classList.add('visible');});
+  },{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+
+  /* ── Smooth scroll for nav links ── */
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click',e=>{
+      const t=document.querySelector(a.getAttribute('href'));
+      if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
+    });
+  });
+</script>
+</body>
+</html>
