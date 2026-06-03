@@ -79,19 +79,9 @@
     .mock-input{height:22px;background:var(--surface);border:1px solid var(--border);border-radius:4px}
     .mock-btn{height:26px;background:var(--accent);border-radius:5px;margin-top:4px;box-shadow:0 2px 8px var(--accent-glow)}
 
-    /* viewport with 3D boxes */
-    .app-viewport-mock{flex:1;background:linear-gradient(160deg,#dce8f2 0%,#b4c8d8 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    .box-scene-wrap{perspective:500px;perspective-origin:55% 40%}
-    .box-scene{transform-style:preserve-3d;transform:rotateX(26deg) rotateY(-28deg);position:relative;width:210px;height:140px}
-    /* pallet base */
-    .pal-base{position:absolute;bottom:0;left:0;width:210px;height:140px;background:#b8965a;border-radius:2px;transform:translateZ(0)}
-    .pal-boards{position:absolute;bottom:0;left:0;width:210px;height:140px;background:repeating-linear-gradient(90deg,#c8a870 0px,#c8a870 28px,transparent 28px,transparent 32px);border-radius:2px;transform:translateZ(2px)}
-    /* CSS 3D boxes using helper class */
-    .b{position:absolute;transform-style:preserve-3d}
-    .b .f{position:absolute;width:100%;height:100%}
-    .b .top{transform-origin:top;transform:rotateX(-90deg);top:0;transform-origin:top center}
-    .b .front{transform:translateZ(0)}
-    .b .right{right:0;transform-origin:right center;transform:rotateY(90deg)}
+    .app-viewport-mock{flex:1;position:relative;overflow:hidden;background:#c8d8e8}
+    #demoCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+    #demoCanvas:active{cursor:grabbing}
 
     /* Stats overlay in mockup */
     .mock-stats{position:absolute;top:8px;left:8px;right:8px;background:rgba(10,16,32,.8);backdrop-filter:blur(6px);border-radius:8px;padding:7px 12px;display:flex;gap:14px;border:1px solid rgba(255,255,255,.07)}
@@ -322,22 +312,22 @@
             <div class="mock-pkg sel">
               <div class="mock-dot" style="background:#e74c3c"></div>
               <div class="mock-pkg-info">
-                <div class="mock-pkg-name">Karton RF4</div>
-                <div class="mock-pkg-dim">770×380×533</div>
+                <div class="mock-pkg-name">Karton 1</div>
+                <div class="mock-pkg-dim">600×400×300</div>
               </div>
             </div>
             <div class="mock-pkg">
               <div class="mock-dot" style="background:#e67e22"></div>
               <div class="mock-pkg-info">
-                <div class="mock-pkg-name">Karton RP</div>
-                <div class="mock-pkg-dim">770×380×650</div>
+                <div class="mock-pkg-name">Karton 2</div>
+                <div class="mock-pkg-dim">600×400×300</div>
               </div>
             </div>
             <div class="mock-pkg">
               <div class="mock-dot" style="background:#27ae60"></div>
               <div class="mock-pkg-info">
-                <div class="mock-pkg-name">Stojak NOWY</div>
-                <div class="mock-pkg-dim">770×195×380</div>
+                <div class="mock-pkg-name">Karton 3</div>
+                <div class="mock-pkg-dim">600×400×350</div>
               </div>
             </div>
             <div class="mock-label" style="margin-top:6px">Parametry</div>
@@ -351,76 +341,12 @@
           <div class="app-viewport-mock">
             <!-- Stats overlay -->
             <div class="mock-stats">
-              <div class="mock-stat"><div class="mock-stat-v">24</div><div class="mock-stat-l">Paczek</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">12</div><div class="mock-stat-l">Paczek</div></div>
               <div class="mock-stat"><div class="mock-stat-v">3</div><div class="mock-stat-l">Warstw</div></div>
-              <div class="mock-stat"><div class="mock-stat-v">1598</div><div class="mock-stat-l">Wys. mm</div></div>
+              <div class="mock-stat"><div class="mock-stat-v">1094</div><div class="mock-stat-l">Wys. mm</div></div>
               <div class="mock-stat"><div class="mock-stat-v">0</div><div class="mock-stat-l">Zostało</div></div>
             </div>
-            <!-- 3D box scene -->
-            <div class="box-scene-wrap">
-              <div class="box-scene">
-                <!-- pallet base -->
-                <div style="position:absolute;bottom:0;left:0;width:210px;height:140px;background:#b8965a;border-radius:2px;transform:translateZ(0)"></div>
-                <div style="position:absolute;bottom:0;left:0;width:210px;height:140px;background:repeating-linear-gradient(90deg,#c8a870 0,#c8a870 26px,transparent 26px,transparent 30px);border-radius:2px;transform:translateZ(1px)"></div>
-
-                <!-- Row 1 col 1 -->
-                <div style="position:absolute;left:4px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0;transform:skewX(0)"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
-                </div>
-                <!-- Row 1 col 2 -->
-                <div style="position:absolute;left:70px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
-                </div>
-                <!-- Row 1 col 3 -->
-                <div style="position:absolute;left:136px;bottom:0;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
-                </div>
-
-                <!-- Row 2 col 1 -->
-                <div style="position:absolute;left:4px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
-                </div>
-                <!-- Row 2 col 2 -->
-                <div style="position:absolute;left:70px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
-                </div>
-                <!-- Row 2 col 3 -->
-                <div style="position:absolute;left:136px;bottom:60px;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#c0392b;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#e74c3c;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#962d22;border-radius:0 3px 3px 0"></div>
-                </div>
-
-                <!-- Layer 2 row 1 col 1 -->
-                <div style="position:absolute;left:4px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
-                </div>
-                <!-- Layer 2 row 1 col 2 -->
-                <div style="position:absolute;left:70px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
-                </div>
-                <!-- Layer 2 row 1 col 3 -->
-                <div style="position:absolute;left:136px;bottom:120px;width:62px;height:58px;transform:translateZ(2px)">
-                  <div style="position:absolute;inset:0;background:#1565c0;border-radius:3px"></div>
-                  <div style="position:absolute;top:-18px;left:0;width:62px;height:18px;background:#2980b9;border-radius:3px 3px 0 0"></div>
-                  <div style="position:absolute;right:-12px;top:0;width:12px;height:58px;background:#0d47a1;border-radius:0 3px 3px 0"></div>
-                </div>
-              </div>
-            </div>
+            <canvas id="demoCanvas"></canvas>
           </div>
         </div>
       </div>
@@ -832,6 +758,151 @@
       setTimeout(()=>window.location.href='app.html',800);
     },1000);
   }
+
+  /* ── Demo 3D canvas ── */
+  (function(){
+    const cv=document.getElementById('demoCanvas');
+    if(!cv)return;
+    const ctx=cv.getContext('2d');
+
+    const PAL={W:1200,D:800,H:144};
+    const SCENE={
+      numPallets:1,totalH:1094,
+      placements:[
+        {x:0,  y:144,z:0,  w:600,h:300,d:400,color:'#e74c3c'},
+        {x:600,y:144,z:0,  w:600,h:300,d:400,color:'#e74c3c'},
+        {x:0,  y:144,z:400,w:600,h:300,d:400,color:'#e74c3c'},
+        {x:600,y:144,z:400,w:600,h:300,d:400,color:'#e74c3c'},
+        {x:0,  y:444,z:0,  w:600,h:300,d:400,color:'#e67e22'},
+        {x:600,y:444,z:0,  w:600,h:300,d:400,color:'#e67e22'},
+        {x:0,  y:444,z:400,w:600,h:300,d:400,color:'#e67e22'},
+        {x:600,y:444,z:400,w:600,h:300,d:400,color:'#e67e22'},
+        {x:0,  y:744,z:0,  w:600,h:350,d:400,color:'#27ae60'},
+        {x:600,y:744,z:0,  w:600,h:350,d:400,color:'#27ae60'},
+        {x:0,  y:744,z:400,w:600,h:350,d:400,color:'#27ae60'},
+        {x:600,y:744,z:400,w:600,h:350,d:400,color:'#27ae60'},
+      ]
+    };
+
+    let theta=0.52,phi=0.45,zoom=1;
+    const DIST=3800,camTY=SCENE.totalH/2;
+
+    function proj(x,y,z,cx,cy,sc){
+      const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
+      const rx=cT*(x-600)-sT*(z-400);
+      const ry=-(y-camTY);
+      const rz=sT*(x-600)+cT*(z-400);
+      const fx=rx*cP+ry*sP;
+      const fy=-rx*sP+ry*cP;
+      const fz=rz;
+      const pz=DIST+fz;
+      return[cx+fx/pz*DIST*sc, cy-fy/pz*DIST*sc, fz];
+    }
+
+    function col(base,adj){
+      const r=parseInt(base.slice(1,3),16),g=parseInt(base.slice(3,5),16),b=parseInt(base.slice(5,7),16);
+      const f=1+adj;
+      const clamp=v=>Math.max(0,Math.min(255,Math.round(v*f)));
+      return`rgb(${clamp(r)},${clamp(g)},${clamp(b)})`;
+    }
+
+    function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,isPal){
+      const pts=[[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],[x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]];
+      const p=pts.map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
+      const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
+      const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
+      const faces=[
+        {v:[p[7],p[6],p[2],p[3]],f:isPal?'#c8a870':col(color,.38),s:'rgba(0,0,0,.18)',n:[0,1,0]},
+        {v:[p[4],p[5],p[6],p[7]],f:isPal?'#b8965a':col(color,.16),s:'rgba(0,0,0,.18)',n:[0,0,1]},
+        {v:[p[4],p[7],p[3],p[0]],f:isPal?'#a08040':col(color,.06),s:'rgba(0,0,0,.18)',n:[-1,0,0]},
+        {v:[p[1],p[2],p[6],p[5]],f:isPal?'#a08040':col(color,-.14),s:'rgba(0,0,0,.18)',n:[1,0,0]},
+        {v:[p[3],p[2],p[1],p[0]],f:isPal?'#b8965a':col(color,-.26),s:'rgba(0,0,0,.18)',n:[0,0,-1]},
+        {v:[p[0],p[1],p[5],p[4]],f:isPal?'#906030':col(color,-.38),s:'rgba(0,0,0,.18)',n:[0,-1,0]},
+      ].filter(f=>f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
+       .map(face=>{const v=face.v;return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
+      return faces;
+    }
+
+    function palletBoxes(){
+      const res=[];
+      const TH=22,BH=22,BW=145,BD=800,GW=40,PH=14;
+      const bx=[0,BW+GW,2*(BW+GW),1200-BW];
+      bx.forEach(bx=>res.push({x:bx,y:0,z:0,w:BW,h:BH,d:BD,color:'#c8a870'}));
+      const bz=[0,BD-BH];
+      bz.forEach(bz=>res.push({x:0,y:BH,z:bz,w:PAL.W,h:PH,d:BH,color:'#c8a870'}));
+      res.push({x:0,y:BH,z:(BD-BH)/2,w:PAL.W,h:PH,d:BH,color:'#c8a870'});
+      const blocks=[{x:0,bz:0},{x:PAL.W/2-GW/2,bz:0},{x:PAL.W-BW,bz:0},
+                    {x:0,bz:BD/2-BW/2},{x:PAL.W/2-GW/2,bz:BD/2-BW/2},{x:PAL.W-BW,bz:BD/2-BW/2},
+                    {x:0,bz:BD-BW},{x:PAL.W/2-GW/2,bz:BD-BW},{x:PAL.W-BW,bz:BD-BW}];
+      blocks.forEach(b=>res.push({x:b.x,y:BH+PH,z:b.bz,w:BW,h:TH,d:BW,color:'#b8965a'}));
+      res.push({x:0,y:BH+PH+TH,z:0,w:PAL.W,h:PH,d:BD,color:'#c8a870'});
+      return res;
+    }
+
+    function drawFace(v,fill,stroke){
+      ctx.beginPath();ctx.moveTo(v[0][0],v[0][1]);
+      for(let i=1;i<v.length;i++)ctx.lineTo(v[i][0],v[i][1]);
+      ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+      ctx.strokeStyle=stroke;ctx.lineWidth=.5;ctx.stroke();
+    }
+
+    function draw(){
+      const W=cv.width,H=cv.height,cx=W/2,cy=H/2;
+      const maxDim=Math.max(PAL.W,PAL.D,SCENE.totalH+PAL.H);
+      const sc=(Math.min(W,H)*.6)/maxDim*zoom;
+
+      const g=ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
+      ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+      const sP=Math.sin(phi);
+      const cameraAbove=sP<(camTY-PAL.H)/DIST;
+      const palFaces=[],pkgFaces=[];
+      palletBoxes().forEach(b=>palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true)));
+      SCENE.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,false)));
+      palFaces.sort((a,b)=>b.depth-a.depth);
+      pkgFaces.sort((a,b)=>b.depth-a.depth);
+      if(cameraAbove){
+        palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+        pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+      }else{
+        pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+        palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+      }
+    }
+
+    function resize(){cv.width=cv.offsetWidth;cv.height=cv.offsetHeight;draw();}
+    window.addEventListener('resize',resize);
+    resize();
+
+    /* auto-rotate */
+    let raf;
+    function autoRotate(){theta+=0.004;draw();raf=requestAnimationFrame(autoRotate);}
+    raf=requestAnimationFrame(autoRotate);
+
+    /* drag */
+    let drag=null;
+    cv.addEventListener('mousedown',e=>{cancelAnimationFrame(raf);drag={x:e.clientX,y:e.clientY,t:theta,p:phi};});
+    window.addEventListener('mousemove',e=>{
+      if(!drag)return;
+      theta=drag.t+(e.clientX-drag.x)*0.005;
+      phi=Math.max(0.05,Math.min(1.4,drag.p-(e.clientY-drag.y)*0.005));
+      draw();
+    });
+    window.addEventListener('mouseup',()=>{if(drag){drag=null;raf=requestAnimationFrame(autoRotate);}});
+
+    /* touch drag */
+    cv.addEventListener('touchstart',e=>{
+      if(e.touches.length===1){cancelAnimationFrame(raf);drag={x:e.touches[0].clientX,y:e.touches[0].clientY,t:theta,p:phi};}
+    },{passive:true});
+    cv.addEventListener('touchmove',e=>{
+      if(!drag||e.touches.length!==1)return;
+      theta=drag.t+(e.touches[0].clientX-drag.x)*0.005;
+      phi=Math.max(0.05,Math.min(1.4,drag.p-(e.touches[0].clientY-drag.y)*0.005));
+      draw();
+    },{passive:true});
+    cv.addEventListener('touchend',()=>{if(drag){drag=null;raf=requestAnimationFrame(autoRotate);}});
+  })();
 
   /* ── Scroll fade-in ── */
   const obs=new IntersectionObserver(entries=>{
