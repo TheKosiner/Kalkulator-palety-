@@ -962,31 +962,17 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
       if (qty <= 0) continue;
       const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
 
-      // A box is "small" if its volume is < 50% of the largest selected type.
-      // Small boxes prefer sitting on top of already-placed boxes (minY > PAL.H),
-      // concentrating them centrally above the large base layer.
-      const vol = pkg.dims[0]*pkg.dims[1]*pkg.dims[2];
-      const isSmall = vol < maxVol * 0.5 && _placed.length > 0;
-      const onTopMinY = PAL.H + 1; // any position above bare pallet surface
-
       // Try every orientation; keep the one with the lowest valid placement y
       // (then closest to pallet centre as tiebreak).
-      // requireLargeSurface: small boxes must only sit on large-box surfaces,
-      // preventing small-on-small stacking (towers).
+      // _findPos's "lowest y first" preference naturally fills each height level
+      // horizontally before stacking, so no extra tower-prevention logic is needed.
       let bestPos = null, bestOrient = null;
-      const tryOrients = (minY, requireLargeSurface=false) => {
-        for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
-          const pos = _findPos(fw, fd, lh, maxH, minY);
-          if (!pos) continue;
-          if (requireLargeSurface && pos.y > PAL.H &&
-              !_surfaceIsLargeOnly(pos.x, pos.z, fw, fd, pos.y, maxVol)) continue;
-          if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
-            { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
-        }
-      };
-      tryOrients(isSmall ? onTopMinY : PAL.H, isSmall);
-      // Fallback: if no on-top large-surface position found, allow pallet surface
-      if (!bestPos && isSmall) tryOrients(PAL.H);
+      for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
+        const pos = _findPos(fw, fd, lh, maxH);
+        if (!pos) continue;
+        if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
+          { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
+      }
       if (!bestPos) continue;
 
       _placed.push({x: bestPos.x, y: bestPos.y, z: bestPos.z,
