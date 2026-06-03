@@ -154,7 +154,7 @@
     .benefit-text span{font-size:.84rem;color:var(--text-2);line-height:1.5}
 
     /* ─── PRICING ─── */
-    .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+    .pricing-grid{display:flex;justify-content:center}
     .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;transition:border-color .2s,transform .2s;position:relative}
     .price-card.popular{border-color:var(--accent);transform:scale(1.02);box-shadow:0 0 0 1px var(--accent),0 24px 48px rgba(59,130,246,.18)}
     .popular-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.68rem;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap;letter-spacing:.05em}
@@ -240,7 +240,7 @@
       .how-steps::before{display:none}
       .features-grid{grid-template-columns:1fr 1fr}
       .account-inner{grid-template-columns:1fr;gap:40px;padding:64px 24px}
-      .pricing-grid{grid-template-columns:1fr;max-width:400px;margin:0 auto}
+      .pricing-grid{flex-direction:column;align-items:center}
       .price-card.popular{transform:none}
       .footer-top{grid-template-columns:1fr 1fr;gap:24px}
       .nav-links{display:none}
@@ -292,7 +292,7 @@
         <a href="app.html"><button class="btn-hero-primary">Wypróbuj bezpłatnie</button></a>
         <button class="btn-hero-secondary" onclick="openModal('signup')">Załóż konto</button>
       </div>
-      <div class="hero-note">Brak karty kredytowej &nbsp;·&nbsp; Dostęp instant &nbsp;·&nbsp; Bezpłatny plan na zawsze</div>
+      <div class="hero-note">50 zł / mies. &nbsp;·&nbsp; Pełen dostęp &nbsp;·&nbsp; Anuluj kiedy chcesz</div>
     </div>
 
     <!-- App mockup -->
@@ -539,68 +539,31 @@
   <div class="section-inner">
     <div class="section-header center fade-in">
       <div class="section-tag">Cennik</div>
-      <h2 class="section-title">Prosto i przejrzyście</h2>
-      <p class="section-sub">Zacznij za darmo. Płać tylko jeśli potrzebujesz więcej.</p>
+      <h2 class="section-title">Jeden plan. Pełen dostęp.</h2>
+      <p class="section-sub">Bez limitów, bez ukrytych opłat.</p>
     </div>
     <div class="pricing-grid">
 
-      <!-- FREE -->
-      <div class="price-card fade-in">
-        <div class="price-plan">Bezpłatny</div>
-        <div class="price-amount free-tag">0 zł</div>
-        <p class="price-desc">Idealny do testowania i okazjonalnego użycia.</p>
+      <div class="price-card popular fade-in" style="max-width:420px;width:100%">
+        <div class="popular-badge">PEŁEN DOSTĘP</div>
+        <div class="price-plan">Subskrypcja</div>
+        <div class="price-amount"><sup>zł</sup>50<sub>/mies.</sub></div>
+        <p class="price-desc">Jedno konto — pełen dostęp do wszystkich funkcji kalkulatora.</p>
         <hr class="price-divider"/>
         <ul class="price-features">
-          <li>Dostęp do kalkulatora 3D</li>
-          <li>7 predefiniowanych kartonów</li>
-          <li>1 europaleta jednocześnie</li>
-          <li>Tryb automatyczny i ręczny</li>
-          <li class="off">Własne kartony (konto)</li>
-          <li class="off">Historia obliczeń</li>
-          <li class="off">Szablony konfiguracji</li>
+          <li>Kalkulator 3D bez ograniczeń</li>
+          <li>Własne kartony zapisane na koncie</li>
+          <li>Nielimitowana historia obliczeń</li>
+          <li>Tryb automatyczny, mieszany i ręczny</li>
+          <li>Wiele europaleta jednocześnie</li>
+          <li>Szablony konfiguracji</li>
+          <li>Wsparcie techniczne</li>
         </ul>
-        <a href="app.html"><button class="btn-plan btn-plan-ghost">Otwórz kalkulator</button></a>
-      </div>
-
-      <!-- STANDARD (popular) -->
-      <div class="price-card popular fade-in">
-        <div class="popular-badge">NAJPOPULARNIEJSZY</div>
-        <div class="price-plan">Standard</div>
-        <div class="price-amount"><sup>zł</sup>29<sub>/mies.</sub></div>
-        <p class="price-desc">Dla firm korzystających z kalkulatora regularnie.</p>
-        <hr class="price-divider"/>
-        <ul class="price-features">
-          <li>Wszystko z planu Bezpłatny</li>
-          <li>Konto i logowanie</li>
-          <li>Nielimitowane własne kartony</li>
-          <li>Historia ostatnich 50 obliczeń</li>
-          <li>3 europalety jednocześnie</li>
-          <li>Szablony konfiguracji (5 szt.)</li>
-          <li class="off">Eksport PDF / Excel</li>
-        </ul>
-        <button class="btn-plan btn-plan-primary" onclick="openModal('signup')">Zacznij — 14 dni gratis</button>
-      </div>
-
-      <!-- PRO -->
-      <div class="price-card fade-in">
-        <div class="price-plan">Pro</div>
-        <div class="price-amount"><sup>zł</sup>79<sub>/mies.</sub></div>
-        <p class="price-desc">Dla zespołów i zaawansowanych zastosowań logistycznych.</p>
-        <hr class="price-divider"/>
-        <ul class="price-features">
-          <li>Wszystko z planu Standard</li>
-          <li>Do 5 użytkowników w firmie</li>
-          <li>Nielimitowana historia</li>
-          <li>Nielimitowane palety i szablony</li>
-          <li>Eksport do PDF i Excel</li>
-          <li>Priorytetowe wsparcie techniczne</li>
-          <li>Własne logo i branding</li>
-        </ul>
-        <button class="btn-plan btn-plan-outline" onclick="openModal('signup')">Wypróbuj Pro gratis</button>
+        <button class="btn-plan btn-plan-primary" onclick="openModal('signup')">Załóż konto i zacznij</button>
       </div>
 
     </div>
-    <p class="price-note">Ceny netto, + 23% VAT &nbsp;·&nbsp; Płatność miesięczna lub roczna (–20%) &nbsp;·&nbsp; Anuluj w dowolnym momencie</p>
+    <p class="price-note">Cena netto, + 23% VAT &nbsp;·&nbsp; Płatność miesięczna &nbsp;·&nbsp; Anuluj w dowolnym momencie</p>
   </div>
 </section>
 
@@ -610,7 +573,7 @@
     <div class="fade-in">
       <div class="section-tag" style="display:block;text-align:center;margin-bottom:10px">Zacznij teraz</div>
       <h2>Załóż konto<br>w 30 sekund</h2>
-      <p>Bez karty kredytowej. 14 dni planu Standard gratis, potem bezpłatny plan lub subskrypcja.</p>
+      <p>Pełen dostęp do wszystkich funkcji. 50 zł / miesiąc. Anuluj kiedy chcesz.</p>
     </div>
     <div class="signup-form fade-in">
       <div class="form-row">
@@ -713,7 +676,7 @@
   <div class="modal" style="position:relative">
     <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
     <div class="modal-title">Utwórz konto</div>
-    <p class="modal-sub">14 dni planu Standard gratis. Bez karty kredytowej.</p>
+    <p class="modal-sub">Pełen dostęp za 50 zł / mies. Anuluj kiedy chcesz.</p>
     <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="form-group"><label>Imię</label><input type="text" placeholder="Jan"/></div>
       <div class="form-group"><label>Nazwisko</label><input type="text" placeholder="Kowalski"/></div>
