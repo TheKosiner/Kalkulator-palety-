@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kalkulator Palety 3D – Optymalizuj załadunek</title>
+  <link rel="icon" type="image/png" href="logo.png"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -23,7 +24,8 @@
     /* ─── NAV ─── */
     nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 24px;height:64px;display:flex;align-items:center;gap:16px;background:rgba(10,16,32,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}
     .nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1rem;letter-spacing:-.02em;flex:1}
-    .nav-logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .nav-logo-icon{width:36px;height:36px;flex-shrink:0}
+    .nav-logo-icon img{width:36px;height:36px;object-fit:contain;display:block}
     .nav-links{display:flex;gap:28px;font-size:.85rem;color:var(--text-2)}
     .nav-links a:hover{color:var(--text)}
     .nav-actions{display:flex;gap:10px;align-items:center;margin-left:16px}
@@ -260,7 +262,7 @@
 <!-- ═══ NAV ═══ -->
 <nav>
   <div class="nav-logo">
-    <div class="nav-logo-icon">&#9633;</div>
+    <div class="nav-logo-icon"><img src="logo.png" alt="logo"/></div>
     Kalkulator Palety 3D
   </div>
   <div class="nav-links">
@@ -647,7 +649,7 @@
     <div class="footer-top">
       <div class="footer-brand">
         <div class="nav-logo" style="flex:none">
-          <div class="nav-logo-icon">&#9633;</div>
+          <div class="nav-logo-icon"><img src="logo.png" alt="logo"/></div>
           Kalkulator Palety 3D
         </div>
         <p>Profesjonalne narzędzie do optymalizacji załadunku europalety. Szybko, precyzyjnie, wizualnie.</p>
