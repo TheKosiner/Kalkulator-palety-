@@ -1614,7 +1614,7 @@ window.calculate=function(){
 // ═══════════════════════════════════════════════════════
 const canvas=document.getElementById('canvas3d');
 const ctx=canvas.getContext('2d');
-let camTheta=0.52,camPhi=0.45,camDist=3800,panX=0,panY=0;
+let camTheta=0.52,camPhi=0.45,camDist=3800,camZoom=1,panX=0,panY=0;
 let camTargetY=PAL.H/2; // vertical focal point; updated each draw
 
 // mouse
@@ -1666,7 +1666,7 @@ canvas.addEventListener('mouseup',e=>{
   drag=false; tapStart=null;
 });
 canvas.addEventListener('mouseleave',()=>{drag=false; if(mode==='manual'){manGhostX=null;if(lastRes)draw3D(lastRes);}});
-canvas.addEventListener('wheel',e=>{camDist=Math.max(600,Math.min(10000,camDist+e.deltaY*3.5));if(lastRes)draw3D(lastRes);},{passive:true});
+canvas.addEventListener('wheel',e=>{camZoom=Math.max(0.15,Math.min(5,camZoom*(e.deltaY>0?0.92:1.087)));if(lastRes)draw3D(lastRes);},{passive:true});
 
 // touch
 let tpts={},pinch0=null,tTapStart=null;
@@ -1681,7 +1681,7 @@ canvas.addEventListener('touchmove',e=>{
   if(e.touches.length===2){
     const[a,b]=[e.touches[0],e.touches[1]];
     const d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
-    if(pinch0){camDist=Math.max(600,Math.min(10000,camDist*(pinch0/d)));pinch0=d;}
+    if(pinch0){camZoom=Math.max(0.15,Math.min(5,camZoom*(d/pinch0)));pinch0=d;}
   } else if(e.touches.length===1){
     const t=e.touches[0],pr=tpts[t.identifier];
     if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;
@@ -1797,7 +1797,7 @@ function draw3D(res){
   const totalH=res.totalH||PAL.H+100;
   camTargetY=totalH/2;
   const maxDim=Math.max(sceneW,PAL.D,totalH);
-  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim;
+  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim*camZoom;
   const cx=W/2,cy=H/2;
 
   // Floor shadows first (always behind everything)
@@ -1905,14 +1905,14 @@ function buildLegend(res,mode){
 window.addEventListener('resize',()=>{if(lastRes)draw3D(lastRes);});
 
 // Camera control buttons
-const CAM_DEF={theta:0.52,phi:0.45,dist:3800};
-function camZoomIn(){camDist=Math.max(600,camDist*0.8);if(lastRes)draw3D(lastRes);}
-function camZoomOut(){camDist=Math.min(10000,camDist*1.25);if(lastRes)draw3D(lastRes);}
+const CAM_DEF={theta:0.52,phi:0.45};
+function camZoomIn(){camZoom=Math.min(5,camZoom*1.25);if(lastRes)draw3D(lastRes);}
+function camZoomOut(){camZoom=Math.max(0.15,camZoom*0.8);if(lastRes)draw3D(lastRes);}
 function camRotL(){camTheta-=0.18;if(lastRes)draw3D(lastRes);}
 function camRotR(){camTheta+=0.18;if(lastRes)draw3D(lastRes);}
 function camRotUp(){camPhi-=0.18;if(lastRes)draw3D(lastRes);}
 function camRotDn(){camPhi+=0.18;if(lastRes)draw3D(lastRes);}
-function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camDist=CAM_DEF.dist;panX=0;panY=0;camTargetY=PAL.H/2;_sceneCenterX=PAL.W/2;if(lastRes)draw3D(lastRes);}
+function camReset(){camTheta=CAM_DEF.theta;camPhi=CAM_DEF.phi;camZoom=1;panX=0;panY=0;camTargetY=PAL.H/2;_sceneCenterX=PAL.W/2;if(lastRes)draw3D(lastRes);}
 window.camZoomIn=camZoomIn;window.camZoomOut=camZoomOut;
 window.camRotL=camRotL;window.camRotR=camRotR;window.camReset=camReset;
 window.camRotUp=camRotUp;window.camRotDn=camRotDn;
