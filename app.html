@@ -1533,7 +1533,18 @@ window.calculate=function(){
       });
     }
     if(!res||allPlacements.length===0) warns.push('Paczka nie mieści się w podanej wysokości!');
-    else if(remQty>0 && numPallets>=maxPallets) warns.push(`Zostało ${remQty} paczek – zwiększ liczbę palet.`);
+    else if(remQty>0 && numPallets>=maxPallets){
+      // re-run without limit to find the exact number of pallets needed
+      let testRem=qty, needed=0;
+      while(testRem>0&&needed<99){
+        const tr=packSingle(pkg,testRem,maxH,orientMode,margin);
+        if(!tr||tr.count===0) break;
+        testRem-=tr.count; needed++;
+      }
+      warns.push(testRem===0
+        ?`Zostało ${remQty} paczek – potrzeba łącznie ${needed} palet, aby zmieścić wszystkie ${qty}.`
+        :`Zostało ${remQty} paczek – zwiększ liczbę palet.`);
+    }
     res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
          groups:[...groupAccum.values()]};
     document.getElementById('rTotal').textContent=res.count;
@@ -1605,7 +1616,13 @@ window.calculate=function(){
     document.getElementById('sPerLayer').style.display='none';
     document.getElementById('rLeft').textContent=totalLeft;
     if(leftover.length&&numPallets>=maxPallets){
-      warns.push('Nie zmieściło się (zwiększ liczbę palet): '+leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', '));
+      const avgPerPallet=res.count>0?res.count/numPallets:0;
+      const extra=avgPerPallet>0?Math.ceil(totalLeft/avgPerPallet):null;
+      const suggested=extra?numPallets+extra:null;
+      const detail=leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', ');
+      warns.push(suggested
+        ?`Nie zmieściło się (${detail}) – potrzeba łącznie ok. ${suggested} palet.`
+        :`Nie zmieściło się (${detail}) – zwiększ liczbę palet.`);
     }
   }
 
