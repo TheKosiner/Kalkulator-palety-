@@ -970,7 +970,9 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
       for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
         const pos = _findPos(fw, fd, lh, maxH);
         if (!pos) continue;
-        if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
+        if (!bestPos || pos.y < bestPos.y ||
+            (pos.y === bestPos.y && fw*fd > bestOrient.fw*bestOrient.fd) ||
+            (pos.y === bestPos.y && fw*fd === bestOrient.fw*bestOrient.fd && pos.dc < bestPos.dc))
           { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
       }
       if (!bestPos) break;
