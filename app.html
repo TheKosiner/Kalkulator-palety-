@@ -142,6 +142,10 @@
     .pkg-edit-btn:hover{color:var(--accent-h);background:var(--accent-dim)}
     .pkg-del-btn{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:.88rem;padding:3px 5px;flex-shrink:0;border-radius:5px;line-height:1;transition:color .15s,background .15s}
     .pkg-del-btn:hover{color:var(--red);background:var(--red-dim)}
+    .pal-preset{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+    .btn-preset{background:var(--surface-2);border:1px solid var(--border-2);border-radius:6px;color:var(--text-2);font-size:.72rem;padding:4px 10px;cursor:pointer;transition:border-color .15s,color .15s;white-space:nowrap}
+    .btn-preset:hover{border-color:var(--accent);color:var(--accent-h)}
+    .btn-preset.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent-h);font-weight:600}
     .btn-add-pkg{display:block;width:100%;margin-top:4px;padding:9px 10px;background:transparent;border:1px dashed var(--border);border-radius:var(--r);color:var(--text-3);font-size:.78rem;font-weight:600;cursor:pointer;text-align:center;transition:border-color .15s,color .15s,background .15s}
     .btn-add-pkg:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
@@ -192,7 +196,7 @@
 
 <header>
   <h1><img src="logo.png" alt=""/>Kalkulator Palety 3D</h1>
-  <span class="sub">Europaleta 1200×800 mm</span>
+  <span class="sub" id="palSub">Europaleta 1200×800 mm</span>
 </header>
 
 <div id="view3d">
@@ -300,6 +304,31 @@
 
     <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
     </div><!-- /autoParams -->
+
+    <!-- PALLET DIMENSIONS (all modes) -->
+    <div id="palSection">
+      <div class="stitle" style="margin-top:18px">Wymiary palety</div>
+      <div class="pal-preset">
+        <button class="btn-preset active" id="presetEuro" onclick="setPalPreset(1200,800,144)">Euro 1200×800</button>
+        <button class="btn-preset" id="presetHalf" onclick="setPalPreset(800,600,144)">Pół 800×600</button>
+        <button class="btn-preset" id="presetUS" onclick="setPalPreset(1219,1016,144)">US 48×40"</button>
+      </div>
+      <div class="ctrl-row">
+        <div>
+          <label class="lbl">Szerokość (mm)</label>
+          <input type="number" id="palW" value="1200" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
+        </div>
+        <div>
+          <label class="lbl">Długość (mm)</label>
+          <input type="number" id="palD" value="800" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
+        </div>
+      </div>
+      <div class="ctrl-full">
+        <label class="lbl">Wys. palety (mm)</label>
+        <input type="number" id="palH" value="144" min="50" max="500" step="1" inputmode="numeric" onchange="applyPalDims()"/>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -390,6 +419,29 @@ function loadPkgsFromStorage() {
 }
 let PKGS = loadPkgsFromStorage();
 const PAL = { W:1200, D:800, H:144 };
+try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s?.H>0){PAL.W=+_s.W;PAL.D=+_s.D;PAL.H=+_s.H;}}catch(e){}
+
+function applyPalDims(){
+  const W=Math.max(200,parseInt(document.getElementById('palW').value)||1200);
+  const D=Math.max(200,parseInt(document.getElementById('palD').value)||800);
+  const H=Math.max(50, parseInt(document.getElementById('palH').value)||144);
+  PAL.W=W;PAL.D=D;PAL.H=H;
+  try{localStorage.setItem('palDims',JSON.stringify({W,D,H}));}catch(e){}
+  document.getElementById('palSub').textContent=`Paleta ${W}×${D} mm`;
+  updatePalPresetBtns();
+  lastRes=null; draw3D(null);
+}
+function setPalPreset(W,D,H){
+  document.getElementById('palW').value=W;
+  document.getElementById('palD').value=D;
+  document.getElementById('palH').value=H;
+  applyPalDims();
+}
+function updatePalPresetBtns(){
+  document.getElementById('presetEuro')?.classList.toggle('active',PAL.W===1200&&PAL.D===800 &&PAL.H===144);
+  document.getElementById('presetHalf')?.classList.toggle('active',PAL.W===800 &&PAL.D===600 &&PAL.H===144);
+  document.getElementById('presetUS')  ?.classList.toggle('active',PAL.W===1219&&PAL.D===1016&&PAL.H===144);
+}
 
 // ═══════════════════════════════════════════════════════
 // MODE & DRAWER
@@ -549,6 +601,13 @@ function enforeSingleSelect() {
 buildPkgList();
 // Set initial orient options for the first package
 { const p = PKGS.find(p=>selectedIds.has(p.id)); if(p) rebuildOrientSelect(p); }
+
+// Sync pallet dimension inputs to loaded PAL values
+document.getElementById('palW').value=PAL.W;
+document.getElementById('palD').value=PAL.D;
+document.getElementById('palH').value=PAL.H;
+document.getElementById('palSub').textContent=`Paleta ${PAL.W}×${PAL.D} mm`;
+updatePalPresetBtns();
 
 // ═══════════════════════════════════════════════════════
 // MANUAL MODE
