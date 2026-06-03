@@ -871,7 +871,9 @@ function _findPos(fw, fd, lh, maxH, minY=PAL.H) {
   const xs = new Set([0]), zs = new Set([0]);
   for (const b of _placed) {
     xs.add(b.x); xs.add(b.x+b.w);
+    for (let xi = b.x+fw; xi < b.x+b.w; xi += fw) xs.add(xi);
     zs.add(b.z); zs.add(b.z+b.d);
+    for (let zi = b.z+fd; zi < b.z+b.d; zi += fd) zs.add(zi);
   }
   const pcx = PAL.W/2, pcz = PAL.D/2;
   let best = null;
