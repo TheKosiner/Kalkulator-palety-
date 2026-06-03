@@ -140,6 +140,8 @@
     /* PKG EDIT / ADD */
     .pkg-edit-btn{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:.9rem;padding:3px 5px;flex-shrink:0;border-radius:5px;line-height:1;transition:color .15s,background .15s}
     .pkg-edit-btn:hover{color:var(--accent-h);background:var(--accent-dim)}
+    .pkg-del-btn{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:.88rem;padding:3px 5px;flex-shrink:0;border-radius:5px;line-height:1;transition:color .15s,background .15s}
+    .pkg-del-btn:hover{color:var(--red);background:var(--red-dim)}
     .btn-add-pkg{display:block;width:100%;margin-top:4px;padding:9px 10px;background:transparent;border:1px dashed var(--border);border-radius:var(--r);color:var(--text-3);font-size:.78rem;font-weight:600;cursor:pointer;text-align:center;transition:border-color .15s,color .15s,background .15s}
     .btn-add-pkg:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
@@ -467,6 +469,7 @@ function buildPkgList() {
         <div class="pkg-dim">${A}×${B}×${C} mm</div>
       </div>
       <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
+      ${!BUILTIN_IDS.has(p.id)?`<button class="pkg-del-btn" title="Usuń" tabindex="-1">🗑️</button>`:''}
       <div class="pkg-orient-wrap" style="display:${showMixed?'flex':'none'}">
         <button class="pkg-face-btn" data-id="${p.id}" data-face="auto">↑ Auto</button>
       </div>
@@ -485,6 +488,15 @@ function buildPkgList() {
     faceBtn?.addEventListener('click', e=>{ e.stopPropagation(); openFacePicker(p.id); });
     item.querySelector('.pkg-edit-btn')?.addEventListener('click', e=>{
       e.stopPropagation(); openPkgModal(p.id);
+    });
+    item.querySelector('.pkg-del-btn')?.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(!confirm(`Usunąć "${p.name}"?`)) return;
+      PKGS = PKGS.filter(q=>q.id!==p.id);
+      selectedIds.delete(p.id);
+      if(!selectedIds.size && PKGS.length) selectedIds.add(PKGS[0].id);
+      savePkgs();
+      _afterPkgsChanged();
     });
 
     item.addEventListener('click', () => {
