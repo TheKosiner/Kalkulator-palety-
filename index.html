@@ -952,20 +952,20 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
   const sorted = [...entries].sort((a, b) =>
     b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2] - a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2]
   );
-  const maxVol = sorted[0] ? sorted[0].pkg.dims[0]*sorted[0].pkg.dims[1]*sorted[0].pkg.dims[2] : 1;
 
-  let progress = true;
-  while (progress) {
-    progress = false;
-    for (const {pkg} of sorted) {
+  // Pack sequentially: exhaust all boxes of each type before moving to smaller types.
+  // This lets large boxes form a complete flat layer first; smaller types then fill
+  // remaining pallet space and stack on top, maximising the flat surface they inherit.
+  for (const {pkg} of sorted) {
+    let placed = true;
+    while (placed) {
       const qty = qtysLeft.get(pkg.id) || 0;
-      if (qty <= 0) continue;
+      if (qty <= 0) break;
+      placed = false;
       const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
 
       // Try every orientation; keep the one with the lowest valid placement y
       // (then closest to pallet centre as tiebreak).
-      // _findPos's "lowest y first" preference naturally fills each height level
-      // horizontally before stacking, so no extra tower-prevention logic is needed.
       let bestPos = null, bestOrient = null;
       for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
         const pos = _findPos(fw, fd, lh, maxH);
@@ -973,7 +973,7 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
         if (!bestPos || pos.y < bestPos.y || (pos.y === bestPos.y && pos.dc < bestPos.dc))
           { bestPos = pos; bestOrient = {fw, fd, lh, fw0, fd0, lh0}; }
       }
-      if (!bestPos) continue;
+      if (!bestPos) break;
 
       _placed.push({x: bestPos.x, y: bestPos.y, z: bestPos.z,
                     w: bestOrient.fw, h: bestOrient.lh, d: bestOrient.fd});
@@ -984,7 +984,7 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
       });
       qtysLeft.set(pkg.id, qty - 1);
       groupMap.get(pkg.id).placed++;
-      progress = true;
+      placed = true;
     }
   }
 
