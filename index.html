@@ -1809,22 +1809,17 @@ function draw3D(res){
     ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
   }
 
-  // Packages first (depth-sorted among themselves), then pallet on top.
-  // Pallet y=0..144, packages y=144+: from any natural angle the pallet is
-  // either beneath packages (viewed from above) or in front of them (from below),
-  // so drawing pallet in a separate second pass is always visually correct and
-  // avoids depth-sort instability caused by the wide pallet boards (w=1200).
-  const pkgFaces=[];
-  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy)));
-  pkgFaces.sort((a,b)=>b.depth-a.depth);
-  pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-
-  const palFaces=[];
+  // Single depth-sorted pass: pallet with back-face culling (prevents Z-fighting
+  // between adjacent boards sharing coincident faces), packages without culling
+  // (prevents grazing-angle flicker). All faces sorted together for correct
+  // pallet-vs-package ordering from any camera angle.
+  const allFaces=[];
   for(let i=0;i<numPallets;i++)
     for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
-  palFaces.sort((a,b)=>b.depth-a.depth);
-  palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+      allFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
+  res.placements.forEach(p=>allFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy)));
+  allFaces.sort((a,b)=>b.depth-a.depth);
+  allFaces.forEach(f=>drawFace(f.v,f.f,f.s));
 
   // manual mode overlays (always single pallet)
   if(mode==='manual'){
