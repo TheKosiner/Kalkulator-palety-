@@ -1742,7 +1742,7 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy){
   ].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
   const sP=Math.sin(camPhi),  cP=Math.cos(camPhi);
-  const cdx=sT*cP, cdy=sP, cdz=cT*cP;
+  const cdx=-sT*cP, cdy=-sP, cdz=-cT*cP;
   return[
     {v:[p[7],p[6],p[2],p[3]],f:col(color,.38), s:'rgba(0,0,0,.18)',n:[0,1,0]},
     {v:[p[4],p[5],p[6],p[7]],f:col(color,.16), s:'rgba(0,0,0,.18)',n:[0,0,1]},
