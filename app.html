@@ -157,7 +157,7 @@
 
     /* ─── VEHICLE PANE ─── */
     .vpane{position:fixed;top:52px;left:0;right:0;bottom:0}
-    .vpane-canvas{position:absolute;top:0;left:0;right:0;bottom:52px;display:block;background:#c4d8e8;touch-action:none;cursor:grab}
+    .vpane-canvas{position:absolute;top:0;left:0;right:0;bottom:0;display:block;background:#c4d8e8;touch-action:none;cursor:grab}
     .vpane-canvas:active{cursor:grabbing}
     .vsidebar{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--border);box-shadow:0 -12px 48px rgba(0,0,0,.55);z-index:20;transition:transform .28s cubic-bezier(.4,0,.2,1);transform:translateY(calc(100% - 52px))}
     .vsidebar.open{transform:translateY(0)!important}
@@ -2373,9 +2373,14 @@ function _vPalBoardBoxes(ox,oz,palW,palD){
 function drawVehicle3D(type){
   const cvId=type==='naczepa'?'naczCanvas':'kontCanvas';
   const cv=document.getElementById(cvId);
-  if(!cv||!cv.offsetWidth){requestAnimationFrame(()=>drawVehicle3D(type));return;}
+  if(!cv)return;
+  // Read dimensions from parent pane (always correct) minus sidebar width on desktop
+  const paneEl=document.getElementById(type==='naczepa'?'paneNaczepa':'paneKontener');
+  const sidebarW=window.innerWidth>=760?360:0;
+  const PX=paneEl.clientWidth-sidebarW;
+  const PY=paneEl.clientHeight;
+  if(!PX||!PY){requestAnimationFrame(()=>drawVehicle3D(type));return;}
   const ctx2=cv.getContext('2d');
-  const PX=cv.offsetWidth,PY=cv.offsetHeight;
   const dpr=Math.min(devicePixelRatio,2);
   cv.width=PX*dpr;cv.height=PY*dpr;
   cv.style.width=PX+'px';cv.style.height=PY+'px';
