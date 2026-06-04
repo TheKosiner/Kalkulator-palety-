@@ -567,7 +567,15 @@ function saveCurrPallet(){
   if(!lastRes||!lastRes.count){alert('Najpierw oblicz układ paczek.');return;}
   const name=(prompt('Nazwa palety (widoczna w Naczepa / Kontener):',`Paleta ${savedPallets.length+1}`)||'').trim();
   if(!name)return;
-  savedPallets.push({id:'sp_'+Date.now(),name,palW:PAL.W,palD:PAL.D,totalH:lastRes.totalH,count:lastRes.count,color:SPAL_COLORS[savedPallets.length%SPAL_COLORS.length]});
+  const pal0=lastRes.placements.filter(p=>(p.palletIdx??0)===0);
+  savedPallets.push({
+    id:'sp_'+Date.now(),name,
+    palW:PAL.W,palD:PAL.D,totalH:lastRes.totalH,
+    count:pal0.length,
+    numPallets:lastRes.numPallets||1,
+    color:SPAL_COLORS[savedPallets.length%SPAL_COLORS.length],
+    placements:pal0
+  });
   _storeSavedPallets();
   buildVehicleSavedLists();
 }
@@ -2202,8 +2210,8 @@ const vehicleState={
   kontener:{L:12032,W:2352,H:2698,result:null}
 };
 const vCam={
-  naczepa:{theta:0.45,phi:0.22,zoom:1},
-  kontener:{theta:0.45,phi:0.22,zoom:1}
+  naczepa:{theta:0.45,phi:0.40,zoom:1},
+  kontener:{theta:0.45,phi:0.40,zoom:1}
 };
 
 function switchMainTab(tab){
@@ -2214,7 +2222,7 @@ function switchMainTab(tab){
   document.getElementById('drawer').style.display=isPal?'':'none';
   document.getElementById('paneNaczepa').style.display=tab==='naczepa'?'block':'none';
   document.getElementById('paneKontener').style.display=tab==='kontener'?'block':'none';
-  if(!isPal){buildVehicleSavedLists();drawVehicle3D(tab);}
+  if(!isPal){buildVehicleSavedLists();requestAnimationFrame(()=>drawVehicle3D(tab));}
 }
 
 function toggleVSidebar(type){
@@ -2261,7 +2269,7 @@ function buildVehicleSavedLists(){
       d.innerHTML=`<div class="spal-dot" style="background:${pal.color}"></div>
         <div class="spal-info">
           <div class="spal-name">${pal.name}</div>
-          <div class="spal-dim">${pal.palW}×${pal.palD} mm · wys.${pal.totalH} mm · ${pal.count} paczek</div>
+          <div class="spal-dim">${pal.palW}×${pal.palD} mm · wys.${pal.totalH} mm · ${pal.count} paczek${(pal.numPallets||1)>1?' · zestaw '+(pal.numPallets)+' palet':''}</div>
         </div>
         <div class="spal-qty-wrap"><label>szt.:</label>
           <input class="spal-qty" type="number" id="${p}_qty_${pal.id}" value="1" min="0" max="99" inputmode="numeric"/></div>
@@ -2292,15 +2300,15 @@ function arrangeVehicle(type){
   for(const {pal,qty} of requests){
     if(pal.totalH>vs.H){leftover+=qty;continue;}
     const perRow1=Math.floor(vs.W/pal.palW),perRow2=Math.floor(vs.W/pal.palD);
-    let palW,palD,perRow;
-    if(perRow2>perRow1){palW=pal.palD;palD=pal.palW;perRow=perRow2;}
-    else{palW=pal.palW;palD=pal.palD;perRow=perRow1;}
+    let palW,palD,perRow,rotated;
+    if(perRow2>perRow1){palW=pal.palD;palD=pal.palW;perRow=perRow2;rotated=true;}
+    else{palW=pal.palW;palD=pal.palD;perRow=perRow1;rotated=false;}
     if(!perRow){leftover+=qty;continue;}
     const xOff=(vs.W-perRow*palW)/2;
     let placed=0,col=0,rowZ=curZ;
     while(placed<qty){
       if(rowZ+palD>vs.L+1){leftover+=qty-placed;break;}
-      placements.push({x:xOff+col*palW,y:0,z:rowZ,palW,palD,totalH:pal.totalH,color:pal.color,name:pal.name});
+      placements.push({x:xOff+col*palW,y:0,z:rowZ,palW,palD,totalH:pal.totalH,color:pal.color,name:pal.name,palId:pal.id,rotated});
       placed++;col++;
       if(col>=perRow){col=0;rowZ+=palD;}
     }
@@ -2354,6 +2362,17 @@ function _getVFaces(x,y,z,w,h,d,color,proj,theta,phi){
    .map(f=>{const v=f.v;return{...f,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
 }
 
+function _vPalBoardBoxes(ox,oz,palW,palD){
+  const PH=PAL.H,b=[];
+  const bw=Math.max(1,Math.floor(palW/6));
+  for(let i=0;i<6;i++) b.push({x:ox+i*bw,y:PH-22,z:oz,w:bw-2,h:22,d:palD,color:'#c8a86a'});
+  [0,palD/2-50,palD-100].forEach(dz=>b.push({x:ox,y:0,z:oz+dz,w:palW,h:20,d:100,color:'#b8965a'}));
+  [0,palW/2-50,palW-100].forEach(dx=>[0,palD/2-50,palD-100].forEach(dz=>
+    b.push({x:ox+dx,y:20,z:oz+dz,w:100,h:72,d:100,color:'#9a6e38'})));
+  [0,palD/2-40,palD-80].forEach(dz=>b.push({x:ox,y:92,z:oz+dz,w:palW,h:20,d:80,color:'#b8965a'}));
+  return b;
+}
+
 function drawVehicle3D(type){
   const cvId=type==='naczepa'?'naczCanvas':'kontCanvas';
   const cv=document.getElementById(cvId);
@@ -2374,7 +2393,7 @@ function drawVehicle3D(type){
   const maxDim=Math.max(VL,VW,VH);
   const sc=(Math.min(W,H)*.55)/maxDim*cam.zoom;
   const dist=maxDim*2.8;
-  const proj=_makeVProj(W,H,sc,VW/2,VL/2,VH/3,cam.theta,cam.phi,dist);
+  const proj=_makeVProj(W,H,sc,VW/2,VL/2,VH/2,cam.theta,cam.phi,dist);
 
   function poly(pts,fill,stroke,sw){
     const ps=pts.map(pp=>proj(...pp));
@@ -2404,7 +2423,26 @@ function drawVehicle3D(type){
   if(vs.result?.placements?.length){
     const allFaces=[];
     vs.result.placements.forEach(pp=>{
-      allFaces.push(..._getVFaces(pp.x,pp.y,pp.z,pp.palW,pp.totalH,pp.palD,pp.color,proj,cam.theta,cam.phi));
+      const savedPal=pp.palId?savedPallets.find(sp=>sp.id===pp.palId):null;
+      if(savedPal?.placements?.length){
+        // Draw pallet boards
+        _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>
+          allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj,cam.theta,cam.phi)));
+        // Draw packages from saved pallet template
+        savedPal.placements.forEach(pkg=>{
+          let px,pz,pw,pd;
+          if(pp.rotated){
+            // pallet was rotated 90°: original W↔z, original D↔x
+            px=pp.x+pkg.z; pz=pp.z+pkg.x; pw=pkg.d; pd=pkg.w;
+          } else {
+            px=pp.x+pkg.x; pz=pp.z+pkg.z; pw=pkg.w; pd=pkg.d;
+          }
+          allFaces.push(..._getVFaces(px,pkg.y,pz,pw,pkg.h,pd,pkg.color,proj,cam.theta,cam.phi));
+        });
+      } else {
+        // Fallback: colored box when no placements stored
+        allFaces.push(..._getVFaces(pp.x,pp.y,pp.z,pp.palW,pp.totalH,pp.palD,pp.color,proj,cam.theta,cam.phi));
+      }
     });
     allFaces.sort((a,b)=>b.depth-a.depth);
     allFaces.forEach(f=>{
@@ -2421,7 +2459,7 @@ function drawVehicle3D(type){
 }
 
 function vCamZoom(type,f){vCam[type].zoom=Math.max(.2,Math.min(5,vCam[type].zoom*f));drawVehicle3D(type);}
-function vCamReset(type){vCam[type].theta=0.45;vCam[type].phi=0.22;vCam[type].zoom=1;drawVehicle3D(type);}
+function vCamReset(type){vCam[type].theta=0.45;vCam[type].phi=0.40;vCam[type].zoom=1;drawVehicle3D(type);}
 
 function _initVehicleCanvas(type){
   const cv=document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');
