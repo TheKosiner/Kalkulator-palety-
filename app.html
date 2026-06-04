@@ -2330,15 +2330,15 @@ function arrangeVehicle(type){
 // ─── VEHICLE 3D RENDERER ───
 
 function _makeVProj(W,H,sc,cenX,cenZ,cenY,theta,phi,dist){
+  // Identical rotation as the pallet proj(): Y-axis spin then X-axis tilt
   const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
   const cx=W/2,cy=H/2;
   return function(x,y,z){
-    const rx=cT*(x-cenX)-sT*(z-cenZ);
-    const ry=-(y-cenY);
-    const rz=sT*(x-cenX)+cT*(z-cenZ);
-    const fx=rx*cP+ry*sP,fy=-rx*sP+ry*cP,fz=rz;
-    const pz=dist+fz;
-    return[cx+fx/pz*dist*sc, cy-fy/pz*dist*sc, fz];
+    x-=cenX; z-=cenZ; y-=cenY;
+    const rx=x*cT-z*sT, rz=x*sT+z*cT;
+    const fx=rx, fy=y*cP-rz*sP, fz=y*sP+rz*cP;
+    const pz=fz+dist;
+    return[(fx/pz)*dist*sc+cx, (-fy/pz)*dist*sc+cy, fz];
   };
 }
 function _vCol(hex,adj){
@@ -2346,20 +2346,17 @@ function _vCol(hex,adj){
   const f=1+adj,cl=v=>Math.max(0,Math.min(255,Math.round(v*f)));
   return`rgb(${cl(r)},${cl(g)},${cl(b)})`;
 }
-function _getVFaces(x,y,z,w,h,d,color,proj,theta,phi){
+function _getVFaces(x,y,z,w,h,d,color,proj){
   const pts=[[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],[x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]];
   const p=pts.map(([px,py,pz])=>proj(px,py,pz));
-  const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
-  const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
   return[
-    {v:[p[7],p[6],p[2],p[3]],fill:_vCol(color,.38),n:[0,1,0]},
-    {v:[p[4],p[5],p[6],p[7]],fill:_vCol(color,.16),n:[0,0,1]},
-    {v:[p[4],p[7],p[3],p[0]],fill:_vCol(color,.06),n:[-1,0,0]},
-    {v:[p[1],p[2],p[6],p[5]],fill:_vCol(color,-.14),n:[1,0,0]},
-    {v:[p[3],p[2],p[1],p[0]],fill:_vCol(color,-.26),n:[0,0,-1]},
-    {v:[p[0],p[1],p[5],p[4]],fill:_vCol(color,-.38),n:[0,-1,0]},
-  ].filter(f=>f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
-   .map(f=>{const v=f.v;return{...f,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
+    {v:[p[7],p[6],p[2],p[3]],fill:_vCol(color,.38)},
+    {v:[p[4],p[5],p[6],p[7]],fill:_vCol(color,.16)},
+    {v:[p[4],p[7],p[3],p[0]],fill:_vCol(color,.06)},
+    {v:[p[1],p[2],p[6],p[5]],fill:_vCol(color,-.14)},
+    {v:[p[3],p[2],p[1],p[0]],fill:_vCol(color,-.26)},
+    {v:[p[0],p[1],p[5],p[4]],fill:_vCol(color,-.38)},
+  ].map(f=>{const v=f.v;return{...f,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
 }
 
 function _vPalBoardBoxes(ox,oz,palW,palD){
@@ -2376,7 +2373,7 @@ function _vPalBoardBoxes(ox,oz,palW,palD){
 function drawVehicle3D(type){
   const cvId=type==='naczepa'?'naczCanvas':'kontCanvas';
   const cv=document.getElementById(cvId);
-  if(!cv||!cv.offsetWidth)return;
+  if(!cv||!cv.offsetWidth){requestAnimationFrame(()=>drawVehicle3D(type));return;}
   const ctx2=cv.getContext('2d');
   const PX=cv.offsetWidth,PY=cv.offsetHeight;
   const dpr=Math.min(devicePixelRatio,2);
@@ -2391,7 +2388,7 @@ function drawVehicle3D(type){
   const vs=vehicleState[type],cam=vCam[type];
   const VL=vs.L,VW=vs.W,VH=vs.H;
   const maxDim=Math.max(VL,VW,VH);
-  const sc=(Math.min(W,H)*.55)/maxDim*cam.zoom;
+  const sc=(Math.min(W,H)*.65)/maxDim*cam.zoom;
   const dist=maxDim*2.8;
   const proj=_makeVProj(W,H,sc,VW/2,VL/2,VH/2,cam.theta,cam.phi,dist);
 
@@ -2427,7 +2424,7 @@ function drawVehicle3D(type){
       if(savedPal?.placements?.length){
         // Draw pallet boards
         _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>
-          allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj,cam.theta,cam.phi)));
+          allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj)));
         // Draw packages from saved pallet template
         savedPal.placements.forEach(pkg=>{
           let px,pz,pw,pd;
@@ -2437,11 +2434,11 @@ function drawVehicle3D(type){
           } else {
             px=pp.x+pkg.x; pz=pp.z+pkg.z; pw=pkg.w; pd=pkg.d;
           }
-          allFaces.push(..._getVFaces(px,pkg.y,pz,pw,pkg.h,pd,pkg.color,proj,cam.theta,cam.phi));
+          allFaces.push(..._getVFaces(px,pkg.y,pz,pw,pkg.h,pd,pkg.color,proj));
         });
       } else {
         // Fallback: colored box when no placements stored
-        allFaces.push(..._getVFaces(pp.x,pp.y,pp.z,pp.palW,pp.totalH,pp.palD,pp.color,proj,cam.theta,cam.phi));
+        allFaces.push(..._getVFaces(pp.x,pp.y,pp.z,pp.palW,pp.totalH,pp.palD,pp.color,proj));
       }
     });
     allFaces.sort((a,b)=>b.depth-a.depth);
