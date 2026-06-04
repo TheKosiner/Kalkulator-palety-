@@ -149,6 +149,45 @@
     .btn-add-pkg{display:block;width:100%;margin-top:4px;padding:9px 10px;background:transparent;border:1px dashed var(--border);border-radius:var(--r);color:var(--text-3);font-size:.78rem;font-weight:600;cursor:pointer;text-align:center;transition:border-color .15s,color .15s,background .15s}
     .btn-add-pkg:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
+    /* ─── MAIN TABS ─── */
+    .main-tabs{display:flex;align-items:center;gap:2px;margin-left:auto;flex-shrink:0}
+    .main-tab{padding:5px 14px;border:none;border-radius:20px;font-size:.76rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-3);transition:background .15s,color .15s;white-space:nowrap}
+    .main-tab:hover{background:var(--surface-2);color:var(--text)}
+    .main-tab.active{background:var(--accent);color:#fff}
+
+    /* ─── VEHICLE PANE ─── */
+    .vpane{position:fixed;top:52px;left:0;right:0;bottom:0}
+    .vpane-canvas{position:absolute;top:0;left:0;right:0;bottom:52px;display:block;background:#c4d8e8;touch-action:none;cursor:grab}
+    .vpane-canvas:active{cursor:grabbing}
+    .vsidebar{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--border);box-shadow:0 -12px 48px rgba(0,0,0,.55);z-index:20;transition:transform .28s cubic-bezier(.4,0,.2,1);transform:translateY(calc(100% - 52px))}
+    .vsidebar.open{transform:translateY(0)!important}
+    .vsidebar-handle{height:52px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;gap:8px;color:var(--text-2);font-size:.78rem;font-weight:600;position:relative;flex-shrink:0}
+    .vsidebar-handle .pip{width:30px;height:3px;border-radius:2px;background:var(--border-2);position:absolute;top:10px}
+    .vsidebar-handle .chev{font-size:.75rem;transition:transform .25s;color:var(--text-3)}
+    .vsidebar.open .vsidebar-handle .chev{transform:rotate(180deg)}
+    .vsidebar-content{overflow-y:auto;max-height:72vh;padding:0 16px 32px}
+    .v-stats{position:absolute;top:12px;left:12px;background:rgba(10,18,34,.86);backdrop-filter:blur(14px);color:var(--text);padding:10px 16px;display:none;flex-wrap:wrap;gap:4px 20px;border:1px solid rgba(255,255,255,.07);border-radius:var(--rl)}
+    .v-stats .s{display:flex;flex-direction:column;align-items:center;min-width:50px}
+    .v-stats .s .v{font-size:1.1rem;font-weight:800;line-height:1.1;color:#fff;letter-spacing:-.02em}
+    .v-stats .s .l{font-size:.56rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+    .v-cam{position:absolute;right:12px;bottom:66px;display:flex;flex-direction:column;gap:5px;z-index:10}
+    .v-warn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:480px;width:calc(100% - 40px);background:rgba(220,38,38,.95);backdrop-filter:blur(8px);color:#fff;padding:14px 20px;font-size:.82rem;font-weight:600;display:none;text-align:center;border:1px solid rgba(255,120,120,.3);border-radius:var(--rl);z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5);cursor:pointer}
+    .spal-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+    .spal-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+    .spal-info{flex:1;min-width:0}
+    .spal-name{font-size:.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .spal-dim{font-size:.64rem;color:var(--text-3);margin-top:1px}
+    .spal-qty-wrap{display:flex;align-items:center;gap:4px;flex-shrink:0}
+    .spal-qty-wrap label{font-size:.63rem;color:var(--text-2);white-space:nowrap;margin:0}
+    .spal-qty{width:46px;padding:5px 6px;background:var(--bg);border:1px solid var(--border-2);border-radius:6px;font-size:.82rem;text-align:center;outline:none;color:var(--text)}
+    .spal-qty:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+    .spal-del{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:.88rem;padding:2px 5px;border-radius:4px;flex-shrink:0}
+    .spal-del:hover{color:var(--red);background:var(--red-dim)}
+    .no-saved-msg{font-size:.74rem;color:var(--text-3);padding:8px 0;line-height:1.6}
+    #sSave{display:none}
+    #sSave button{background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.75);font-size:.68rem;font-weight:600;padding:4px 10px;cursor:pointer;transition:all .15s;white-space:nowrap}
+    #sSave button:hover{border-color:rgba(255,255,255,.4);color:#fff;background:rgba(255,255,255,.08)}
+
     /* PACKAGE EDIT MODAL */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
     .modal-overlay.hidden{display:none}
@@ -189,6 +228,10 @@
       #drawerContent{flex:1;overflow-y:auto;max-height:none;padding:16px 16px 28px}
       #statsBar{top:12px;left:12px;right:auto;min-width:240px}
       #legend{bottom:12px;left:12px}
+      .vsidebar{right:auto!important;top:0!important;bottom:0!important;width:360px!important;transform:none!important;border-top:none!important;border-right:1px solid var(--border)!important;box-shadow:none!important;display:flex!important;flex-direction:column}
+      .vsidebar-handle{display:none!important}
+      .vsidebar-content{flex:1;overflow-y:auto;max-height:none;padding:16px 16px 28px}
+      .vpane-canvas{left:360px!important;bottom:0!important}
     }
   </style>
 </head>
@@ -197,6 +240,11 @@
 <header>
   <h1><img src="logo.png" alt=""/>Kalkulator Palety 3D</h1>
   <span class="sub" id="palSub">Europaleta 1200×800 mm</span>
+  <div class="main-tabs">
+    <button class="main-tab active" id="mtab_paleta" onclick="switchMainTab('paleta')">Paleta</button>
+    <button class="main-tab" id="mtab_naczepa" onclick="switchMainTab('naczepa')">Naczepa</button>
+    <button class="main-tab" id="mtab_kontener" onclick="switchMainTab('kontener')">Kontener</button>
+  </div>
 </header>
 
 <div id="view3d">
@@ -208,6 +256,7 @@
     <div class="s"><span class="v" id="rHeight">—</span><span class="l">Wys. mm</span></div>
     <div class="s" id="sPerLayer" style="display:none"><span class="v" id="rPerLayer">—</span><span class="l">/ warstwę</span></div>
     <div class="s"><span class="v" id="rLeft">—</span><span class="l">Zostało</span></div>
+    <div class="s" id="sSave"><button onclick="saveCurrPallet()">💾 Zapisz paletę</button></div>
   </div>
   <div id="warnBar" onclick="this.style.display='none'" style="cursor:pointer" title="Kliknij aby zamknąć"></div>
   <div class="ov" id="orientHintBar"></div>
@@ -222,6 +271,94 @@
     <button class="cam-btn" title="Pochyl w górę" onclick="camRotUp()">▲</button>
     <button class="cam-btn" title="Pochyl w dół" onclick="camRotDn()">▼</button>
     <button class="cam-btn" title="Reset widoku" onclick="camReset()">⟳</button>
+  </div>
+</div>
+
+<!-- ═══ NACZEPA PANE ═══ -->
+<div id="paneNaczepa" class="vpane" style="display:none">
+  <canvas id="naczCanvas" class="vpane-canvas"></canvas>
+  <div class="v-stats" id="naczStats">
+    <div class="s"><span class="v" id="naczStatPal">—</span><span class="l">Palet</span></div>
+    <div class="s"><span class="v" id="naczStatUtil">—</span><span class="l">Podłogi</span></div>
+    <div class="s"><span class="v" id="naczStatLeft">—</span><span class="l">Nie zmieści</span></div>
+  </div>
+  <div class="v-warn" id="naczWarnBar" onclick="this.style.display='none'"></div>
+  <div class="v-cam">
+    <button class="cam-btn" onclick="vCamZoom('naczepa',1.25)">+</button>
+    <button class="cam-btn" onclick="vCamZoom('naczepa',.8)">−</button>
+    <button class="cam-btn" onclick="vCamReset('naczepa')">⟳</button>
+  </div>
+  <div class="vsidebar" id="naczSidebar">
+    <div class="vsidebar-handle" onclick="toggleVSidebar('naczepa')">
+      <div class="pip"></div>
+      <span>Naczepa – ustawienia</span>
+      <span class="chev">▲</span>
+    </div>
+    <div class="vsidebar-content">
+      <div class="stitle">Typ naczepy</div>
+      <div class="pal-preset" id="naczPresets">
+        <button class="btn-preset active" onclick="setVehiclePreset('naczepa',13600,2480,3000,this)">Mega 13.6m</button>
+        <button class="btn-preset" onclick="setVehiclePreset('naczepa',13600,2440,2720,this)">Standard</button>
+        <button class="btn-preset" onclick="setVehiclePreset('naczepa',13600,2480,3120,this)">Jumbo</button>
+        <button class="btn-preset" onclick="setVehiclePreset('naczepa',7200,2440,2700,this)">7.2m</button>
+      </div>
+      <div class="ctrl-row">
+        <div><label class="lbl">Długość wewn. (mm)</label>
+          <input type="number" id="naczL" value="13600" min="1000" max="25000" step="100" inputmode="numeric" onchange="applyVehicleDims('naczepa')"/></div>
+        <div><label class="lbl">Szerokość wewn. (mm)</label>
+          <input type="number" id="naczW" value="2480" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('naczepa')"/></div>
+      </div>
+      <div class="ctrl-full"><label class="lbl">Wysokość wewn. (mm)</label>
+        <input type="number" id="naczH" value="3000" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('naczepa')"/></div>
+      <div class="stitle" style="margin-top:14px">Palety do załadunku</div>
+      <div id="naczPalList"></div>
+      <div id="naczNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
+      <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px">Ułóż palety automatycznie</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KONTENER PANE ═══ -->
+<div id="paneKontener" class="vpane" style="display:none">
+  <canvas id="kontCanvas" class="vpane-canvas"></canvas>
+  <div class="v-stats" id="kontStats">
+    <div class="s"><span class="v" id="kontStatPal">—</span><span class="l">Palet</span></div>
+    <div class="s"><span class="v" id="kontStatUtil">—</span><span class="l">Podłogi</span></div>
+    <div class="s"><span class="v" id="kontStatLeft">—</span><span class="l">Nie zmieści</span></div>
+  </div>
+  <div class="v-warn" id="kontWarnBar" onclick="this.style.display='none'"></div>
+  <div class="v-cam">
+    <button class="cam-btn" onclick="vCamZoom('kontener',1.25)">+</button>
+    <button class="cam-btn" onclick="vCamZoom('kontener',.8)">−</button>
+    <button class="cam-btn" onclick="vCamReset('kontener')">⟳</button>
+  </div>
+  <div class="vsidebar" id="kontSidebar">
+    <div class="vsidebar-handle" onclick="toggleVSidebar('kontener')">
+      <div class="pip"></div>
+      <span>Kontener – ustawienia</span>
+      <span class="chev">▲</span>
+    </div>
+    <div class="vsidebar-content">
+      <div class="stitle">Typ kontenera (wymiary wewnętrzne)</div>
+      <div class="pal-preset" id="kontPresets">
+        <button class="btn-preset active" onclick="setVehiclePreset('kontener',12032,2352,2698,this)">40′ HC</button>
+        <button class="btn-preset" onclick="setVehiclePreset('kontener',12032,2352,2390,this)">40′ std</button>
+        <button class="btn-preset" onclick="setVehiclePreset('kontener',5898,2352,2390,this)">20′ std</button>
+        <button class="btn-preset" onclick="setVehiclePreset('kontener',13556,2352,2698,this)">45′ HC</button>
+      </div>
+      <div class="ctrl-row">
+        <div><label class="lbl">Długość wewn. (mm)</label>
+          <input type="number" id="kontL" value="12032" min="1000" max="25000" step="100" inputmode="numeric" onchange="applyVehicleDims('kontener')"/></div>
+        <div><label class="lbl">Szerokość wewn. (mm)</label>
+          <input type="number" id="kontW" value="2352" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('kontener')"/></div>
+      </div>
+      <div class="ctrl-full"><label class="lbl">Wysokość wewn. (mm)</label>
+        <input type="number" id="kontH" value="2698" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('kontener')"/></div>
+      <div class="stitle" style="margin-top:14px">Palety do załadunku</div>
+      <div id="kontPalList"></div>
+      <div id="kontNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
+      <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px">Ułóż palety automatycznie</button>
+    </div>
   </div>
 </div>
 
@@ -420,6 +557,26 @@ function loadPkgsFromStorage() {
 let PKGS = loadPkgsFromStorage();
 const PAL = { W:1200, D:800, H:144 };
 try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s?.H>0){PAL.W=+_s.W;PAL.D=+_s.D;PAL.H=+_s.H;}}catch(e){}
+
+// ─── SAVED PALLETS ───
+const SPAL_COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#f97316','#ec4899','#84cc16'];
+function _loadSavedPallets(){try{return JSON.parse(localStorage.getItem('savedPallets'))||[];}catch(e){return[];}}
+function _storeSavedPallets(){try{localStorage.setItem('savedPallets',JSON.stringify(savedPallets));}catch(e){}}
+let savedPallets=_loadSavedPallets();
+function saveCurrPallet(){
+  if(!lastRes||!lastRes.count){alert('Najpierw oblicz układ paczek.');return;}
+  const name=(prompt('Nazwa palety (widoczna w Naczepa / Kontener):',`Paleta ${savedPallets.length+1}`)||'').trim();
+  if(!name)return;
+  savedPallets.push({id:'sp_'+Date.now(),name,palW:PAL.W,palD:PAL.D,totalH:lastRes.totalH,count:lastRes.count,color:SPAL_COLORS[savedPallets.length%SPAL_COLORS.length]});
+  _storeSavedPallets();
+  buildVehicleSavedLists();
+}
+function deleteSavedPallet(id){
+  if(!confirm('Usunąć tę paletę z listy zapisanych?'))return;
+  savedPallets=savedPallets.filter(p=>p.id!==id);
+  _storeSavedPallets();
+  buildVehicleSavedLists();
+}
 
 function applyPalDims(){
   const W=Math.max(200,parseInt(document.getElementById('palW').value)||1200);
@@ -1704,6 +1861,7 @@ window.calculate=function(){
 
   const sb=document.getElementById('statsBar');
   sb.style.display='flex';
+  document.getElementById('sSave').style.display='';
   const wb=document.getElementById('warnBar');
   if(warns.length){ wb.textContent=warns.join(' | '); wb.style.display='block'; }
   else wb.style.display='none';
@@ -2034,6 +2192,259 @@ window.camRotUp=camRotUp;window.camRotDn=camRotDn;
 window.openPkgModal=openPkgModal;window.modalSave=modalSave;
 window.modalDelete=modalDelete;window.modalClose=modalClose;
 window.modalBgClick=modalBgClick;window.modalRestoreDefaults=modalRestoreDefaults;
+
+// ═══════════════════════════════════════════════════════
+// VEHICLE TABS  (Naczepa & Kontener)
+// ═══════════════════════════════════════════════════════
+
+const vehicleState={
+  naczepa:{L:13600,W:2480,H:3000,result:null},
+  kontener:{L:12032,W:2352,H:2698,result:null}
+};
+const vCam={
+  naczepa:{theta:0.45,phi:0.22,zoom:1},
+  kontener:{theta:0.45,phi:0.22,zoom:1}
+};
+
+function switchMainTab(tab){
+  ['paleta','naczepa','kontener'].forEach(t=>
+    document.getElementById('mtab_'+t).classList.toggle('active',t===tab));
+  const isPal=tab==='paleta';
+  document.getElementById('view3d').style.display=isPal?'':'none';
+  document.getElementById('drawer').style.display=isPal?'':'none';
+  document.getElementById('paneNaczepa').style.display=tab==='naczepa'?'block':'none';
+  document.getElementById('paneKontener').style.display=tab==='kontener'?'block':'none';
+  if(!isPal){buildVehicleSavedLists();drawVehicle3D(tab);}
+}
+
+function toggleVSidebar(type){
+  document.getElementById((type==='naczepa'?'nacz':'kont')+'Sidebar').classList.toggle('open');
+}
+
+function setVehiclePreset(type,L,W,H,btn){
+  const p=type==='naczepa'?'nacz':'kont';
+  vehicleState[type].L=L;vehicleState[type].W=W;vehicleState[type].H=H;
+  vehicleState[type].result=null;
+  document.getElementById(p+'L').value=L;
+  document.getElementById(p+'W').value=W;
+  document.getElementById(p+'H').value=H;
+  document.getElementById(p+'Stats').style.display='none';
+  document.getElementById(p+'WarnBar').style.display='none';
+  btn?.closest('.pal-preset')?.querySelectorAll('.btn-preset').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  drawVehicle3D(type);
+}
+
+function applyVehicleDims(type){
+  const p=type==='naczepa'?'nacz':'kont';
+  vehicleState[type].L=Math.max(1000,parseInt(document.getElementById(p+'L').value)||13600);
+  vehicleState[type].W=Math.max(500, parseInt(document.getElementById(p+'W').value)||2480);
+  vehicleState[type].H=Math.max(500, parseInt(document.getElementById(p+'H').value)||3000);
+  vehicleState[type].result=null;
+  document.getElementById(p+'Stats').style.display='none';
+  document.getElementById(p+'WarnBar').style.display='none';
+  document.querySelectorAll(`#${p}Presets .btn-preset`).forEach(b=>b.classList.remove('active'));
+  drawVehicle3D(type);
+}
+
+function buildVehicleSavedLists(){
+  ['naczepa','kontener'].forEach(type=>{
+    const p=type==='naczepa'?'nacz':'kont';
+    const list=document.getElementById(p+'PalList');
+    const noMsg=document.getElementById(p+'NoPals');
+    if(!list)return;
+    list.innerHTML='';
+    noMsg.style.display=savedPallets.length?'none':'block';
+    savedPallets.forEach(pal=>{
+      const d=document.createElement('div');
+      d.className='spal-item';
+      d.innerHTML=`<div class="spal-dot" style="background:${pal.color}"></div>
+        <div class="spal-info">
+          <div class="spal-name">${pal.name}</div>
+          <div class="spal-dim">${pal.palW}×${pal.palD} mm · wys.${pal.totalH} mm · ${pal.count} paczek</div>
+        </div>
+        <div class="spal-qty-wrap"><label>szt.:</label>
+          <input class="spal-qty" type="number" id="${p}_qty_${pal.id}" value="1" min="0" max="99" inputmode="numeric"/></div>
+        <button class="spal-del" title="Usuń" onclick="deleteSavedPallet('${pal.id}')">🗑️</button>`;
+      list.appendChild(d);
+    });
+  });
+}
+
+function arrangeVehicle(type){
+  const p=type==='naczepa'?'nacz':'kont';
+  const vs=vehicleState[type];
+  vs.L=Math.max(1000,parseInt(document.getElementById(p+'L').value)||vs.L);
+  vs.W=Math.max(500, parseInt(document.getElementById(p+'W').value)||vs.W);
+  vs.H=Math.max(500, parseInt(document.getElementById(p+'H').value)||vs.H);
+
+  const requests=savedPallets.map(pal=>{
+    const qty=parseInt(document.getElementById(`${p}_qty_${pal.id}`)?.value)||0;
+    return qty>0?{pal,qty}:null;
+  }).filter(Boolean);
+
+  if(!requests.length){
+    const wb=document.getElementById(p+'WarnBar');
+    wb.textContent='Dodaj palety do załadunku – ustaw ilość > 0.';wb.style.display='block';return;
+  }
+
+  const placements=[];let leftover=0,curZ=0;
+  for(const {pal,qty} of requests){
+    if(pal.totalH>vs.H){leftover+=qty;continue;}
+    const perRow1=Math.floor(vs.W/pal.palW),perRow2=Math.floor(vs.W/pal.palD);
+    let palW,palD,perRow;
+    if(perRow2>perRow1){palW=pal.palD;palD=pal.palW;perRow=perRow2;}
+    else{palW=pal.palW;palD=pal.palD;perRow=perRow1;}
+    if(!perRow){leftover+=qty;continue;}
+    const xOff=(vs.W-perRow*palW)/2;
+    let placed=0,col=0,rowZ=curZ;
+    while(placed<qty){
+      if(rowZ+palD>vs.L+1){leftover+=qty-placed;break;}
+      placements.push({x:xOff+col*palW,y:0,z:rowZ,palW,palD,totalH:pal.totalH,color:pal.color,name:pal.name});
+      placed++;col++;
+      if(col>=perRow){col=0;rowZ+=palD;}
+    }
+    curZ=col>0?rowZ+palD:rowZ;
+  }
+
+  vs.result={placements,leftover};
+  document.getElementById(p+'Stats').style.display='flex';
+  document.getElementById(p+'StatPal').textContent=placements.length;
+  const util=Math.round(placements.reduce((s,pp)=>s+pp.palW*pp.palD,0)/(vs.L*vs.W)*100);
+  document.getElementById(p+'StatUtil').textContent=util+'%';
+  document.getElementById(p+'StatLeft').textContent=leftover;
+  const wb=document.getElementById(p+'WarnBar');
+  if(leftover>0){wb.textContent=`Nie zmieściło się ${leftover} palet – za mało miejsca.`;wb.style.display='block';}
+  else wb.style.display='none';
+  drawVehicle3D(type);
+}
+
+// ─── VEHICLE 3D RENDERER ───
+
+function _makeVProj(W,H,sc,cenX,cenZ,cenY,theta,phi,dist){
+  const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
+  const cx=W/2,cy=H/2;
+  return function(x,y,z){
+    const rx=cT*(x-cenX)-sT*(z-cenZ);
+    const ry=-(y-cenY);
+    const rz=sT*(x-cenX)+cT*(z-cenZ);
+    const fx=rx*cP+ry*sP,fy=-rx*sP+ry*cP,fz=rz;
+    const pz=dist+fz;
+    return[cx+fx/pz*dist*sc, cy-fy/pz*dist*sc, fz];
+  };
+}
+function _vCol(hex,adj){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  const f=1+adj,cl=v=>Math.max(0,Math.min(255,Math.round(v*f)));
+  return`rgb(${cl(r)},${cl(g)},${cl(b)})`;
+}
+function _getVFaces(x,y,z,w,h,d,color,proj,theta,phi){
+  const pts=[[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],[x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]];
+  const p=pts.map(([px,py,pz])=>proj(px,py,pz));
+  const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
+  const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
+  return[
+    {v:[p[7],p[6],p[2],p[3]],fill:_vCol(color,.38),n:[0,1,0]},
+    {v:[p[4],p[5],p[6],p[7]],fill:_vCol(color,.16),n:[0,0,1]},
+    {v:[p[4],p[7],p[3],p[0]],fill:_vCol(color,.06),n:[-1,0,0]},
+    {v:[p[1],p[2],p[6],p[5]],fill:_vCol(color,-.14),n:[1,0,0]},
+    {v:[p[3],p[2],p[1],p[0]],fill:_vCol(color,-.26),n:[0,0,-1]},
+    {v:[p[0],p[1],p[5],p[4]],fill:_vCol(color,-.38),n:[0,-1,0]},
+  ].filter(f=>f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
+   .map(f=>{const v=f.v;return{...f,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
+}
+
+function drawVehicle3D(type){
+  const cvId=type==='naczepa'?'naczCanvas':'kontCanvas';
+  const cv=document.getElementById(cvId);
+  if(!cv||!cv.offsetWidth)return;
+  const ctx2=cv.getContext('2d');
+  const PX=cv.offsetWidth,PY=cv.offsetHeight;
+  const dpr=Math.min(devicePixelRatio,2);
+  cv.width=PX*dpr;cv.height=PY*dpr;
+  cv.style.width=PX+'px';cv.style.height=PY+'px';
+  ctx2.scale(dpr,dpr);
+  const W=PX,H=PY;
+  const g=ctx2.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
+  ctx2.fillStyle=g;ctx2.fillRect(0,0,W,H);
+
+  const vs=vehicleState[type],cam=vCam[type];
+  const VL=vs.L,VW=vs.W,VH=vs.H;
+  const maxDim=Math.max(VL,VW,VH);
+  const sc=(Math.min(W,H)*.55)/maxDim*cam.zoom;
+  const dist=maxDim*2.8;
+  const proj=_makeVProj(W,H,sc,VW/2,VL/2,VH/3,cam.theta,cam.phi,dist);
+
+  function poly(pts,fill,stroke,sw){
+    const ps=pts.map(pp=>proj(...pp));
+    ctx2.beginPath();ctx2.moveTo(ps[0][0],ps[0][1]);
+    for(let i=1;i<ps.length;i++)ctx2.lineTo(ps[i][0],ps[i][1]);
+    ctx2.closePath();
+    if(fill){ctx2.fillStyle=fill;ctx2.fill();}
+    if(stroke){ctx2.strokeStyle=stroke;ctx2.lineWidth=sw||.5;ctx2.stroke();}
+  }
+  function line(a,b,c,w){
+    const [ax,ay]=proj(...a),[bx,by]=proj(...b);
+    ctx2.beginPath();ctx2.moveTo(ax,ay);ctx2.lineTo(bx,by);
+    ctx2.strokeStyle=c;ctx2.lineWidth=w;ctx2.stroke();
+  }
+
+  // Vehicle box (open front)
+  poly([[0,0,0],[VW,0,0],[VW,0,VL],[0,0,VL]],'rgba(160,140,100,.45)','rgba(255,255,255,.15)',.5);
+  poly([[0,0,VL],[VW,0,VL],[VW,VH,VL],[0,VH,VL]],'rgba(80,100,130,.35)','rgba(255,255,255,.25)',.5);
+  poly([[VW,0,0],[VW,0,VL],[VW,VH,VL],[VW,VH,0]],'rgba(80,100,130,.2)','rgba(255,255,255,.15)',.5);
+  poly([[0,0,0],[0,0,VL],[0,VH,VL],[0,VH,0]],'rgba(80,100,130,.2)','rgba(255,255,255,.15)',.5);
+  poly([[0,VH,0],[VW,VH,0],[VW,VH,VL],[0,VH,VL]],'rgba(80,100,130,.12)','rgba(255,255,255,.1)',.5);
+  // Front frame (opening)
+  const fr=[[0,0,0],[VW,0,0],[VW,VH,0],[0,VH,0]];
+  for(let i=0;i<fr.length;i++)line(fr[i],fr[(i+1)%fr.length],'rgba(255,255,255,.65)',2);
+
+  // Pallets
+  if(vs.result?.placements?.length){
+    const allFaces=[];
+    vs.result.placements.forEach(pp=>{
+      allFaces.push(..._getVFaces(pp.x,pp.y,pp.z,pp.palW,pp.totalH,pp.palD,pp.color,proj,cam.theta,cam.phi));
+    });
+    allFaces.sort((a,b)=>b.depth-a.depth);
+    allFaces.forEach(f=>{
+      ctx2.beginPath();ctx2.moveTo(f.v[0][0],f.v[0][1]);
+      for(let i=1;i<f.v.length;i++)ctx2.lineTo(f.v[i][0],f.v[i][1]);
+      ctx2.closePath();ctx2.fillStyle=f.fill;ctx2.fill();
+      ctx2.strokeStyle='rgba(0,0,0,.22)';ctx2.lineWidth=.5;ctx2.stroke();
+    });
+  } else {
+    ctx2.fillStyle='rgba(255,255,255,.35)';ctx2.font=`${Math.max(11,W*0.018)}px Inter,system-ui,sans-serif`;
+    ctx2.textAlign='center';ctx2.textBaseline='middle';
+    ctx2.fillText(`${(VL/1000).toFixed(1)} m × ${(VW/1000).toFixed(2)} m × ${(VH/1000).toFixed(2)} m`,W/2,H*.87);
+  }
+}
+
+function vCamZoom(type,f){vCam[type].zoom=Math.max(.2,Math.min(5,vCam[type].zoom*f));drawVehicle3D(type);}
+function vCamReset(type){vCam[type].theta=0.45;vCam[type].phi=0.22;vCam[type].zoom=1;drawVehicle3D(type);}
+
+function _initVehicleCanvas(type){
+  const cv=document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');
+  const cam=vCam[type];
+  let drag=null;
+  cv.addEventListener('mousedown',e=>{drag={x:e.clientX,y:e.clientY,t:cam.theta,p:cam.phi};});
+  window.addEventListener('mousemove',e=>{if(!drag)return;cam.theta=drag.t+(e.clientX-drag.x)*.005;cam.phi=Math.max(.05,Math.min(1.3,drag.p-(e.clientY-drag.y)*.005));drawVehicle3D(type);});
+  window.addEventListener('mouseup',()=>drag=null);
+  cv.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=Math.max(.2,Math.min(5,cam.zoom*(e.deltaY>0?.92:1.087)));drawVehicle3D(type);},{passive:false});
+  let td=null;
+  cv.addEventListener('touchstart',e=>{if(e.touches.length===1)td={x:e.touches[0].clientX,y:e.touches[0].clientY,t:cam.theta,p:cam.phi};},{passive:true});
+  cv.addEventListener('touchmove',e=>{if(!td||e.touches.length!==1)return;cam.theta=td.t+(e.touches[0].clientX-td.x)*.005;cam.phi=Math.max(.05,Math.min(1.3,td.p-(e.touches[0].clientY-td.y)*.005));drawVehicle3D(type);},{passive:true});
+  cv.addEventListener('touchend',()=>td=null);
+}
+
+window.addEventListener('resize',()=>{
+  const cur=['naczepa','kontener'].find(t=>document.getElementById('pane'+t.charAt(0).toUpperCase()+t.slice(1)).style.display!=='none');
+  if(cur)drawVehicle3D(cur);
+});
+
+buildVehicleSavedLists();
+_initVehicleCanvas('naczepa');
+_initVehicleCanvas('kontener');
 </script>
 </body>
 </html>
