@@ -2042,7 +2042,6 @@ function drawFace(verts,fill,stroke,gt,gb){
 
 function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
-  // visual depth = rz*cP - dy*sP: higher world-Y → smaller → drawn LAST (on top)
   const p=[
     [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
     [x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]
@@ -2050,9 +2049,9 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
     const pr=proj(px,py,pz,cx,cy,sc);
     const dx=px-_sceneCenterX,dy=py-camTargetY,dz=pz-PAL.D/2;
     const rz=dx*sT+dz*cT;
-    return[pr[0],pr[1],pr[2],rz*cP-dy*sP];
+    return[pr[0],pr[1],pr[2],dy*sP+rz*cP];  // = fz (camera-space depth), correct for all phi
   });
-  const cdx=-sT*cP,cdy=sP,cdz=-cT*cP;
+  const cdx=-sT*cP,cdy=Math.abs(sP),cdz=-cT*cP;
   const sk='rgba(0,0,0,.28)';
   return[
     {v:[p[7],p[6],p[2],p[3]],f:col(color,.30),gt:col(color,.45),gb:col(color,.15),s:sk,n:[0, 1,0]},
