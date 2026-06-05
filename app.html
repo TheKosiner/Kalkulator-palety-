@@ -2030,9 +2030,11 @@ function drawFace(verts,fill,stroke,gt,gb){
   ctx.closePath();
   if(gt){
     const ys=verts.map(v=>v[1]),y0=Math.min(...ys),y1=Math.max(...ys);
-    const g=ctx.createLinearGradient(0,y0,0,y1);
-    g.addColorStop(0,gt);g.addColorStop(1,gb);
-    ctx.fillStyle=g;
+    if(y1-y0>1){
+      const g=ctx.createLinearGradient(0,y0,0,y1);
+      g.addColorStop(0,gt);g.addColorStop(1,gb);
+      ctx.fillStyle=g;
+    }else ctx.fillStyle=fill;
   }else ctx.fillStyle=fill;
   ctx.fill();
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.0;ctx.stroke();}
