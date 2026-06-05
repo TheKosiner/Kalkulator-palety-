@@ -2049,7 +2049,7 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
     const pr=proj(px,py,pz,cx,cy,sc);
     const dx=px-_sceneCenterX,dy=py-camTargetY,dz=pz-PAL.D/2;
     const rz=dx*sT+dz*cT;
-    return[pr[0],pr[1],pr[2],dy*sP+rz*cP];  // = fz (camera-space depth), correct for all phi
+    return[pr[0],pr[1],pr[2],rz*cP-dy*Math.abs(sP)];  // |sP|: correct for both camera-above and camera-below
   });
   const cdx=-sT*cP,cdy=Math.abs(sP),cdz=-cT*cP;
   const sk='rgba(0,0,0,.28)';
