@@ -19,9 +19,11 @@
 
     /* HEADER */
     header{position:fixed;top:0;left:0;right:0;height:52px;background:var(--bg);display:flex;align-items:center;padding:0 18px;gap:12px;z-index:100;border-bottom:1px solid var(--border)}
-    header h1{font-size:.92rem;font-weight:700;letter-spacing:-.01em;color:var(--text);flex:1;display:flex;align-items:center;gap:10px}
-    header h1 img{width:30px;height:30px;object-fit:contain}
+    header h1{font-size:.92rem;font-weight:700;letter-spacing:-.01em;color:var(--text);flex:1;min-width:0;display:flex;align-items:center;gap:10px;overflow:hidden}
+    header h1 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    header h1 img{width:30px;height:30px;object-fit:contain;flex-shrink:0}
     header .sub{font-size:.63rem;background:var(--surface);color:var(--text-3);padding:3px 10px;border-radius:20px;border:1px solid var(--border);white-space:nowrap;font-weight:500;letter-spacing:.01em}
+    @media(max-width:759px){header .sub{display:none}}
 
     /* CANVAS */
     #view3d{position:fixed;top:52px;left:0;right:0;bottom:0;background:#c4d8e8;touch-action:none}
@@ -238,7 +240,7 @@
 <body>
 
 <header>
-  <h1><img src="logo.png" alt=""/>Kalkulator Palety 3D</h1>
+  <h1><img src="logo.png" alt=""/><span>Kalkulator Palety 3D</span></h1>
   <span class="sub" id="palSub">Europaleta 1200×800 mm</span>
   <div class="main-tabs">
     <button class="main-tab active" id="mtab_paleta" onclick="switchMainTab('paleta')">Paleta</button>
@@ -2421,38 +2423,44 @@ function drawVehicle3D(type){
   const fr=[[0,0,0],[VW,0,0],[VW,VH,0],[0,VH,0]];
   for(let i=0;i<fr.length;i++)line(fr[i],fr[(i+1)%fr.length],'rgba(255,255,255,.65)',2);
 
-  // Pallets
+  // Pallets — LOD based on placement count to keep perf smooth
   if(vs.result?.placements?.length){
+    const n=vs.result.placements.length;
+    const showBoards=n<=20;   // board planks only when few pallets
+    const showPkgs=n<=60;     // individual packages up to 60 pallets
+    const doStroke=n<=30;     // outline strokes up to 30 pallets
     const allFaces=[];
     vs.result.placements.forEach(pp=>{
       const savedPal=pp.palId?savedPallets.find(sp=>sp.id===pp.palId):null;
-      if(savedPal?.placements?.length){
-        // Draw pallet boards
-        _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>
-          allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj)));
-        // Draw packages from saved pallet template
+      if(showPkgs&&savedPal?.placements?.length){
+        if(showBoards)
+          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>
+            allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj)));
         savedPal.placements.forEach(pkg=>{
           let px,pz,pw,pd;
-          if(pp.rotated){
-            // pallet was rotated 90°: original W↔z, original D↔x
-            px=pp.x+pkg.z; pz=pp.z+pkg.x; pw=pkg.d; pd=pkg.w;
-          } else {
-            px=pp.x+pkg.x; pz=pp.z+pkg.z; pw=pkg.w; pd=pkg.d;
-          }
+          if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw=pkg.d;pd=pkg.w;}
+          else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw=pkg.w;pd=pkg.d;}
           allFaces.push(..._getVFaces(px,pkg.y,pz,pw,pkg.h,pd,pkg.color,proj));
         });
       } else {
-        // Fallback: colored box when no placements stored
         allFaces.push(..._getVFaces(pp.x,pp.y,pp.z,pp.palW,pp.totalH,pp.palD,pp.color,proj));
       }
     });
     allFaces.sort((a,b)=>b.depth-a.depth);
-    allFaces.forEach(f=>{
-      ctx2.beginPath();ctx2.moveTo(f.v[0][0],f.v[0][1]);
-      for(let i=1;i<f.v.length;i++)ctx2.lineTo(f.v[i][0],f.v[i][1]);
-      ctx2.closePath();ctx2.fillStyle=f.fill;ctx2.fill();
-      ctx2.strokeStyle='rgba(0,0,0,.22)';ctx2.lineWidth=.5;ctx2.stroke();
-    });
+    if(doStroke){
+      allFaces.forEach(f=>{
+        ctx2.beginPath();ctx2.moveTo(f.v[0][0],f.v[0][1]);
+        for(let i=1;i<f.v.length;i++)ctx2.lineTo(f.v[i][0],f.v[i][1]);
+        ctx2.closePath();ctx2.fillStyle=f.fill;ctx2.fill();
+        ctx2.strokeStyle='rgba(0,0,0,.22)';ctx2.lineWidth=.5;ctx2.stroke();
+      });
+    } else {
+      allFaces.forEach(f=>{
+        ctx2.beginPath();ctx2.moveTo(f.v[0][0],f.v[0][1]);
+        for(let i=1;i<f.v.length;i++)ctx2.lineTo(f.v[i][0],f.v[i][1]);
+        ctx2.closePath();ctx2.fillStyle=f.fill;ctx2.fill();
+      });
+    }
   } else {
     ctx2.fillStyle='rgba(255,255,255,.35)';ctx2.font=`${Math.max(11,W*0.018)}px Inter,system-ui,sans-serif`;
     ctx2.textAlign='center';ctx2.textBaseline='middle';
@@ -2462,6 +2470,14 @@ function drawVehicle3D(type){
 
 function vCamZoom(type,f){vCam[type].zoom=Math.max(.2,Math.min(5,vCam[type].zoom*f));drawVehicle3D(type);}
 function vCamReset(type){vCam[type].theta=0.45;vCam[type].phi=0.40;vCam[type].zoom=1;drawVehicle3D(type);}
+
+// RAF throttle — only one draw per animation frame regardless of event rate
+const _vRaf={naczepa:0,kontener:0};
+const _drawVehicle3DActual=drawVehicle3D;
+drawVehicle3D=function(type){
+  if(_vRaf[type])return;
+  _vRaf[type]=requestAnimationFrame(()=>{_vRaf[type]=0;_drawVehicle3DActual(type);});
+};
 
 function _initVehicleCanvas(type){
   const cv=document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');
