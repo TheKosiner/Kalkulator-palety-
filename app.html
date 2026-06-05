@@ -258,7 +258,7 @@
     <div class="s"><span class="v" id="rHeight">—</span><span class="l">Wys. mm</span></div>
     <div class="s" id="sPerLayer" style="display:none"><span class="v" id="rPerLayer">—</span><span class="l">/ warstwę</span></div>
     <div class="s"><span class="v" id="rLeft">—</span><span class="l">Zostało</span></div>
-    <div class="s" id="sSave"><button onclick="saveCurrPallet()">💾 Zapisz paletę</button></div>
+    <div class="s" id="sSave"><button id="savePalBtn" onclick="saveCurrPallet()">💾 Zapisz paletę</button></div>
   </div>
   <div id="warnBar" onclick="this.style.display='none'" style="cursor:pointer" title="Kliknij aby zamknąć"></div>
   <div class="ov" id="orientHintBar"></div>
@@ -567,16 +567,27 @@ function _storeSavedPallets(){try{localStorage.setItem('savedPallets',JSON.strin
 let savedPallets=_loadSavedPallets();
 function saveCurrPallet(){
   if(!lastRes||!lastRes.count){alert('Najpierw oblicz układ paczek.');return;}
-  const name=(prompt('Nazwa palety (widoczna w Naczepa / Kontener):',`Paleta ${savedPallets.length+1}`)||'').trim();
+  const nPal=lastRes.numPallets||1;
+  const label=nPal>1?`Zestaw ${nPal} palet ${savedPallets.length+1}`:`Paleta ${savedPallets.length+1}`;
+  const name=(prompt(nPal>1?'Nazwa zestawu palet (widoczna w Naczepa / Kontener):':'Nazwa palety (widoczna w Naczepa / Kontener):',label)||'').trim();
   if(!name)return;
-  const pal0=lastRes.placements.filter(p=>(p.palletIdx??0)===0);
+  // Build per-pallet placements (normalized to pallet-local x coords)
+  const byPallet=new Map();
+  lastRes.placements.forEach(p=>{
+    const pi=p.palletIdx??0;
+    if(!byPallet.has(pi))byPallet.set(pi,[]);
+    const ox=pi*(PAL.W+200); // PAL_GAP=200
+    byPallet.get(pi).push({...p,x:p.x-ox,palletIdx:undefined});
+  });
+  const allPalPlacements=[...byPallet.values()];
   savedPallets.push({
     id:'sp_'+Date.now(),name,
     palW:PAL.W,palD:PAL.D,totalH:lastRes.totalH,
-    count:pal0.length,
-    numPallets:lastRes.numPallets||1,
+    count:allPalPlacements[0]?.length||0,
+    numPallets:nPal,
     color:SPAL_COLORS[savedPallets.length%SPAL_COLORS.length],
-    placements:pal0
+    placements:allPalPlacements[0]||[],
+    allPalletPlacements:allPalPlacements
   });
   _storeSavedPallets();
   buildVehicleSavedLists();
@@ -1872,6 +1883,7 @@ window.calculate=function(){
   const sb=document.getElementById('statsBar');
   sb.style.display='flex';
   document.getElementById('sSave').style.display='';
+  document.getElementById('savePalBtn').textContent=numP>1?`💾 Zapisz zestaw ${numP} palet`:'💾 Zapisz paletę';
   const wb=document.getElementById('warnBar');
   if(warns.length){ wb.textContent=warns.join(' | '); wb.style.display='block'; }
   else wb.style.display='none';
@@ -2271,7 +2283,7 @@ function buildVehicleSavedLists(){
       d.innerHTML=`<div class="spal-dot" style="background:${pal.color}"></div>
         <div class="spal-info">
           <div class="spal-name">${pal.name}</div>
-          <div class="spal-dim">${pal.palW}×${pal.palD} mm · wys.${pal.totalH} mm · ${pal.count} paczek${(pal.numPallets||1)>1?' · zestaw '+(pal.numPallets)+' palet':''}</div>
+          <div class="spal-dim">${pal.palW}×${pal.palD} mm · wys.${pal.totalH} mm · ${pal.count} paczek/paletę${(pal.numPallets||1)>1?' · <b style="color:var(--accent-h)">zestaw '+(pal.numPallets)+' palet</b>':''}</div>
         </div>
         <div class="spal-qty-wrap"><label>szt.:</label>
           <input class="spal-qty" type="number" id="${p}_qty_${pal.id}" value="1" min="0" max="99" inputmode="numeric"/></div>
@@ -2300,7 +2312,7 @@ function arrangeVehicle(type){
 
   const placements=[];let leftover=0,curZ=0;
   for(const {pal,qty} of requests){
-    if(pal.totalH>vs.H){leftover+=qty;continue;}
+    if(pal.totalH>vs.H){leftover+=qty*(pal.numPallets||1);continue;}
     const perRow1=Math.floor(vs.W/pal.palW),perRow2=Math.floor(vs.W/pal.palD);
     const avail=Math.max(0,vs.L-curZ);
     const total1=perRow1*Math.floor(avail/pal.palD);
@@ -2308,14 +2320,30 @@ function arrangeVehicle(type){
     let palW,palD,perRow,rotated;
     if(total2>total1){palW=pal.palD;palD=pal.palW;perRow=perRow2;rotated=true;}
     else{palW=pal.palW;palD=pal.palD;perRow=perRow1;rotated=false;}
-    if(!perRow){leftover+=qty;continue;}
+    if(!perRow){leftover+=qty*(pal.numPallets||1);continue;}
     const xOff=(vs.W-perRow*palW)/2;
-    let placed=0,col=0,rowZ=curZ;
-    while(placed<qty){
-      if(rowZ+palD>vs.L+1){leftover+=qty-placed;break;}
-      placements.push({x:xOff+col*palW,y:0,z:rowZ,palW,palD,totalH:pal.totalH,color:pal.color,name:pal.name,palId:pal.id,rotated});
-      placed++;col++;
-      if(col>=perRow){col=0;rowZ+=palD;}
+    const nPal=pal.numPallets||1;
+    const allPP=pal.allPalletPlacements||[pal.placements];
+    // qty = number of sets; each set has nPal physical pallets
+    let setsPlaced=0,col=0,rowZ=curZ;
+    while(setsPlaced<qty){
+      // place nPal pallets in a row (one set), advancing columns
+      let setFits=true;
+      // check all pallets of the set fit before placing any
+      let chkCol=col,chkRowZ=rowZ;
+      for(let si=0;si<nPal;si++){
+        if(chkRowZ+palD>vs.L+1){setFits=false;break;}
+        chkCol++;
+        if(chkCol>=perRow){chkCol=0;chkRowZ+=palD;}
+      }
+      if(!setFits){leftover+=(qty-setsPlaced)*nPal;break;}
+      for(let si=0;si<nPal;si++){
+        const tmpl=allPP[si]||allPP[0]||[];
+        placements.push({x:xOff+col*palW,y:0,z:rowZ,palW,palD,totalH:pal.totalH,color:pal.color,name:pal.name,palId:pal.id,rotated,placements:tmpl});
+        col++;
+        if(col>=perRow){col=0;rowZ+=palD;}
+      }
+      setsPlaced++;
     }
     curZ=col>0?rowZ+palD:rowZ;
   }
@@ -2435,22 +2463,21 @@ function drawVehicle3D(type){
     const PH=PAL.H;
     const allFaces=[];
     vs.result.placements.forEach(pp=>{
-      const savedPal=pp.palId?savedPallets.find(sp=>sp.id===pp.palId):null;
-      if(showPkgs&&savedPal?.placements?.length){
+      // per-pallet template stored directly on placement (new) or looked up by palId (legacy)
+      const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
+      if(showPkgs&&pkgList?.length){
         if(showBoards)
           _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>
             allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj)));
         else
-          // simple brown pallet base instead of detailed boards
           allFaces.push(..._getVFaces(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38',proj));
-        savedPal.placements.forEach(pkg=>{
+        pkgList.forEach(pkg=>{
           let px,pz,pw,pd;
           if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw=pkg.d;pd=pkg.w;}
           else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw=pkg.w;pd=pkg.d;}
           allFaces.push(..._getVFaces(px,pkg.y,pz,pw,pkg.h,pd,pkg.color,proj));
         });
       } else {
-        // always show pallet base as brown rectangle, cargo on top as tinted box
         allFaces.push(..._getVFaces(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38',proj));
         if(pp.totalH>PH)
           allFaces.push(..._getVFaces(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color,proj));
