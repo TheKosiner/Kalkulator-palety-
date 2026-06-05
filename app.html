@@ -2429,6 +2429,7 @@ function drawVehicle3D(type){
     const showBoards=n<=20;   // board planks only when few pallets
     const showPkgs=n<=60;     // individual packages up to 60 pallets
     const doStroke=n<=30;     // outline strokes up to 30 pallets
+    const PH=PAL.H;
     const allFaces=[];
     vs.result.placements.forEach(pp=>{
       const savedPal=pp.palId?savedPallets.find(sp=>sp.id===pp.palId):null;
@@ -2436,6 +2437,9 @@ function drawVehicle3D(type){
         if(showBoards)
           _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>
             allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj)));
+        else
+          // simple brown pallet base instead of detailed boards
+          allFaces.push(..._getVFaces(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38',proj));
         savedPal.placements.forEach(pkg=>{
           let px,pz,pw,pd;
           if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw=pkg.d;pd=pkg.w;}
@@ -2443,7 +2447,10 @@ function drawVehicle3D(type){
           allFaces.push(..._getVFaces(px,pkg.y,pz,pw,pkg.h,pd,pkg.color,proj));
         });
       } else {
-        allFaces.push(..._getVFaces(pp.x,pp.y,pp.z,pp.palW,pp.totalH,pp.palD,pp.color,proj));
+        // always show pallet base as brown rectangle, cargo on top as tinted box
+        allFaces.push(..._getVFaces(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38',proj));
+        if(pp.totalH>PH)
+          allFaces.push(..._getVFaces(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color,proj));
       }
     });
     allFaces.sort((a,b)=>b.depth-a.depth);
