@@ -2302,8 +2302,11 @@ function arrangeVehicle(type){
   for(const {pal,qty} of requests){
     if(pal.totalH>vs.H){leftover+=qty;continue;}
     const perRow1=Math.floor(vs.W/pal.palW),perRow2=Math.floor(vs.W/pal.palD);
+    const avail=Math.max(0,vs.L-curZ);
+    const total1=perRow1*Math.floor(avail/pal.palD);
+    const total2=perRow2*Math.floor(avail/pal.palW);
     let palW,palD,perRow,rotated;
-    if(perRow2>perRow1){palW=pal.palD;palD=pal.palW;perRow=perRow2;rotated=true;}
+    if(total2>total1){palW=pal.palD;palD=pal.palW;perRow=perRow2;rotated=true;}
     else{palW=pal.palW;palD=pal.palD;perRow=perRow1;rotated=false;}
     if(!perRow){leftover+=qty;continue;}
     const xOff=(vs.W-perRow*palW)/2;
