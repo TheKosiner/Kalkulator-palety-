@@ -2024,17 +2024,18 @@ function col(hex,f){
   return`rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
 }
 
-function drawFace(verts,fill,stroke,grad){
+function drawFace(verts,fill,stroke){
   ctx.beginPath();ctx.moveTo(verts[0][0],verts[0][1]);
   verts.slice(1).forEach(v=>ctx.lineTo(v[0],v[1]));
-  ctx.closePath();
-  if(grad){
-    const g=ctx.createLinearGradient(grad.x0,grad.y0,grad.x1,grad.y1);
-    g.addColorStop(0,grad.c0);g.addColorStop(1,grad.c1);
-    ctx.fillStyle=g;
-  }else{ctx.fillStyle=fill;}
-  ctx.fill();
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.0;ctx.stroke();}
+}
+
+// Light direction: upper-front-left (fixed world space) → normalize(-1, 2.5, -1)
+const _LL=(([x,y,z])=>{const m=Math.sqrt(x*x+y*y+z*z);return[x/m,y/m,z/m];})([-.5,2,-.7]);
+function _lAdj(nx,ny,nz){
+  const d=Math.max(0,nx*_LL[0]+ny*_LL[1]+nz*_LL[2]);
+  return d*1.45-0.50; // top≈+0.57, front/left≈+0.0~+0.15, shadow faces≈-0.50
 }
 
 function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
@@ -2045,21 +2046,15 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
   const sP=Math.sin(camPhi),cP=Math.cos(camPhi);
   const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
-  const sk='rgba(0,0,0,.38)';
-  // Gradient on top face: back edge (moderate) → front edge (bright highlight)
-  const topGrad={
-    x0:(p[7][0]+p[6][0])/2,y0:(p[7][1]+p[6][1])/2,
-    x1:(p[3][0]+p[2][0])/2,y1:(p[3][1]+p[2][1])/2,
-    c0:col(color,.44),c1:col(color,.72)
-  };
+  const sk='rgba(0,0,0,.32)';
   return[
-    {v:[p[7],p[6],p[2],p[3]],f:col(color,.58),s:sk,n:[0, 1,0],g:topGrad,
-     hl:[[p[3],p[2]],[p[7],p[3]]]},   // top — bright + gradient + ridge highlights
-    {v:[p[4],p[5],p[6],p[7]],f:col(color,-.24),s:sk,n:[0, 0,1]}, // back-z — shadow
-    {v:[p[4],p[7],p[3],p[0]],f:col(color,.14), s:sk,n:[-1,0,0]}, // left-x — lit
-    {v:[p[1],p[2],p[6],p[5]],f:col(color,-.40),s:sk,n:[1, 0,0]}, // right-x — shadow
-    {v:[p[3],p[2],p[1],p[0]],f:col(color,-.08),s:sk,n:[0, 0,-1]},// front-z — near viewer
-    {v:[p[0],p[1],p[5],p[4]],f:col(color,-.55),s:sk,n:[0,-1,0]}, // bottom — darkest
+    {v:[p[7],p[6],p[2],p[3]],f:col(color,_lAdj(0, 1,0)),s:sk,n:[0, 1,0],
+     hl:[[p[3],p[2]],[p[7],p[3]]]},  // top — bright + ridge highlights
+    {v:[p[4],p[5],p[6],p[7]],f:col(color,_lAdj(0, 0,1)),s:sk,n:[0, 0,1]},
+    {v:[p[4],p[7],p[3],p[0]],f:col(color,_lAdj(-1,0,0)),s:sk,n:[-1,0,0]},
+    {v:[p[1],p[2],p[6],p[5]],f:col(color,_lAdj(1, 0,0)),s:sk,n:[1, 0,0]},
+    {v:[p[3],p[2],p[1],p[0]],f:col(color,_lAdj(0, 0,-1)),s:sk,n:[0, 0,-1]},
+    {v:[p[0],p[1],p[5],p[4]],f:col(color,_lAdj(0,-1,0)),s:sk,n:[0,-1,0]},
   ].filter(f=>!cull||f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
    .map(face=>{
     const v=face.v;
@@ -2070,7 +2065,7 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
 function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
   getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy)
     .sort((a,b)=>b.depth-a.depth)
-    .forEach(f=>drawFace(f.v,f.f,f.s,f.g));
+    .forEach(f=>{drawFace(f.v,f.f,f.s);});
 }
 
 // Returns box specs for one pallet at X-offset ox (used in unified depth sort)
@@ -2138,21 +2133,21 @@ function draw3D(res){
   palFaces.sort((a,b)=>b.depth-a.depth);
   pkgFaces.sort((a,b)=>b.depth-a.depth);
 
-  if(cameraAbovePal){
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.g));
-    pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.g));
-  } else {
-    pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.g));
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.g));
+  function drawPkgFace(f){
+    drawFace(f.v,f.f,f.s);
+    if(f.hl){
+      ctx.save();ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.3;ctx.lineCap='round';
+      f.hl.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();});
+      ctx.restore();
+    }
   }
-  // Bright ridge lines on top edges of packages
-  ctx.save();
-  ctx.strokeStyle='rgba(255,255,255,.48)';ctx.lineWidth=1.3;ctx.lineCap='round';
-  pkgFaces.forEach(f=>{
-    if(!f.hl)return;
-    f.hl.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();});
-  });
-  ctx.restore();
+  if(cameraAbovePal){
+    palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+    pkgFaces.forEach(drawPkgFace);
+  } else {
+    pkgFaces.forEach(drawPkgFace);
+    palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+  }
 
   // manual mode overlays (always single pallet)
   if(mode==='manual'){
