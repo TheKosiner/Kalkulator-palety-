@@ -2030,29 +2030,21 @@ function drawFace(verts,fill,stroke,gt,gb){
   ctx.closePath();
   if(gt){
     const ys=verts.map(v=>v[1]),y0=Math.min(...ys),y1=Math.max(...ys);
-    if(y1-y0>1){
-      const g=ctx.createLinearGradient(0,y0,0,y1);
-      g.addColorStop(0,gt);g.addColorStop(1,gb);
-      ctx.fillStyle=g;
-    }else ctx.fillStyle=fill;
+    const g=ctx.createLinearGradient(0,y0,0,y1);
+    g.addColorStop(0,gt);g.addColorStop(1,gb);
+    ctx.fillStyle=g;
   }else ctx.fillStyle=fill;
   ctx.fill();
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.0;ctx.stroke();}
 }
 
 function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
-  const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
-  // Visual depth: rz*cP - dy*sP  (higher world-Y → smaller value → drawn LAST = on top)
   const p=[
     [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
     [x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]
-  ].map(([px,py,pz])=>{
-    const pr=proj(px,py,pz,cx,cy,sc);
-    const dx=px-_sceneCenterX, dy=py-camTargetY, dz=pz-PAL.D/2;
-    const rz=dx*sT+dz*cT;
-    return[pr[0],pr[1],pr[2],rz*cP-dy*sP];
-  });
-  const cdx=-sT*cP,cdy=sP,cdz=-cT*cP;
+  ].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
+  const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
+  const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
   const sk='rgba(0,0,0,.28)';
   return[
     {v:[p[7],p[6],p[2],p[3]],f:col(color,.30),gt:col(color,.45),gb:col(color,.15),s:sk,n:[0, 1,0]},
@@ -2062,7 +2054,7 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
     {v:[p[3],p[2],p[1],p[0]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[0, 0,-1]},
     {v:[p[0],p[1],p[5],p[4]],f:col(color,-.40),                                     s:sk,n:[0,-1,0]},
   ].filter(f=>!cull||f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
-   .map(face=>{const v=face.v;return{...face,depth:(v[0][3]+v[1][3]+v[2][3]+v[3][3])*.25};});
+   .map(face=>{const v=face.v;return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
 }
 
 function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
@@ -2130,8 +2122,9 @@ function draw3D(res){
   const palFaces=[], pkgFaces=[];
   for(let i=0;i<numPallets;i++)
     for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,false));
-  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,false)));
+      palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
+  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy)));
+
   palFaces.sort((a,b)=>b.depth-a.depth);
   pkgFaces.sort((a,b)=>b.depth-a.depth);
 
