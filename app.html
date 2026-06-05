@@ -2024,18 +2024,18 @@ function col(hex,f){
   return`rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
 }
 
-function drawFace(verts,fill,stroke){
+function drawFace(verts,fill,stroke,gt,gb){
   ctx.beginPath();ctx.moveTo(verts[0][0],verts[0][1]);
   verts.slice(1).forEach(v=>ctx.lineTo(v[0],v[1]));
-  ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+  ctx.closePath();
+  if(gt){
+    const ys=verts.map(v=>v[1]),y0=Math.min(...ys),y1=Math.max(...ys);
+    const g=ctx.createLinearGradient(0,y0,0,y1);
+    g.addColorStop(0,gt);g.addColorStop(1,gb);
+    ctx.fillStyle=g;
+  }else ctx.fillStyle=fill;
+  ctx.fill();
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.0;ctx.stroke();}
-}
-
-// Light direction: upper-front-left (fixed world space) → normalize(-1, 2.5, -1)
-const _LL=(([x,y,z])=>{const m=Math.sqrt(x*x+y*y+z*z);return[x/m,y/m,z/m];})([-.5,2,-.7]);
-function _lAdj(nx,ny,nz){
-  const d=Math.max(0,nx*_LL[0]+ny*_LL[1]+nz*_LL[2]);
-  return d*1.45-0.50; // top≈+0.57, front/left≈+0.0~+0.15, shadow faces≈-0.50
 }
 
 function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
@@ -2043,29 +2043,24 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
     [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
     [x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]
   ].map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
-  const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
-  const sP=Math.sin(camPhi),cP=Math.cos(camPhi);
+  const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
   const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
-  const sk='rgba(0,0,0,.32)';
+  const sk='rgba(0,0,0,.28)';
   return[
-    {v:[p[7],p[6],p[2],p[3]],f:col(color,_lAdj(0, 1,0)),s:sk,n:[0, 1,0],
-     hl:[[p[3],p[2]],[p[7],p[3]]]},  // top — bright + ridge highlights
-    {v:[p[4],p[5],p[6],p[7]],f:col(color,_lAdj(0, 0,1)),s:sk,n:[0, 0,1]},
-    {v:[p[4],p[7],p[3],p[0]],f:col(color,_lAdj(-1,0,0)),s:sk,n:[-1,0,0]},
-    {v:[p[1],p[2],p[6],p[5]],f:col(color,_lAdj(1, 0,0)),s:sk,n:[1, 0,0]},
-    {v:[p[3],p[2],p[1],p[0]],f:col(color,_lAdj(0, 0,-1)),s:sk,n:[0, 0,-1]},
-    {v:[p[0],p[1],p[5],p[4]],f:col(color,_lAdj(0,-1,0)),s:sk,n:[0,-1,0]},
+    {v:[p[7],p[6],p[2],p[3]],f:col(color,.36),                                       s:sk,n:[0, 1,0],hl:[[p[3],p[2]],[p[7],p[3]]]},
+    {v:[p[4],p[5],p[6],p[7]],f:col(color,-.10),gt:col(color,.18),gb:col(color,-.44), s:sk,n:[0, 0,1]},
+    {v:[p[4],p[7],p[3],p[0]],f:col(color,-.16),gt:col(color,.10),gb:col(color,-.48), s:sk,n:[-1,0,0]},
+    {v:[p[1],p[2],p[6],p[5]],f:col(color,-.20),gt:col(color,.05),gb:col(color,-.50), s:sk,n:[1, 0,0]},
+    {v:[p[3],p[2],p[1],p[0]],f:col(color,-.08),gt:col(color,.22),gb:col(color,-.40), s:sk,n:[0, 0,-1]},
+    {v:[p[0],p[1],p[5],p[4]],f:col(color,-.54),                                       s:sk,n:[0,-1,0]},
   ].filter(f=>!cull||f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
-   .map(face=>{
-    const v=face.v;
-    return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};
-  });
+   .map(face=>{const v=face.v;return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
 }
 
 function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
   getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy)
     .sort((a,b)=>b.depth-a.depth)
-    .forEach(f=>{drawFace(f.v,f.f,f.s);});
+    .forEach(f=>{drawFace(f.v,f.f,f.s,f.gt,f.gb);});
 }
 
 // Returns box specs for one pallet at X-offset ox (used in unified depth sort)
@@ -2134,7 +2129,7 @@ function draw3D(res){
   pkgFaces.sort((a,b)=>b.depth-a.depth);
 
   function drawPkgFace(f){
-    drawFace(f.v,f.f,f.s);
+    drawFace(f.v,f.f,f.s,f.gt,f.gb);
     if(f.hl){
       ctx.save();ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.3;ctx.lineCap='round';
       f.hl.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();});
@@ -2142,11 +2137,11 @@ function draw3D(res){
     }
   }
   if(cameraAbovePal){
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+    palFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.gt,f.gb));
     pkgFaces.forEach(drawPkgFace);
   } else {
     pkgFaces.forEach(drawPkgFace);
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
+    palFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.gt,f.gb));
   }
 
   // manual mode overlays (always single pallet)
