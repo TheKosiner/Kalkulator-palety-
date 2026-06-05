@@ -2121,14 +2121,21 @@ function draw3D(res){
   const sP=Math.sin(camPhi);
   const cameraAbovePal = sP < (camTargetY - PAL.H) / camDist;
 
-  const palFaces=[], pkgFaces=[];
+  // Sort boxes by centre depth first, then faces within each box — prevents
+  // painter's-algorithm failure where a far face overwrites a near face.
+  function boxCentreDepth(x,y,z,w,h,d){
+    return proj(x+w*.5,y+h*.5,z+d*.5,cx,cy,sc)[2];
+  }
+  function sortedBoxFaces(boxes,cull){
+    return boxes
+      .slice().sort((a,b)=>boxCentreDepth(b.x,b.y,b.z,b.w,b.h,b.d)-boxCentreDepth(a.x,a.y,a.z,a.w,a.h,a.d))
+      .flatMap(b=>getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,cull).sort((a,b)=>b.depth-a.depth));
+  }
+  const palBoxes=[];
   for(let i=0;i<numPallets;i++)
-    for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
-  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy)));
-
-  palFaces.sort((a,b)=>b.depth-a.depth);
-  pkgFaces.sort((a,b)=>b.depth-a.depth);
+    for(const b of palletBoxes(i*(PAL.W+PAL_GAP))) palBoxes.push(b);
+  const palFaces = sortedBoxFaces(palBoxes, true);
+  const pkgFaces = sortedBoxFaces(res.placements.map(p=>({x:p.x,y:p.y,z:p.z,w:p.w,h:p.h,d:p.d,color:p.color})), true);
 
   function drawPkgFace(f){
     drawFace(f.v,f.f,f.s,f.gt,f.gb);
