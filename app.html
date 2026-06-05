@@ -2117,40 +2117,21 @@ function draw3D(res){
     ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
   }
 
-  // Two-pass rendering: pallet uses back-face culling (prevents Z-fighting at internal
-  // coincident Y planes). Packages use no culling (prevents grazing-angle flicker).
-  // Pass order depends on camera height: when camera is above the pallet top surface
-  // (PAL.H), packages are closer so pallet is drawn first (behind); when camera is
-  // below, pallet is closer so packages are drawn first (behind).
-  // Using a single depth-sorted list fails here because wide pallet boards (1200 mm)
-  // have bimodal rz distributions whose average fz does not reflect physical Y order.
-  const sP=Math.sin(camPhi);
-  const cameraAbovePal = sP < (camTargetY - PAL.H) / camDist;
-
-  const palFaces=[], pkgFaces=[];
+  const allFaces=[];
   for(let i=0;i<numPallets;i++)
     for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
-  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,false)));
+      allFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
+  res.placements.forEach(p=>allFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,false)));
+  allFaces.sort((a,b)=>b.depth-a.depth);
 
-  palFaces.sort((a,b)=>b.depth-a.depth);
-  pkgFaces.sort((a,b)=>b.depth-a.depth);
-
-  function drawPkgFace(f){
+  allFaces.forEach(f=>{
     drawFace(f.v,f.f,f.s,f.gt,f.gb);
     if(f.hl){
       ctx.save();ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.3;ctx.lineCap='round';
       f.hl.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();});
       ctx.restore();
     }
-  }
-  if(cameraAbovePal){
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.gt,f.gb));
-    pkgFaces.forEach(drawPkgFace);
-  } else {
-    pkgFaces.forEach(drawPkgFace);
-    palFaces.forEach(f=>drawFace(f.v,f.f,f.s,f.gt,f.gb));
-  }
+  });
 
   // manual mode overlays (always single pallet)
   if(mode==='manual'){
