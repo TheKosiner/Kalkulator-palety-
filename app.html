@@ -2047,12 +2047,12 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
   const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
   const sk='rgba(0,0,0,.28)';
   return[
-    {v:[p[7],p[6],p[2],p[3]],f:col(color,.36),                                       s:sk,n:[0, 1,0],hl:[[p[3],p[2]],[p[7],p[3]]]},
-    {v:[p[4],p[5],p[6],p[7]],f:col(color,-.10),gt:col(color,.18),gb:col(color,-.44), s:sk,n:[0, 0,1]},
-    {v:[p[4],p[7],p[3],p[0]],f:col(color,-.16),gt:col(color,.10),gb:col(color,-.48), s:sk,n:[-1,0,0]},
-    {v:[p[1],p[2],p[6],p[5]],f:col(color,-.20),gt:col(color,.05),gb:col(color,-.50), s:sk,n:[1, 0,0]},
-    {v:[p[3],p[2],p[1],p[0]],f:col(color,-.08),gt:col(color,.22),gb:col(color,-.40), s:sk,n:[0, 0,-1]},
-    {v:[p[0],p[1],p[5],p[4]],f:col(color,-.54),                                       s:sk,n:[0,-1,0]},
+    {v:[p[7],p[6],p[2],p[3]],f:col(color,.55),                                       s:sk,n:[0, 1,0],hl:[[p[3],p[2]],[p[7],p[3]]]},
+    {v:[p[4],p[5],p[6],p[7]],f:col(color,-.15),gt:col(color,.12),gb:col(color,-.60), s:sk,n:[0, 0,1]},
+    {v:[p[4],p[7],p[3],p[0]],f:col(color,-.20),gt:col(color,.08),gb:col(color,-.65), s:sk,n:[-1,0,0]},
+    {v:[p[1],p[2],p[6],p[5]],f:col(color,-.25),gt:col(color,.02),gb:col(color,-.68), s:sk,n:[1, 0,0]},
+    {v:[p[3],p[2],p[1],p[0]],f:col(color,-.05),gt:col(color,.38),gb:col(color,-.55), s:sk,n:[0, 0,-1]},
+    {v:[p[0],p[1],p[5],p[4]],f:col(color,-.70),                                       s:sk,n:[0,-1,0]},
   ].filter(f=>!cull||f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
    .map(face=>{const v=face.v;return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
 }
