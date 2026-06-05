@@ -2047,7 +2047,7 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull){
   const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
   const sk='rgba(0,0,0,.28)';
   return[
-    {v:[p[7],p[6],p[2],p[3]],f:col(color,.30),gt:col(color,.45),gb:col(color,.15),s:sk,n:[0, 1,0],hl:[[p[3],p[2]],[p[7],p[3]]]},
+    {v:[p[7],p[6],p[2],p[3]],f:col(color,.30),gt:col(color,.45),gb:col(color,.15),s:sk,n:[0, 1,0]},
     {v:[p[4],p[5],p[6],p[7]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[0, 0,1]},
     {v:[p[4],p[7],p[3],p[0]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[-1,0,0]},
     {v:[p[1],p[2],p[6],p[5]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[1, 0,0]},
