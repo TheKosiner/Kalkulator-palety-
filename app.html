@@ -2386,45 +2386,45 @@ function arrangeVehicle(type){
     wb.textContent='Dodaj palety do załadunku – ustaw ilość > 0.';wb.style.display='block';return;
   }
 
-  // Pre-determine orientation for each type using full vehicle length
-  const validItems=[];let leftover=0;
+  // Expand every set into individual unit pallets
+  const unitPallets=[];let leftover=0;
   for(const {pal,qty} of requests){
     if(pal.totalH>vs.H){leftover+=qty*(pal.numPallets||1);continue;}
-    const perRow1=Math.floor(vs.W/pal.palW),perRow2=Math.floor(vs.W/pal.palD);
-    const total1=perRow1*Math.floor(vs.L/pal.palD);
-    const total2=perRow2*Math.floor(vs.L/pal.palW);
-    let palW,palD,perRow,rotated;
-    if(total2>total1){palW=pal.palD;palD=pal.palW;perRow=perRow2;rotated=true;}
-    else{palW=pal.palW;palD=pal.palD;perRow=perRow1;rotated=false;}
-    if(!perRow){leftover+=qty*(pal.numPallets||1);continue;}
-    validItems.push({pal,qty,palW,palD,perRow,rotated});
-  }
-  // Tallest first → they pack at low Z → mirrored to back (high Z)
-  validItems.sort((a,b)=>b.pal.totalH-a.pal.totalH);
-  const placements=[];let curZ=0;
-  for(const {pal,qty,palW,palD,perRow,rotated} of validItems){
-    const xOff=(vs.W-perRow*palW)/2;
     const nPal=pal.numPallets||1;
     const allPP=pal.allPalletPlacements||[pal.placements];
-    let setsPlaced=0,col=0,rowZ=curZ;
-    while(setsPlaced<qty){
-      let setFits=true;
-      let chkCol=col,chkRowZ=rowZ;
+    for(let s=0;s<qty;s++){
       for(let si=0;si<nPal;si++){
-        if(chkRowZ+palD>vs.L+1){setFits=false;break;}
-        chkCol++;if(chkCol>=perRow){chkCol=0;chkRowZ+=palD;}
+        unitPallets.push({w:pal.palW,d:pal.palD,totalH:pal.totalH,color:pal.color,name:pal.name,palId:pal.id,tmpl:allPP[si]||allPP[0]||[]});
       }
-      if(!setFits){leftover+=(qty-setsPlaced)*nPal;break;}
-      for(let si=0;si<nPal;si++){
-        const tmpl=allPP[si]||allPP[0]||[];
-        placements.push({x:xOff+col*palW,y:0,z:rowZ,palW,palD,totalH:pal.totalH,color:pal.color,name:pal.name,palId:pal.id,rotated,placements:tmpl});
-        col++;if(col>=perRow){col=0;rowZ+=palD;}
-      }
-      setsPlaced++;
     }
-    curZ=col>0?rowZ+palD:rowZ;
   }
-  // Mirror z so tallest end up at back (high Z = far wall)
+  // Tallest first → packed at low Z → mirrored to back (high Z)
+  unitPallets.sort((a,b)=>b.totalH-a.totalH);
+
+  // Pick best orientation given available width; prefer larger palW to fill rows faster
+  function _bestO(up,availW){
+    const f1=up.w<=availW+0.5,f2=up.d<=availW+0.5;
+    if(!f1&&!f2)return null;
+    if(f1&&f2)return up.w>=up.d?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
+    return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
+  }
+
+  const placements=[];
+  let rowZ=0,rowUsedX=0,rowDepth=0;
+  for(const up of unitPallets){
+    let o=_bestO(up,vs.W-rowUsedX);
+    if(!o){
+      // current row full → advance to next row
+      rowZ+=rowDepth;rowUsedX=0;rowDepth=0;
+      o=_bestO(up,vs.W);
+      if(!o){leftover++;continue;}
+    }
+    if(rowZ+o.palD>vs.L+0.5){leftover++;continue;}
+    placements.push({x:rowUsedX,y:0,z:rowZ,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
+    rowUsedX+=o.palW;
+    rowDepth=Math.max(rowDepth,o.palD);
+  }
+  // Mirror z: tallest (low Z) → back of vehicle (high Z = rear wall)
   placements.forEach(p=>{p.z=vs.L-p.z-p.palD;});
 
   vs.result={placements,leftover};
