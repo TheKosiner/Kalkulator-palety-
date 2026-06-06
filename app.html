@@ -2386,15 +2386,20 @@ function arrangeVehicle(type){
     wb.textContent='Dodaj palety do załadunku – ustaw ilość > 0.';wb.style.display='block';return;
   }
 
-  // Expand every set into individual unit pallets
+  // Expand every set into individual unit pallets, computing each board's ACTUAL height
+  // from its own package list (pal.totalH is the set maximum and is the same for all boards,
+  // so using it for sorting keeps all boards of one set together — wrong).
   const unitPallets=[];let leftover=0;
   for(const {pal,qty} of requests){
-    if(pal.totalH>vs.H){leftover+=qty*(pal.numPallets||1);continue;}
     const nPal=pal.numPallets||1;
     const allPP=pal.allPalletPlacements||[pal.placements];
     for(let s=0;s<qty;s++){
       for(let si=0;si<nPal;si++){
-        unitPallets.push({w:pal.palW,d:pal.palD,totalH:pal.totalH,color:pal.color,name:pal.name,palId:pal.id,tmpl:allPP[si]||allPP[0]||[]});
+        const tmpl=allPP[si]||allPP[0]||[];
+        // Actual height of this specific board = max(pkg.y + pkg.h) across its packages
+        const boardH=tmpl.reduce((m,p)=>Math.max(m,(p.y||0)+(p.h||0)),0)||pal.totalH;
+        if(boardH>vs.H){leftover++;continue;}
+        unitPallets.push({w:pal.palW,d:pal.palD,totalH:boardH,color:pal.color,name:pal.name,palId:pal.id,tmpl});
       }
     }
   }
