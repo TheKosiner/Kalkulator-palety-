@@ -2406,32 +2406,35 @@ function arrangeVehicle(type){
   // Tallest first → packed against rear wall (high Z); shorter toward loading door (low Z)
   unitPallets.sort((a,b)=>b.totalH-a.totalH);
 
+  // Pick orientation that fits the MOST pallets per full row width (not just largest palW).
+  // E.g. in a 2370mm container a 1200×800 pallet fits 1× at palW=1200 but 2× at palW=800 → prefer rotated.
   function _bestO(up,availW){
     const f1=up.w<=availW+0.5,f2=up.d<=availW+0.5;
     if(!f1&&!f2)return null;
-    if(f1&&f2)return up.w>=up.d?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
+    if(f1&&f2){
+      const n1=Math.floor(vs.W/up.w)||1,n2=Math.floor(vs.W/up.d)||1;
+      if(n2>n1)return{palW:up.d,palD:up.w,rotated:true};
+      return{palW:up.w,palD:up.d,rotated:false};
+    }
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
   }
-
-  function _cRow(start,end,usedW){const off=(vs.W-usedW)/2;for(let i=start;i<end;i++)placements[i].x+=off;}
 
   // Pack from rear wall (curZ=vs.L) toward loading door (Z=0); no mirroring needed.
   // No height-group sealing: just fill rows by width. Since unitPallets is sorted tallest-first,
   // rows filled first (= placed at back) naturally contain the tallest pallets.
+  // Left-aligned (no centering) so pallets pack as tightly as possible against one wall.
   const placements=[];
-  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowStart=0;
+  let curZ=vs.L,rowUsedX=0,rowDepth=0;
   for(const up of unitPallets){
     let o=_bestO(up,vs.W-rowUsedX);
     if(!o){
-      _cRow(rowStart,placements.length,rowUsedX);
-      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowStart=placements.length;
+      curZ-=rowDepth;rowUsedX=0;rowDepth=0;
       o=_bestO(up,vs.W);if(!o){leftover++;continue;}
     }
     if(curZ-o.palD<-0.5){leftover++;continue;}
     placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
     rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
   }
-  _cRow(rowStart,placements.length,rowUsedX);
 
 
   vs.result={placements,leftover};
