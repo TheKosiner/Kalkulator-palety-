@@ -1973,19 +1973,36 @@ canvas.addEventListener('touchstart',e=>{
   e.preventDefault();
   Array.from(e.changedTouches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
   if(e.touches.length===1) tTapStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
-  if(e.touches.length===2){const[a,b]=[e.touches[0],e.touches[1]];pinch0=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);}
+  if(e.touches.length===2){
+    // reset both positions so no stale delta triggers false rotation
+    Array.from(e.touches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
+    const[a,b]=[e.touches[0],e.touches[1]];pinch0=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
+  }
 },{passive:false});
 canvas.addEventListener('touchmove',e=>{
   e.preventDefault();
   if(e.touches.length===2){
     const[a,b]=[e.touches[0],e.touches[1]];
     const d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
-    const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
     const pa=tpts[a.identifier],pb=tpts[b.identifier];
-    if(pinch0&&pa&&pb){
-      camZoom=Math.max(0.15,Math.min(5,camZoom*(d/pinch0)));
-      const pmx=(pa.x+pb.x)/2,pmy=(pa.y+pb.y)/2;
-      panX+=(mx-pmx)*1.8;panY+=(my-pmy)*1.8;
+    if(pa&&pb){
+      const da=Math.hypot(a.clientX-pa.x,a.clientY-pa.y);
+      const db=Math.hypot(b.clientX-pb.x,b.clientY-pb.y);
+      if(da<3&&db>=3){
+        // a anchored → b controls orbit
+        camTheta-=(b.clientX-pb.x)*.007;
+        camPhi=Math.max(-1.4,Math.min(1.3,camPhi-(b.clientY-pb.y)*.007));
+      } else if(db<3&&da>=3){
+        // b anchored → a controls orbit
+        camTheta-=(a.clientX-pa.x)*.007;
+        camPhi=Math.max(-1.4,Math.min(1.3,camPhi-(a.clientY-pa.y)*.007));
+      } else {
+        // both moving → zoom + pan
+        const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
+        const pmx=(pa.x+pb.x)/2,pmy=(pa.y+pb.y)/2;
+        if(pinch0)camZoom=Math.max(0.15,Math.min(5,camZoom*(d/pinch0)));
+        panX+=(mx-pmx)*1.8;panY+=(my-pmy)*1.8;
+      }
     }
     pinch0=d;
     tpts[a.identifier]={x:a.clientX,y:a.clientY};
@@ -2201,7 +2218,7 @@ function draw3D(res){
     ctx.fillText(label,tx,ty);
   }
 
-  document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: przesuń · 2 palce: zoom/przesuń · przyciski: obrót':'Mysz: przesuń · PPM: obracaj · Scroll: zoom';
+  document.getElementById('hintBar').textContent=window.innerWidth<760?'1 palec: przesuń · 2 palce: zoom/przesuń · trzymaj+obracaj: obrót':'Mysz: przesuń · PPM: obracaj · Scroll: zoom';
 }
 
 function buildLegend(res,mode){
