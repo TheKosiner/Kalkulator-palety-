@@ -2297,8 +2297,8 @@ const vehicleState={
   kontener:{L:12032,W:2352,H:2698,result:null}
 };
 const vCam={
-  naczepa:{theta:0.35,phi:0.52,zoom:1,panX:0,panY:0},
-  kontener:{theta:0.35,phi:0.52,zoom:1,panX:0,panY:0}
+  naczepa:{theta:0.35,phi:-0.30,zoom:1,panX:0,panY:0},
+  kontener:{theta:0.35,phi:-0.30,zoom:1,panX:0,panY:0}
 };
 let t3v={naczepa:null,kontener:null};
 let _lastVRes={naczepa:null,kontener:null};
@@ -2509,7 +2509,7 @@ function drawVehicle3D(type){
   const sT=Math.sin(cam.theta),cT=Math.cos(cam.theta),sP=Math.sin(cam.phi),cP=Math.cos(cam.phi);
   const pw=1/sc;
   const lookX=VW/2+(-cT)*cam.panX*pw+(-sP*sT)*cam.panY*pw;
-  const lookY=VH*.25+cP*cam.panY*pw;
+  const lookY=VH*.40+cP*cam.panY*pw;
   const lookZ=VL/2+sT*cam.panX*pw+(-sP*cT)*cam.panY*pw;
   tv.camera.fov=2*Math.atan(H/(2*camDist*sc))*(180/Math.PI);
   tv.camera.near=camDist*0.02;tv.camera.far=camDist*8;
@@ -2524,7 +2524,7 @@ function drawVehicle3D(type){
 
     // floor
     const floorM=new THREE.Mesh(new THREE.PlaneGeometry(VW,VL),
-      new THREE.MeshBasicMaterial({color:0x9a8250,side:THREE.DoubleSide}));
+      new THREE.MeshBasicMaterial({color:0x9a8250}));
     floorM.rotation.x=-Math.PI/2;floorM.position.set(VW/2,-2,VL/2);
     tv.scene.add(floorM);tv.staticObjects.push(floorM);
 
@@ -2587,7 +2587,7 @@ function drawVehicle3D(type){
 }
 
 function vCamZoom(type,f){vCam[type].zoom=Math.max(.2,Math.min(5,vCam[type].zoom*f));drawVehicle3D(type);}
-function vCamReset(type){vCam[type].theta=0.35;vCam[type].phi=0.52;vCam[type].zoom=1;vCam[type].panX=0;vCam[type].panY=0;drawVehicle3D(type);}
+function vCamReset(type){vCam[type].theta=0.35;vCam[type].phi=-0.30;vCam[type].zoom=1;vCam[type].panX=0;vCam[type].panY=0;drawVehicle3D(type);}
 
 // RAF throttle — only one draw per animation frame regardless of event rate
 const _vRaf={naczepa:0,kontener:0};
