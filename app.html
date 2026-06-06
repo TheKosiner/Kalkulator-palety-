@@ -2040,7 +2040,7 @@ function drawFace(verts,fill,stroke,gt,gb){
   if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.0;ctx.stroke();}
 }
 
-function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull,pkgCull=false){
+function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull,pkgCull=false,belowView=false){
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
   const p=[
     [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
@@ -2051,7 +2051,7 @@ function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull,pkgCull=false){
     const rz=dx*sT+dz*cT;
     return[pr[0],pr[1],pr[2],rz*cP-dy*Math.abs(sP)];
   });
-  const cdx=-sT*cP,cdy=Math.abs(sP),cdz=-cT*cP;
+  const cdx=-sT*cP,cdy=belowView?-sP:Math.abs(sP),cdz=-cT*cP;
   const sk='rgba(0,0,0,.28)';
   return[
     {v:[p[7],p[6],p[2],p[3]],f:col(color,.30),gt:col(color,.45),gb:col(color,.15),s:sk,n:[0, 1,0]},
@@ -2120,21 +2120,17 @@ function draw3D(res){
     ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
   }
 
-  const allFaces=[];
+  const FROM_BELOW=camPhi>0.95;
+  const palletFaces=[];
   for(let i=0;i<numPallets;i++)
     for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      allFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true));
-  res.placements.forEach(p=>allFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,true,true)));
-  allFaces.sort((a,b)=>b.depth-a.depth);
+      palletFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true,false,FROM_BELOW));
+  const pkgFaces=[];
+  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,true,true)));
 
-  allFaces.forEach(f=>{
-    drawFace(f.v,f.f,f.s,f.gt,f.gb);
-    if(f.hl){
-      ctx.save();ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.3;ctx.lineCap='round';
-      f.hl.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();});
-      ctx.restore();
-    }
-  });
+  const drawFaces=faces=>{faces.sort((a,b)=>b.depth-a.depth);faces.forEach(f=>{drawFace(f.v,f.f,f.s,f.gt,f.gb);if(f.hl){ctx.save();ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.3;ctx.lineCap='round';f.hl.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();});ctx.restore();}});};
+  if(FROM_BELOW){drawFaces(pkgFaces);drawFaces(palletFaces);}
+  else{drawFaces([...palletFaces,...pkgFaces]);}
 
   // manual mode overlays (always single pallet)
   if(mode==='manual'){
