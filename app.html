@@ -2398,7 +2398,7 @@ function arrangeVehicle(type){
       }
     }
   }
-  // Tallest first → packed at low Z → mirrored to back (high Z)
+  // Tallest first → packed against rear wall (high Z); shorter toward loading door (low Z)
   unitPallets.sort((a,b)=>b.totalH-a.totalH);
 
   function _bestO(up,availW){
@@ -2408,23 +2408,29 @@ function arrangeVehicle(type){
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
   }
 
+  function _cRow(start,end,usedW){const off=(vs.W-usedW)/2;for(let i=start;i<end;i++)placements[i].x+=off;}
+
+  // Pack from rear wall (curZ=vs.L) toward loading door (Z=0); no mirroring needed
   const placements=[];
-  let rowZ=0,rowUsedX=0,rowDepth=0,rowH=null;
+  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowH=null,rowStart=0;
   for(const up of unitPallets){
-    // Seal current row when height group changes – prevents mixing heights in same z-slot
-    if(rowUsedX>0&&up.totalH!==rowH){rowZ+=rowDepth;rowUsedX=0;rowDepth=0;rowH=null;}
+    // New height group → seal row and step forward (toward loading door)
+    if(rowUsedX>0&&up.totalH!==rowH){
+      _cRow(rowStart,placements.length,rowUsedX);
+      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowH=null;rowStart=placements.length;
+    }
     let o=_bestO(up,vs.W-rowUsedX);
-    if(!o){rowZ+=rowDepth;rowUsedX=0;rowDepth=0;rowH=null;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
-    if(rowZ+o.palD>vs.L+0.5){leftover++;continue;}
+    if(!o){
+      _cRow(rowStart,placements.length,rowUsedX);
+      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowH=null;rowStart=placements.length;
+      o=_bestO(up,vs.W);if(!o){leftover++;continue;}
+    }
+    if(curZ-o.palD<-0.5){leftover++;continue;}
     if(rowH===null)rowH=up.totalH;
-    placements.push({x:rowUsedX,y:0,z:rowZ,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
+    placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
     rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
   }
-  // Mirror using each row's max depth so all pallets in the same row land at the same Z.
-  // Tallest rows (packed first, low z) → rear wall (high Z); shortest rows → loading door.
-  const rMap=new Map();
-  placements.forEach(p=>{const e=rMap.get(p.z);if(!e)rMap.set(p.z,{rz:p.z,d:p.palD,ps:[p]});else{e.d=Math.max(e.d,p.palD);e.ps.push(p);}});
-  rMap.forEach(r=>r.ps.forEach(p=>{p.z=vs.L-r.rz-r.d;}));
+  _cRow(rowStart,placements.length,rowUsedX);
 
 
   vs.result={placements,leftover};
