@@ -2041,22 +2041,31 @@ function initThreeJS(){
   t3={r,scene,camera,objects:[]};
 }
 
+const _texCache=new Map();
+function _gradTex(ct,cb){
+  const key=ct+'|'+cb;
+  if(_texCache.has(key))return _texCache.get(key);
+  const cv=document.createElement('canvas');cv.width=1;cv.height=64;
+  const c2=cv.getContext('2d'),g=c2.createLinearGradient(0,0,0,64);
+  g.addColorStop(0,ct);g.addColorStop(1,cb);
+  c2.fillStyle=g;c2.fillRect(0,0,1,64);
+  const t=new THREE.CanvasTexture(cv);
+  _texCache.set(key,t);return t;
+}
+
 function makeBox3D(x,y,z,w,h,d,colorHex,opacity=1){
   const geo=new THREE.BoxGeometry(w,h,d);
   const base=new THREE.Color(colorHex);
-  function fc(f){
-    const c=base.clone();
-    return f>=0?c.lerp(new THREE.Color(1,1,1),f*.5):c.lerp(new THREE.Color(0,0,0),-f*.55);
-  }
+  function shade(f){const c=base.clone();return f>=0?c.lerp(new THREE.Color(1,1,1),f*.5):c.lerp(new THREE.Color(0,0,0),-f*.55);}
   const tr=opacity<1;
+  const sideMap=_gradTex('#'+shade(.15).getHexString(),'#'+shade(-.28).getHexString());
+  function flatMat(c){return new THREE.MeshBasicMaterial({color:c,transparent:tr,opacity});}
+  function gradMat(map){return new THREE.MeshBasicMaterial({map,transparent:tr,opacity});}
   // face order: +X,-X,+Y(top),-Y(bottom),+Z(back),-Z(front)
   const mats=[
-    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
-    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
-    new THREE.MeshBasicMaterial({color:fc(.30), transparent:tr,opacity}),
-    new THREE.MeshBasicMaterial({color:fc(-.40),transparent:tr,opacity}),
-    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
-    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
+    gradMat(sideMap),gradMat(sideMap),
+    flatMat(shade(.30)),flatMat(shade(-.40)),
+    gradMat(sideMap),gradMat(sideMap),
   ];
   const mesh=new THREE.Mesh(geo,mats);
   mesh.position.set(x+w/2,y+h/2,z+d/2);
