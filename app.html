@@ -2410,23 +2410,19 @@ function arrangeVehicle(type){
 
   function _cRow(start,end,usedW){const off=(vs.W-usedW)/2;for(let i=start;i<end;i++)placements[i].x+=off;}
 
-  // Pack from rear wall (curZ=vs.L) toward loading door (Z=0); no mirroring needed
+  // Pack from rear wall (curZ=vs.L) toward loading door (Z=0); no mirroring needed.
+  // No height-group sealing: just fill rows by width. Since unitPallets is sorted tallest-first,
+  // rows filled first (= placed at back) naturally contain the tallest pallets.
   const placements=[];
-  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowH=null,rowStart=0;
+  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowStart=0;
   for(const up of unitPallets){
-    // New height group → seal row and step forward (toward loading door)
-    if(rowUsedX>0&&up.totalH!==rowH){
-      _cRow(rowStart,placements.length,rowUsedX);
-      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowH=null;rowStart=placements.length;
-    }
     let o=_bestO(up,vs.W-rowUsedX);
     if(!o){
       _cRow(rowStart,placements.length,rowUsedX);
-      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowH=null;rowStart=placements.length;
+      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowStart=placements.length;
       o=_bestO(up,vs.W);if(!o){leftover++;continue;}
     }
     if(curZ-o.palD<-0.5){leftover++;continue;}
-    if(rowH===null)rowH=up.totalH;
     placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
     rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
   }
