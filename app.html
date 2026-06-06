@@ -2183,9 +2183,10 @@ function draw3D(res){
   for(let pi=0;pi<numPallets;pi++){
     const ox=pi*(PAL.W+PAL_GAP);
     const palH=res.placements.filter(p=>(p.palletIdx??0)===pi).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-    // X: layout-only, no camTheta — stays frozen during horizontal rotation
-    const lx=cx+(ox+PAL.W-_sceneCenterX)*sc+panX+24;
-    // Y: only depends on camPhi (tilt), not camTheta — frozen during spin
+    // X: rightmost screen-X of pallet's right-face corners (tracks pallet edge in any rotation)
+    function _prjX(wx,wy,wz){const v=new THREE.Vector3(wx,wy,wz);v.project(t3.camera);return(v.x*.5+.5)*W;}
+    const lx=Math.max(_prjX(ox+PAL.W,0,0),_prjX(ox+PAL.W,0,PAL.D),_prjX(ox+PAL.W,palH,0),_prjX(ox+PAL.W,palH,PAL.D))+16;
+    // Y: only depends on camPhi — frozen during horizontal rotation
     const _cP=Math.cos(camPhi),_sP=Math.sin(camPhi);
     function _ly(y){const dy=y-camTargetY;return-(dy*_cP)/(dy*_sP+camDist)*camDist*sc+cy+panY;}
     const ly0=_ly(0),ly1=_ly(palH);
