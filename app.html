@@ -2187,22 +2187,18 @@ function draw3D(res){
 
   t3.r.render(t3.scene,t3.camera);
 
-  const fs=Math.max(11,Math.min(15,W/28));
+  const fs=Math.max(12,Math.min(15,W/30));
   ctx.font=`bold ${fs}px Segoe UI`;
+  const pad=10, lineH=fs+6;
   for(let pi=0;pi<numPallets;pi++){
-    const ox=pi*(PAL.W+PAL_GAP);
     const palH=res.placements.filter(p=>(p.palletIdx??0)===pi).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-    // pin to front-right corner of pallet — one fixed 3D point, no jumping
-    function _p3(wx,wy,wz){const v=new THREE.Vector3(wx,wy,wz);v.project(t3.camera);return[(v.x*.5+.5)*W,(-v.y*.5+.5)*H];}
-    const[ax,ly0]=_p3(ox+PAL.W,0,PAL.D);
-    const[,ly1]=_p3(ox+PAL.W,palH,PAL.D);
-    const lx=ax+14;
-    ctx.beginPath();ctx.moveTo(lx,ly0);ctx.lineTo(lx,ly1);
-    ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
-    [[lx,ly0],[lx,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
+    const label=numPallets>1?`P${pi+1}: ${palH} mm`:`${palH} mm`;
+    const tw=ctx.measureText(label).width;
+    const tx=W-tw-pad-8, ty=pad+pi*lineH+fs;
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fillRect(tx-6,ty-fs,tw+12,fs+6);
     ctx.fillStyle='#1a3c5e';
-    ctx.fillText(palH+' mm',lx+8,(ly0+ly1)/2+fs/3);
-    if(numPallets>1){ctx.fillStyle='#1a3c5e80';ctx.fillText('P'+(pi+1),lx+8,ly1-fs);}
+    ctx.fillText(label,tx,ty);
   }
 
   document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: przesuń · 2 palce: zoom/przesuń · przyciski: obrót':'Mysz: przesuń · PPM: obracaj · Scroll: zoom';
