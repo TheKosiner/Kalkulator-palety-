@@ -2300,6 +2300,7 @@ const vCam={
 };
 let t3v={naczepa:null,kontener:null};
 let _lastVRes={naczepa:null,kontener:null};
+let _lastVDims={naczepa:'',kontener:''};
 
 function switchMainTab(tab){
   ['paleta','naczepa','kontener'].forEach(t=>
@@ -2490,33 +2491,52 @@ function initVehicleThreeJS(type){
   t3v[type]={r,scene,camera,staticObjects:[]};
 }
 
-function _makeVehicleBoxMeshes(VL,VW,VH){
+function _makeVehicleStructure(VL,VW,VH){
   const meshes=[];
-  // floor: normal depth (boxes sit on it), slightly opaque
-  const floorMesh=new THREE.Mesh(
+  // solid floor — participates in depth normally
+  const floorM=new THREE.Mesh(
     new THREE.PlaneGeometry(VW,VL),
-    new THREE.MeshBasicMaterial({color:0xa08c64,transparent:false,opacity:1,side:THREE.DoubleSide})
+    new THREE.MeshBasicMaterial({color:0x9a8250,side:THREE.DoubleSide})
   );
-  floorMesh.rotation.set(-Math.PI/2,0,0);floorMesh.position.set(VW/2,0,VL/2);
-  meshes.push(floorMesh);
-  // walls/ceiling: overlay – drawn after boxes, depth-test disabled so they never occlude box faces
-  function wall(w,h,color,op,rx,ry,px,py,pz){
-    const m=new THREE.Mesh(
-      new THREE.PlaneGeometry(w,h),
-      new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,side:THREE.DoubleSide,depthTest:false,depthWrite:false})
-    );
-    m.rotation.set(rx,ry,0);m.position.set(px,py,pz);m.renderOrder=2;meshes.push(m);
-  }
-  wall(VW,VH,0x506482,.22,0,0,VW/2,VH/2,VL);               // back
-  wall(VL,VH,0x506482,.14,0,Math.PI/2,0,VH/2,VL/2);         // left
-  wall(VL,VH,0x506482,.14,0,-Math.PI/2,VW,VH/2,VL/2);       // right
-  wall(VW,VL,0x506482,.08,Math.PI/2,0,VW/2,VH,VL/2);        // ceiling
-  // front frame
-  const corners=[[0,0,0],[VW,0,0],[VW,VH,0],[0,VH,0],[0,0,0]].map(([x,y,z])=>new THREE.Vector3(x,y,z));
-  const frame=new THREE.Line(new THREE.BufferGeometry().setFromPoints(corners),
-    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.65,depthTest:false}));
-  frame.renderOrder=2;meshes.push(frame);
+  floorM.rotation.x=-Math.PI/2;floorM.position.set(VW/2,0,VL/2);
+  meshes.push(floorM);
+  // container outline — 12 edges only, zero transparency artifacts
+  const outline=new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(VW,VH,VL)),
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.65})
+  );
+  outline.position.set(VW/2,VH/2,VL/2);
+  meshes.push(outline);
   return meshes;
+}
+
+function _makeVehicleDimLabels(VL,VW,VH){
+  const labels=[];
+  const sc=VW*0.75;
+  function dimSprite(text,x,y,z){
+    const cw=640,ch=88;
+    const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+    const c2=cv.getContext('2d');
+    c2.fillStyle='rgba(15,35,65,0.88)';
+    c2.beginPath();c2.roundRect(0,0,cw,ch,18);c2.fill();
+    c2.strokeStyle='rgba(180,210,255,0.4)';c2.lineWidth=2;
+    c2.beginPath();c2.roundRect(2,2,cw-4,ch-4,17);c2.stroke();
+    c2.fillStyle='#ddeeff';
+    c2.font=`bold ${Math.floor(ch*.52)}px Segoe UI`;
+    c2.textAlign='center';c2.textBaseline='middle';
+    c2.fillText(text,cw/2,ch/2);
+    const mat=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthTest:false});
+    const sp=new THREE.Sprite(mat);
+    sp.scale.set(sc,sc*(ch/cw),1);
+    sp.position.set(x,y,z);
+    sp.renderOrder=3;
+    labels.push(sp);
+  }
+  const mm=v=>Math.round(v)+' mm';
+  dimSprite('Dł.: '+mm(VL),   VW/2,    -VH*.20, VL/2);   // bottom centre, along length
+  dimSprite('Szer.: '+mm(VW),  VW/2,    VH*.10,  -VW*.50);// front opening, width
+  dimSprite('Wys.: '+mm(VH),  -VW*.45,  VH/2,    VL*.08); // left side, mid-height
+  return labels;
 }
 
 function drawVehicle3D(type){
@@ -2542,11 +2562,13 @@ function drawVehicle3D(type){
   tv.camera.position.set(lookX-camDist*cP*sT,lookY-camDist*sP,lookZ-camDist*cP*cT);
   tv.camera.lookAt(lookX,lookY,lookZ);
 
-  // rebuild static scene only when result changes
-  if(vs.result!==_lastVRes[type]){
+  // rebuild static scene when result or dimensions change
+  const _vDimKey=`${VL}|${VW}|${VH}`;
+  if(vs.result!==_lastVRes[type]||_vDimKey!==_lastVDims[type]){
     tv.staticObjects.forEach(o=>tv.scene.remove(o));
     tv.staticObjects=[];
-    _makeVehicleBoxMeshes(VL,VW,VH).forEach(m=>{tv.scene.add(m);tv.staticObjects.push(m);});
+    _makeVehicleStructure(VL,VW,VH).forEach(m=>{tv.scene.add(m);tv.staticObjects.push(m);});
+    _makeVehicleDimLabels(VL,VW,VH).forEach(m=>{tv.scene.add(m);tv.staticObjects.push(m);});
     if(vs.result?.placements?.length){
       const PH=PAL.H;
       vs.result.placements.forEach(pp=>{
@@ -2574,6 +2596,7 @@ function drawVehicle3D(type){
       });
     }
     _lastVRes[type]=vs.result;
+    _lastVDims[type]=_vDimKey;
   }
   tv.r.render(tv.scene,tv.camera);
 }
