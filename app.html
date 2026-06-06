@@ -2071,12 +2071,12 @@ function _faceMats(colorHex,opacity){
     const base=new THREE.Color(colorHex);
     function shade(f){const c=base.clone();return f>=0?c.lerp(new THREE.Color(1,1,1),f*.5):c.lerp(new THREE.Color(0,0,0),-f*.55);}
     const tr=opacity<1;
-    const sm=_gradTex('#'+shade(.15).getHexString(),'#'+shade(-.28).getHexString());
+    const sm=_gradTex('#'+shade(-.05).getHexString(),'#'+shade(-.42).getHexString());
     _matCache.set(k,[
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
-      new THREE.MeshBasicMaterial({color:shade(.30),transparent:tr,opacity}),
-      new THREE.MeshBasicMaterial({color:shade(-.40),transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({color:shade(.18),transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({color:shade(-.50),transparent:tr,opacity}),
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
     ]);
@@ -2183,14 +2183,17 @@ function draw3D(res){
   for(let pi=0;pi<numPallets;pi++){
     const ox=pi*(PAL.W+PAL_GAP);
     const palH=res.placements.filter(p=>(p.palletIdx??0)===pi).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-    const[lx0,ly0]=proj(ox+PAL.W+90,0,PAL.D/2,cx,cy,sc);
-    const[lx1,ly1]=proj(ox+PAL.W+90,palH,PAL.D/2,cx,cy,sc);
-    ctx.beginPath();ctx.moveTo(lx0,ly0);ctx.lineTo(lx1,ly1);
+    // anchor label at rightmost projected X of the pallet's right-face corners
+    const rcorners=[[ox+PAL.W,0,0],[ox+PAL.W,0,PAL.D],[ox+PAL.W,palH,0],[ox+PAL.W,palH,PAL.D]];
+    const lx=Math.max(...rcorners.map(p=>proj(p[0],p[1],p[2],cx,cy,sc)[0]))+14;
+    const[,ly0]=proj(ox+PAL.W/2,0,PAL.D/2,cx,cy,sc);
+    const[,ly1]=proj(ox+PAL.W/2,palH,PAL.D/2,cx,cy,sc);
+    ctx.beginPath();ctx.moveTo(lx,ly0);ctx.lineTo(lx,ly1);
     ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
-    [[lx0,ly0],[lx1,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
+    [[lx,ly0],[lx,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
     ctx.fillStyle='#1a3c5e';
-    ctx.fillText(palH+' mm',lx1+8,(ly0+ly1)/2+fs/3);
-    if(numPallets>1){ctx.fillStyle='#1a3c5e80';ctx.fillText('P'+(pi+1),lx1+8,ly1-fs);}
+    ctx.fillText(palH+' mm',lx+8,(ly0+ly1)/2+fs/3);
+    if(numPallets>1){ctx.fillStyle='#1a3c5e80';ctx.fillText('P'+(pi+1),lx+8,ly1-fs);}
   }
 
   document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: obracaj · 2 palce: zoom · przyciski: zoom/obrót':'Mysz: obracaj · Scroll: zoom · PPM: przesuń';
