@@ -2119,9 +2119,10 @@ function _edgeMat(opacity){
 }
 
 function makeBox3D(x,y,z,w,h,d,colorHex,opacity=1){
-  const mesh=new THREE.Mesh(_boxGeo(w,h,d),_faceMats(colorHex,opacity));
+  const i=0.5; // inset 0.5mm per side – prevents coplanar z-fighting between touching boxes
+  const mesh=new THREE.Mesh(_boxGeo(w-i*2,h-i*2,d-i*2),_faceMats(colorHex,opacity));
   mesh.position.set(x+w/2,y+h/2,z+d/2);
-  mesh.add(new THREE.LineSegments(_edgeGeo(w,h,d),_edgeMat(opacity)));
+  mesh.add(new THREE.LineSegments(_edgeGeo(w-i*2,h-i*2,d-i*2),_edgeMat(opacity)));
   return mesh;
 }
 
@@ -2230,6 +2231,7 @@ function draw3D(res){
   const lookY=camTargetY+cP*panY*pw;
   const lookZ=PAL.D/2+sT*panX*pw+(-sP*cT)*panY*pw;
   t3.camera.fov=2*Math.atan(H/(2*camDist*sc))*(180/Math.PI);
+  t3.camera.near=camDist*0.02;t3.camera.far=camDist*8;
   t3.camera.updateProjectionMatrix();
   t3.camera.position.set(lookX-camDist*cP*sT,lookY-camDist*sP,lookZ-camDist*cP*cT);
   t3.camera.lookAt(lookX,lookY,lookZ);
@@ -2498,7 +2500,7 @@ function _makeVehicleStructure(VL,VW,VH){
     new THREE.PlaneGeometry(VW,VL),
     new THREE.MeshBasicMaterial({color:0x9a8250,side:THREE.DoubleSide})
   );
-  floorM.rotation.x=-Math.PI/2;floorM.position.set(VW/2,0,VL/2);
+  floorM.rotation.x=-Math.PI/2;floorM.position.set(VW/2,-2,VL/2);
   meshes.push(floorM);
   // container outline — 12 edges only, zero transparency artifacts
   const outline=new THREE.LineSegments(
@@ -2558,6 +2560,7 @@ function drawVehicle3D(type){
   const lookY=VH/2+cP*cam.panY*pw;
   const lookZ=VL/2+sT*cam.panX*pw+(-sP*cT)*cam.panY*pw;
   tv.camera.fov=2*Math.atan(H/(2*camDist*sc))*(180/Math.PI);
+  tv.camera.near=camDist*0.02;tv.camera.far=camDist*8;
   tv.camera.updateProjectionMatrix();
   tv.camera.position.set(lookX-camDist*cP*sT,lookY-camDist*sP,lookZ-camDist*cP*cT);
   tv.camera.lookAt(lookX,lookY,lookZ);
