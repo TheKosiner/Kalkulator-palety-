@@ -2022,25 +2022,22 @@ function proj(x,y,z,cx,cy,sc){
 
 // ── Three.js renderer ──────────────────────────────────────────────────────
 let t3=null;
+let _lastStaticRes=null;
 
 function initThreeJS(){
   const r=new THREE.WebGLRenderer({canvas,antialias:true});
   r.setPixelRatio(Math.min(devicePixelRatio,2));
   const scene=new THREE.Scene();
-  // gradient background
   const bg=document.createElement('canvas');bg.width=2;bg.height=256;
   const bgc=bg.getContext('2d'),bgg=bgc.createLinearGradient(0,0,0,256);
   bgg.addColorStop(0,'#dce8f2');bgg.addColorStop(1,'#a8c2d6');
   bgc.fillStyle=bgg;bgc.fillRect(0,0,2,256);
   scene.background=new THREE.CanvasTexture(bg);
-  // lights
-  scene.add(new THREE.AmbientLight(0xffffff,0.75));
-  const sun=new THREE.DirectionalLight(0xffffff,0.65);
-  sun.position.set(1,3,2);scene.add(sun);
   const camera=new THREE.PerspectiveCamera(42,1,1,300000);
-  t3={r,scene,camera,objects:[]};
+  t3={r,scene,camera,staticObjects:[],dynObjects:[]};
 }
 
+// ── shared-resource caches (geometry/material/texture reused across boxes) ──
 const _texCache=new Map();
 function _gradTex(ct,cb){
   const key=ct+'|'+cb;
@@ -2053,24 +2050,51 @@ function _gradTex(ct,cb){
   _texCache.set(key,t);return t;
 }
 
+const _geoCache=new Map();
+function _boxGeo(w,h,d){
+  const k=`${w}|${h}|${d}`;
+  if(!_geoCache.has(k))_geoCache.set(k,new THREE.BoxGeometry(w,h,d));
+  return _geoCache.get(k);
+}
+
+const _edgeGeoCache=new Map();
+function _edgeGeo(w,h,d){
+  const k=`${w}|${h}|${d}`;
+  if(!_edgeGeoCache.has(k))_edgeGeoCache.set(k,new THREE.EdgesGeometry(_boxGeo(w,h,d),15));
+  return _edgeGeoCache.get(k);
+}
+
+const _matCache=new Map();
+function _faceMats(colorHex,opacity){
+  const k=colorHex+'|'+opacity;
+  if(!_matCache.has(k)){
+    const base=new THREE.Color(colorHex);
+    function shade(f){const c=base.clone();return f>=0?c.lerp(new THREE.Color(1,1,1),f*.5):c.lerp(new THREE.Color(0,0,0),-f*.55);}
+    const tr=opacity<1;
+    const sm=_gradTex('#'+shade(.15).getHexString(),'#'+shade(-.28).getHexString());
+    _matCache.set(k,[
+      new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({color:shade(.30),transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({color:shade(-.40),transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
+    ]);
+  }
+  return _matCache.get(k);
+}
+
+const _edgeMatCache=new Map();
+function _edgeMat(opacity){
+  if(!_edgeMatCache.has(opacity))
+    _edgeMatCache.set(opacity,new THREE.LineBasicMaterial({color:0,transparent:true,opacity:0.28*opacity+0.04}));
+  return _edgeMatCache.get(opacity);
+}
+
 function makeBox3D(x,y,z,w,h,d,colorHex,opacity=1){
-  const geo=new THREE.BoxGeometry(w,h,d);
-  const base=new THREE.Color(colorHex);
-  function shade(f){const c=base.clone();return f>=0?c.lerp(new THREE.Color(1,1,1),f*.5):c.lerp(new THREE.Color(0,0,0),-f*.55);}
-  const tr=opacity<1;
-  const sideMap=_gradTex('#'+shade(.15).getHexString(),'#'+shade(-.28).getHexString());
-  function flatMat(c){return new THREE.MeshBasicMaterial({color:c,transparent:tr,opacity});}
-  function gradMat(map){return new THREE.MeshBasicMaterial({map,transparent:tr,opacity});}
-  // face order: +X,-X,+Y(top),-Y(bottom),+Z(back),-Z(front)
-  const mats=[
-    gradMat(sideMap),gradMat(sideMap),
-    flatMat(shade(.30)),flatMat(shade(-.40)),
-    gradMat(sideMap),gradMat(sideMap),
-  ];
-  const mesh=new THREE.Mesh(geo,mats);
+  const mesh=new THREE.Mesh(_boxGeo(w,h,d),_faceMats(colorHex,opacity));
   mesh.position.set(x+w/2,y+h/2,z+d/2);
-  const edgeMat=new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:0.28*opacity+0.04});
-  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,15),edgeMat));
+  mesh.add(new THREE.LineSegments(_edgeGeo(w,h,d),_edgeMat(opacity)));
   return mesh;
 }
 
@@ -2093,19 +2117,12 @@ function draw3D(res){
   const W=vw.clientWidth,H=vw.clientHeight;
   const dpr=Math.min(devicePixelRatio,2);
 
-  // resize 2D overlay canvas
   canvas2d.width=W*dpr;canvas2d.height=H*dpr;
   canvas2d.style.width=W+'px';canvas2d.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,W,H);
-
-  // resize WebGL renderer
   t3.r.setSize(W,H);
   t3.camera.aspect=W/H;
-
-  // clear previous objects
-  t3.objects.forEach(o=>t3.scene.remove(o));
-  t3.objects=[];
 
   if(!res){t3.r.render(t3.scene,t3.camera);return;}
 
@@ -2118,7 +2135,37 @@ function draw3D(res){
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim*camZoom;
   const cx=W/2,cy=H/2;
 
-  // camera — FOV matches the 2D projection scale exactly
+  // rebuild static scene only when result changes (not on every camera drag)
+  if(res!==_lastStaticRes){
+    t3.staticObjects.forEach(o=>t3.scene.remove(o));
+    t3.staticObjects=[];
+    for(let i=0;i<numPallets;i++)
+      for(const b of palletBoxes(i*(PAL.W+PAL_GAP))){
+        const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
+        t3.scene.add(m);t3.staticObjects.push(m);
+      }
+    res.placements.forEach(p=>{
+      const m=makeBox3D(p.x,p.y,p.z,p.w,p.h,p.d,p.color);
+      t3.scene.add(m);t3.staticObjects.push(m);
+    });
+    _lastStaticRes=res;
+  }
+
+  // dynamic overlay: ghost/hover (at most 1 box, rebuilt each frame)
+  t3.dynObjects.forEach(o=>t3.scene.remove(o));
+  t3.dynObjects=[];
+  if(mode==='manual'){
+    let dm=null;
+    if(manRemoveMode&&manHoverRemoveIdx>=0&&manHoverRemoveIdx<manBoxes.length){
+      const b=manBoxes[manHoverRemoveIdx];
+      dm=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,'#e74c3c',0.55);
+    }else if(!manRemoveMode&&manGhostX!==null){
+      const{fw,fd,lh}=manGetDims();
+      dm=makeBox3D(manGhostX,manSurfAt(manGhostX,manGhostZ,fw,fd),manGhostZ,fw,lh,fd,manSelPkg.color,0.38);
+    }
+    if(dm){t3.scene.add(dm);t3.dynObjects.push(dm);}
+  }
+
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
   const pw=1/sc;
   const lookX=_sceneCenterX+(-cT)*panX*pw+(-sP*sT)*panY*pw;
@@ -2129,33 +2176,8 @@ function draw3D(res){
   t3.camera.position.set(lookX-camDist*cP*sT,lookY-camDist*sP,lookZ-camDist*cP*cT);
   t3.camera.lookAt(lookX,lookY,lookZ);
 
-  function addBox(x,y,z,w,h,d,color,opacity=1){
-    const m=makeBox3D(x,y,z,w,h,d,color,opacity);
-    t3.scene.add(m);t3.objects.push(m);
-  }
-
-  // pallet
-  for(let i=0;i<numPallets;i++)
-    for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      addBox(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
-
-  // packages
-  res.placements.forEach(p=>addBox(p.x,p.y,p.z,p.w,p.h,p.d,p.color));
-
-  // manual mode overlays
-  if(mode==='manual'){
-    if(manRemoveMode&&manHoverRemoveIdx>=0&&manHoverRemoveIdx<manBoxes.length){
-      const b=manBoxes[manHoverRemoveIdx];addBox(b.x,b.y,b.z,b.w,b.h,b.d,'#e74c3c',0.55);
-    }else if(!manRemoveMode&&manGhostX!==null){
-      const{fw,fd,lh}=manGetDims();
-      addBox(manGhostX,manSurfAt(manGhostX,manGhostZ,fw,fd),manGhostZ,fw,lh,fd,manSelPkg.color,0.38);
-    }
-  }
-
-  // render 3D scene
   t3.r.render(t3.scene,t3.camera);
 
-  // 2D overlay: height dimension lines
   const fs=Math.max(11,Math.min(15,W/28));
   ctx.font=`bold ${fs}px Segoe UI`;
   for(let pi=0;pi<numPallets;pi++){
