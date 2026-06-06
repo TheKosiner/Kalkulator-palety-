@@ -1948,8 +1948,8 @@ canvas.addEventListener('mousemove',e=>{
   }
   if(!drag)return;
   const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
-  if(rmb){panX+=dx*1.8;panY+=dy*1.8;}
-  else{camTheta-=dx*.007;camPhi=Math.max(-1.4,Math.min(1.3,camPhi-dy*.007));}
+  if(rmb){camTheta-=dx*.007;camPhi=Math.max(-1.4,Math.min(1.3,camPhi-dy*.007));}
+  else{panX+=dx*1.8;panY+=dy*1.8;}
   if(lastRes)draw3D(lastRes);
 });
 canvas.addEventListener('mouseup',e=>{
@@ -1980,11 +1980,20 @@ canvas.addEventListener('touchmove',e=>{
   if(e.touches.length===2){
     const[a,b]=[e.touches[0],e.touches[1]];
     const d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
-    if(pinch0){camZoom=Math.max(0.15,Math.min(5,camZoom*(d/pinch0)));pinch0=d;}
+    const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
+    const pa=tpts[a.identifier],pb=tpts[b.identifier];
+    if(pinch0&&pa&&pb){
+      camZoom=Math.max(0.15,Math.min(5,camZoom*(d/pinch0)));
+      const pmx=(pa.x+pb.x)/2,pmy=(pa.y+pb.y)/2;
+      panX+=(mx-pmx)*1.8;panY+=(my-pmy)*1.8;
+    }
+    pinch0=d;
+    tpts[a.identifier]={x:a.clientX,y:a.clientY};
+    tpts[b.identifier]={x:b.clientX,y:b.clientY};
   } else if(e.touches.length===1){
     const t=e.touches[0],pr=tpts[t.identifier];
     if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;
-      camTheta-=dx*.007;camPhi=Math.max(-1.4,Math.min(1.3,camPhi-dy*.007));
+      panX+=dx*1.8;panY+=dy*1.8;
     }
     tpts[t.identifier]={x:t.clientX,y:t.clientY};
   }
@@ -2198,7 +2207,7 @@ function draw3D(res){
     if(numPallets>1){ctx.fillStyle='#1a3c5e80';ctx.fillText('P'+(pi+1),lx+8,ly1-fs);}
   }
 
-  document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: obracaj · 2 palce: zoom · przyciski: zoom/obrót':'Mysz: obracaj · Scroll: zoom · PPM: przesuń';
+  document.getElementById('hintBar').textContent=window.innerWidth<760?'Dotyk: przesuń · 2 palce: zoom/przesuń · przyciski: obrót':'Mysz: przesuń · PPM: obracaj · Scroll: zoom';
 }
 
 function buildLegend(res,mode){
