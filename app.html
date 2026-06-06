@@ -2192,13 +2192,11 @@ function draw3D(res){
   for(let pi=0;pi<numPallets;pi++){
     const ox=pi*(PAL.W+PAL_GAP);
     const palH=res.placements.filter(p=>(p.palletIdx??0)===pi).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-    // X: rightmost screen-X of pallet's right-face corners (tracks pallet edge in any rotation)
-    function _prjX(wx,wy,wz){const v=new THREE.Vector3(wx,wy,wz);v.project(t3.camera);return(v.x*.5+.5)*W;}
-    const lx=Math.max(_prjX(ox+PAL.W,0,0),_prjX(ox+PAL.W,0,PAL.D),_prjX(ox+PAL.W,palH,0),_prjX(ox+PAL.W,palH,PAL.D))+16;
-    // Y: only depends on camPhi — frozen during horizontal rotation
-    const _cP=Math.cos(camPhi),_sP=Math.sin(camPhi);
-    function _ly(y){const dy=y-camTargetY;return-(dy*_cP)/(dy*_sP+camDist)*camDist*sc+cy+panY;}
-    const ly0=_ly(0),ly1=_ly(palH);
+    // pin to front-right corner of pallet — one fixed 3D point, no jumping
+    function _p3(wx,wy,wz){const v=new THREE.Vector3(wx,wy,wz);v.project(t3.camera);return[(v.x*.5+.5)*W,(-v.y*.5+.5)*H];}
+    const[ax,ly0]=_p3(ox+PAL.W,0,PAL.D);
+    const[,ly1]=_p3(ox+PAL.W,palH,PAL.D);
+    const lx=ax+14;
     ctx.beginPath();ctx.moveTo(lx,ly0);ctx.lineTo(lx,ly1);
     ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
     [[lx,ly0],[lx,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
