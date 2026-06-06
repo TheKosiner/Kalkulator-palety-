@@ -2098,10 +2098,11 @@ function _faceMats(colorHex,opacity){
     function shade(f){const c=base.clone();return f>=0?c.lerp(new THREE.Color(1,1,1),f*.5):c.lerp(new THREE.Color(0,0,0),-f*.55);}
     const tr=opacity<1;
     const sm=_gradTex('#'+shade(.05).getHexString(),'#'+shade(-.82).getHexString());
+    const tm=_gradTex('#'+shade(.38).getHexString(),'#'+shade(.10).getHexString());
     _matCache.set(k,[
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
-      new THREE.MeshBasicMaterial({color:shade(.15),transparent:tr,opacity}),
+      new THREE.MeshBasicMaterial({map:tm,transparent:tr,opacity}),
       new THREE.MeshBasicMaterial({color:shade(-.88),transparent:tr,opacity}),
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
       new THREE.MeshBasicMaterial({map:sm,transparent:tr,opacity}),
@@ -2121,6 +2122,25 @@ function makeBox3D(x,y,z,w,h,d,colorHex,opacity=1){
   const mesh=new THREE.Mesh(_boxGeo(w,h,d),_faceMats(colorHex,opacity));
   mesh.position.set(x+w/2,y+h/2,z+d/2);
   mesh.add(new THREE.LineSegments(_edgeGeo(w,h,d),_edgeMat(opacity)));
+  return mesh;
+}
+
+function makeHeightLabel3D(text,x,z){
+  const cw=512,ch=128;
+  const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+  const c2=cv.getContext('2d');
+  c2.fillStyle='rgba(26,60,94,0.82)';
+  c2.beginPath();c2.roundRect(0,0,cw,ch,22);c2.fill();
+  c2.fillStyle='#ffffff';
+  c2.font=`bold ${Math.floor(ch*.55)}px Segoe UI`;
+  c2.textAlign='center';c2.textBaseline='middle';
+  c2.fillText(text,cw/2,ch/2);
+  const tex=new THREE.CanvasTexture(cv);
+  const geo=new THREE.PlaneGeometry(PAL.W*.7,120);
+  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.rotation.x=-Math.PI/2;
+  mesh.position.set(x,2,z);
   return mesh;
 }
 
@@ -2174,6 +2194,14 @@ function draw3D(res){
       const m=makeBox3D(p.x,p.y,p.z,p.w,p.h,p.d,p.color);
       t3.scene.add(m);t3.staticObjects.push(m);
     });
+    // 3D height labels — lie flat on floor in front of each pallet
+    for(let i=0;i<numPallets;i++){
+      const ox=i*(PAL.W+PAL_GAP);
+      const palH=res.placements.filter(p=>(p.palletIdx??0)===i).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
+      const label=numPallets>1?`P${i+1}: ${palH} mm`:`${palH} mm`;
+      const lm=makeHeightLabel3D(label,ox+PAL.W/2,PAL.D+110);
+      t3.scene.add(lm);t3.staticObjects.push(lm);
+    }
     _lastStaticRes=res;
   }
 
@@ -2203,20 +2231,6 @@ function draw3D(res){
   t3.camera.lookAt(lookX,lookY,lookZ);
 
   t3.r.render(t3.scene,t3.camera);
-
-  const fs=Math.max(12,Math.min(15,W/30));
-  ctx.font=`bold ${fs}px Segoe UI`;
-  const pad=10, lineH=fs+6;
-  for(let pi=0;pi<numPallets;pi++){
-    const palH=res.placements.filter(p=>(p.palletIdx??0)===pi).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-    const label=numPallets>1?`P${pi+1}: ${palH} mm`:`${palH} mm`;
-    const tw=ctx.measureText(label).width;
-    const tx=W-tw-pad-8, ty=pad+pi*lineH+fs;
-    ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.fillRect(tx-6,ty-fs,tw+12,fs+6);
-    ctx.fillStyle='#1a3c5e';
-    ctx.fillText(label,tx,ty);
-  }
 
   document.getElementById('hintBar').textContent=window.innerWidth<760?'1 palec: przesuń · 2 palce: zoom/przesuń · trzymaj+obracaj: obrót':'Mysz: przesuń · PPM: obracaj · Scroll: zoom';
 }
