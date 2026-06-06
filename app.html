@@ -2297,8 +2297,8 @@ const vehicleState={
   kontener:{L:12032,W:2352,H:2698,result:null}
 };
 const vCam={
-  naczepa:{theta:0,phi:0.28,zoom:1,panX:0,panY:0},
-  kontener:{theta:0,phi:0.28,zoom:1,panX:0,panY:0}
+  naczepa:{theta:0.35,phi:0.52,zoom:1,panX:0,panY:0},
+  kontener:{theta:0.35,phi:0.52,zoom:1,panX:0,panY:0}
 };
 let t3v={naczepa:null,kontener:null};
 let _lastVRes={naczepa:null,kontener:null};
@@ -2500,84 +2500,84 @@ function drawVehicle3D(type){
   const W=paneEl.clientWidth-sidebarW,H=paneEl.clientHeight;
   if(!W||!H){requestAnimationFrame(()=>drawVehicle3D(type));return;}
   const tv=t3v[type],vs=vehicleState[type],cam=vCam[type];
-  const VH=vs.H;
-
+  const VL=vs.L,VW=vs.W,VH=vs.H;
   tv.r.setSize(W,H);tv.camera.aspect=W/H;
 
-  const placements=vs.result?.placements||[];
-  // arrange pallets in a row exactly like the pallet section
-  let curX=0;
-  const offsets=placements.map(pp=>{const ox=curX;curX+=pp.palW+PAL_GAP;return ox;});
-  const sceneW=curX-PAL_GAP||PAL.W;
-  const maxPalD=placements.reduce((m,pp)=>Math.max(m,pp.palD),PAL.D);
-  const totalH=placements.reduce((m,pp)=>Math.max(m,pp.totalH||PAL.H),PAL.H);
-  const maxDim=Math.max(sceneW,maxPalD,totalH);
-  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.70))/maxDim*cam.zoom;
-  const camDist=maxDim*2.2;
-
+  const maxDim=Math.max(VL,VW,VH);
+  const sc=(Math.min(W,H)*.65)/maxDim*cam.zoom;
+  const camDist=maxDim*2.4;
   const sT=Math.sin(cam.theta),cT=Math.cos(cam.theta),sP=Math.sin(cam.phi),cP=Math.cos(cam.phi);
   const pw=1/sc;
-  const lookX=sceneW/2+(-cT)*cam.panX*pw+(-sP*sT)*cam.panY*pw;
-  const lookY=totalH/2+cP*cam.panY*pw;
-  const lookZ=maxPalD/2+sT*cam.panX*pw+(-sP*cT)*cam.panY*pw;
+  const lookX=VW/2+(-cT)*cam.panX*pw+(-sP*sT)*cam.panY*pw;
+  const lookY=VH*.25+cP*cam.panY*pw;
+  const lookZ=VL/2+sT*cam.panX*pw+(-sP*cT)*cam.panY*pw;
   tv.camera.fov=2*Math.atan(H/(2*camDist*sc))*(180/Math.PI);
   tv.camera.near=camDist*0.02;tv.camera.far=camDist*8;
   tv.camera.updateProjectionMatrix();
   tv.camera.position.set(lookX-camDist*cP*sT,lookY-camDist*sP,lookZ-camDist*cP*cT);
   tv.camera.lookAt(lookX,lookY,lookZ);
 
-  const _vDimKey=`${placements.length}|${sceneW}|${totalH}|${VH}`;
+  const _vDimKey=`${VL}|${VW}|${VH}`;
   if(vs.result!==_lastVRes[type]||_vDimKey!==_lastVDims[type]){
     tv.staticObjects.forEach(o=>tv.scene.remove(o));
     tv.staticObjects=[];
 
-    if(placements.length){
-      const PH=PAL.H;
-      placements.forEach((pp,i)=>{
-        const ox=offsets[i];
-        const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
+    // floor
+    const floorM=new THREE.Mesh(new THREE.PlaneGeometry(VW,VL),
+      new THREE.MeshBasicMaterial({color:0x9a8250,side:THREE.DoubleSide}));
+    floorM.rotation.x=-Math.PI/2;floorM.position.set(VW/2,-2,VL/2);
+    tv.scene.add(floorM);tv.staticObjects.push(floorM);
 
-        // pallet board structure
-        _vPalBoardBoxes(ox,0,pp.palW,pp.palD).forEach(b=>{
+    // container/trailer outline — 12 white edges
+    const outline=new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(VW,VH,VL)),
+      new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.5}));
+    outline.position.set(VW/2,VH/2,VL/2);
+    tv.scene.add(outline);tv.staticObjects.push(outline);
+
+    // dimension sprites
+    const dsc=Math.min(VW,VH)*.72;
+    function dimSpr(text,x,y,z){
+      const cw=640,ch=88;const cv2=document.createElement('canvas');cv2.width=cw;cv2.height=ch;
+      const c2=cv2.getContext('2d');
+      c2.fillStyle='rgba(15,35,65,0.88)';c2.beginPath();c2.roundRect(0,0,cw,ch,18);c2.fill();
+      c2.fillStyle='#ddeeff';c2.font=`bold ${Math.floor(ch*.52)}px Segoe UI`;
+      c2.textAlign='center';c2.textBaseline='middle';c2.fillText(text,cw/2,ch/2);
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv2),transparent:true,depthTest:false}));
+      sp.scale.set(dsc,dsc*(ch/cw),1);sp.position.set(x,y,z);sp.renderOrder=3;
+      tv.scene.add(sp);tv.staticObjects.push(sp);
+    }
+    const mm=v=>Math.round(v)+' mm';
+    dimSpr('Dł.: '+mm(VL),  -VW*.5, VH*.1,  VL/2);
+    dimSpr('Szer.: '+mm(VW), VW/2,  VH*.1, -VW*.5);
+    dimSpr('Wys.: '+mm(VH), -VW*.5, VH/2,   VL*.05);
+
+    // pallets at their actual positions inside the vehicle
+    if(vs.result?.placements?.length){
+      const PH=PAL.H;
+      vs.result.placements.forEach(pp=>{
+        const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
+        _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>{
           const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
           tv.scene.add(m);tv.staticObjects.push(m);
         });
-
-        // packages
         if(pkgList?.length){
           pkgList.forEach(pkg=>{
             let px,pz,pw2,pd;
-            if(pp.rotated){px=ox+pkg.z;pz=pkg.x;pw2=pkg.d;pd=pkg.w;}
-            else{px=ox+pkg.x;pz=pkg.z;pw2=pkg.w;pd=pkg.d;}
+            if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw2=pkg.d;pd=pkg.w;}
+            else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw2=pkg.w;pd=pkg.d;}
             const m=makeBox3D(px,pkg.y,pz,pw2,pkg.h,pd,pkg.color);
             tv.scene.add(m);tv.staticObjects.push(m);
           });
         } else {
-          const m=makeBox3D(ox,0,0,pp.palW,PH,pp.palD,'#9a6e38');
+          const m=makeBox3D(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38');
           tv.scene.add(m);tv.staticObjects.push(m);
           if(pp.totalH>PH){
-            const m2=makeBox3D(ox,PH,0,pp.palW,pp.totalH-PH,pp.palD,pp.color);
+            const m2=makeBox3D(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color);
             tv.scene.add(m2);tv.staticObjects.push(m2);
           }
         }
-
-        // height label
-        const pH=pp.totalH||PH;
-        const palLabel=placements.length>1?`P${i+1}`:'';
-        const lm=makeHeightLabel3D(palLabel,pH,ox+pp.palW/2,pp.palD+110);
-        tv.scene.add(lm);tv.staticObjects.push(lm);
       });
-
-      // vehicle height limit — red line across all pallets
-      if(VH){
-        const pts=[new THREE.Vector3(-50,VH,-50),new THREE.Vector3(sceneW+50,VH,-50),
-                   new THREE.Vector3(sceneW+50,VH,maxPalD+50),new THREE.Vector3(-50,VH,maxPalD+50),
-                   new THREE.Vector3(-50,VH,-50)];
-        const lim=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
-          new THREE.LineBasicMaterial({color:0xff4444,transparent:true,opacity:.75,depthTest:false}));
-        lim.renderOrder=2;
-        tv.scene.add(lim);tv.staticObjects.push(lim);
-      }
     }
 
     _lastVRes[type]=vs.result;
@@ -2587,7 +2587,7 @@ function drawVehicle3D(type){
 }
 
 function vCamZoom(type,f){vCam[type].zoom=Math.max(.2,Math.min(5,vCam[type].zoom*f));drawVehicle3D(type);}
-function vCamReset(type){vCam[type].theta=0;vCam[type].phi=0.28;vCam[type].zoom=1;vCam[type].panX=0;vCam[type].panY=0;drawVehicle3D(type);}
+function vCamReset(type){vCam[type].theta=0.35;vCam[type].phi=0.52;vCam[type].zoom=1;vCam[type].panX=0;vCam[type].panY=0;drawVehicle3D(type);}
 
 // RAF throttle — only one draw per animation frame regardless of event rate
 const _vRaf={naczepa:0,kontener:0};
