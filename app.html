@@ -2125,18 +2125,22 @@ function makeBox3D(x,y,z,w,h,d,colorHex,opacity=1){
   return mesh;
 }
 
-function makeHeightLabel3D(text,x,z){
-  const cw=512,ch=128;
+function makeHeightLabel3D(palLabel,palH,x,z,labelW){
+  const cw=440,ch=160,lw=labelW||PAL.W*.7;
   const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
   const c2=cv.getContext('2d');
-  c2.fillStyle='rgba(26,60,94,0.82)';
+  c2.fillStyle='rgba(26,60,94,0.84)';
   c2.beginPath();c2.roundRect(0,0,cw,ch,22);c2.fill();
   c2.fillStyle='#ffffff';
-  c2.font=`bold ${Math.floor(ch*.55)}px Segoe UI`;
-  c2.textAlign='center';c2.textBaseline='middle';
-  c2.fillText(text,cw/2,ch/2);
+  c2.textAlign='center';
+  const topLine=palLabel?palLabel+' – Wysokość':'Wysokość';
+  c2.font=`${Math.floor(ch*.26)}px Segoe UI`;
+  c2.textBaseline='middle';
+  c2.fillText(topLine,cw/2,ch*.32);
+  c2.font=`bold ${Math.floor(ch*.40)}px Segoe UI`;
+  c2.fillText(palH+' mm',cw/2,ch*.70);
   const tex=new THREE.CanvasTexture(cv);
-  const geo=new THREE.PlaneGeometry(PAL.W*.7,120);
+  const geo=new THREE.PlaneGeometry(lw,lw*(ch/cw));
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide});
   const mesh=new THREE.Mesh(geo,mat);
   mesh.rotation.x=-Math.PI/2;
@@ -2198,8 +2202,8 @@ function draw3D(res){
     for(let i=0;i<numPallets;i++){
       const ox=i*(PAL.W+PAL_GAP);
       const palH=res.placements.filter(p=>(p.palletIdx??0)===i).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-      const label=numPallets>1?`P${i+1}: ${palH} mm`:`${palH} mm`;
-      const lm=makeHeightLabel3D(label,ox+PAL.W/2,PAL.D+110);
+      const palLabel=numPallets>1?`P${i+1}`:'';
+      const lm=makeHeightLabel3D(palLabel,palH,ox+PAL.W/2,PAL.D+110);
       t3.scene.add(lm);t3.staticObjects.push(lm);
     }
     _lastStaticRes=res;
@@ -2291,9 +2295,11 @@ const vehicleState={
   kontener:{L:12032,W:2352,H:2698,result:null}
 };
 const vCam={
-  naczepa:{theta:0.45,phi:0.40,zoom:1},
-  kontener:{theta:0.45,phi:0.40,zoom:1}
+  naczepa:{theta:0.45,phi:0.40,zoom:1,panX:0,panY:0},
+  kontener:{theta:0.45,phi:0.40,zoom:1,panX:0,panY:0}
 };
+let t3v={naczepa:null,kontener:null};
+let _lastVRes={naczepa:null,kontener:null};
 
 function switchMainTab(tab){
   ['paleta','naczepa','kontener'].forEach(t=>
@@ -2470,110 +2476,106 @@ function _vPalBoardBoxes(ox,oz,palW,palD){
   return b;
 }
 
+function initVehicleThreeJS(type){
+  const canvas=document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');
+  const r=new THREE.WebGLRenderer({canvas,antialias:true});
+  r.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  const bg=document.createElement('canvas');bg.width=2;bg.height=256;
+  const bgc=bg.getContext('2d'),bgg=bgc.createLinearGradient(0,0,0,256);
+  bgg.addColorStop(0,'#dce8f2');bgg.addColorStop(1,'#a8c2d6');
+  bgc.fillStyle=bgg;bgc.fillRect(0,0,2,256);
+  scene.background=new THREE.CanvasTexture(bg);
+  const camera=new THREE.PerspectiveCamera(42,1,1,500000);
+  t3v[type]={r,scene,camera,staticObjects:[]};
+}
+
+function _makeVehicleBoxMeshes(VL,VW,VH){
+  const meshes=[];
+  function plane(w,h,color,op,rx,ry,px,py,pz){
+    const m=new THREE.Mesh(
+      new THREE.PlaneGeometry(w,h),
+      new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false})
+    );
+    m.rotation.set(rx,ry,0);m.position.set(px,py,pz);meshes.push(m);
+  }
+  plane(VW,VL,0xa08c64,.45,-Math.PI/2,0,VW/2,0,VL/2);       // floor
+  plane(VW,VH,0x506482,.35,0,0,VW/2,VH/2,VL);                // back wall
+  plane(VL,VH,0x506482,.20,0,Math.PI/2,0,VH/2,VL/2);         // left wall
+  plane(VL,VH,0x506482,.20,0,-Math.PI/2,VW,VH/2,VL/2);       // right wall
+  plane(VW,VL,0x506482,.12,Math.PI/2,0,VW/2,VH,VL/2);        // ceiling
+  // front frame (opening at z=0)
+  const corners=[[0,0,0],[VW,0,0],[VW,VH,0],[0,VH,0],[0,0,0]].map(([x,y,z])=>new THREE.Vector3(x,y,z));
+  meshes.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(corners),
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.65})));
+  return meshes;
+}
+
 function drawVehicle3D(type){
-  const cvId=type==='naczepa'?'naczCanvas':'kontCanvas';
-  const cv=document.getElementById(cvId);
-  if(!cv)return;
-  // Read dimensions from parent pane (always correct) minus sidebar width on desktop
+  if(!t3v[type])initVehicleThreeJS(type);
   const paneEl=document.getElementById(type==='naczepa'?'paneNaczepa':'paneKontener');
   const sidebarW=window.innerWidth>=760?360:0;
-  const PX=paneEl.clientWidth-sidebarW;
-  const PY=paneEl.clientHeight;
-  if(!PX||!PY){requestAnimationFrame(()=>drawVehicle3D(type));return;}
-  const ctx2=cv.getContext('2d');
-  const dpr=Math.min(devicePixelRatio,2);
-  cv.width=PX*dpr;cv.height=PY*dpr;
-  cv.style.width=PX+'px';cv.style.height=PY+'px';
-  ctx2.scale(dpr,dpr);
-  const W=PX,H=PY;
-  const g=ctx2.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
-  ctx2.fillStyle=g;ctx2.fillRect(0,0,W,H);
-
-  const vs=vehicleState[type],cam=vCam[type];
+  const W=paneEl.clientWidth-sidebarW,H=paneEl.clientHeight;
+  if(!W||!H){requestAnimationFrame(()=>drawVehicle3D(type));return;}
+  const tv=t3v[type],vs=vehicleState[type],cam=vCam[type];
   const VL=vs.L,VW=vs.W,VH=vs.H;
+  tv.r.setSize(W,H);tv.camera.aspect=W/H;
+
   const maxDim=Math.max(VL,VW,VH);
   const sc=(Math.min(W,H)*.65)/maxDim*cam.zoom;
-  const dist=maxDim*2.8;
-  const proj=_makeVProj(W,H,sc,VW/2,VL/2,VH/2,cam.theta,cam.phi,dist);
+  const camDist=maxDim*2.8;
+  const sT=Math.sin(cam.theta),cT=Math.cos(cam.theta),sP=Math.sin(cam.phi),cP=Math.cos(cam.phi);
+  const pw=1/sc;
+  const lookX=VW/2+(-cT)*cam.panX*pw+(-sP*sT)*cam.panY*pw;
+  const lookY=VH/2+cP*cam.panY*pw;
+  const lookZ=VL/2+sT*cam.panX*pw+(-sP*cT)*cam.panY*pw;
+  tv.camera.fov=2*Math.atan(H/(2*camDist*sc))*(180/Math.PI);
+  tv.camera.updateProjectionMatrix();
+  tv.camera.position.set(lookX-camDist*cP*sT,lookY-camDist*sP,lookZ-camDist*cP*cT);
+  tv.camera.lookAt(lookX,lookY,lookZ);
 
-  function poly(pts,fill,stroke,sw){
-    const ps=pts.map(pp=>proj(...pp));
-    ctx2.beginPath();ctx2.moveTo(ps[0][0],ps[0][1]);
-    for(let i=1;i<ps.length;i++)ctx2.lineTo(ps[i][0],ps[i][1]);
-    ctx2.closePath();
-    if(fill){ctx2.fillStyle=fill;ctx2.fill();}
-    if(stroke){ctx2.strokeStyle=stroke;ctx2.lineWidth=sw||.5;ctx2.stroke();}
-  }
-  function line(a,b,c,w){
-    const [ax,ay]=proj(...a),[bx,by]=proj(...b);
-    ctx2.beginPath();ctx2.moveTo(ax,ay);ctx2.lineTo(bx,by);
-    ctx2.strokeStyle=c;ctx2.lineWidth=w;ctx2.stroke();
-  }
-
-  // Vehicle box (open front)
-  poly([[0,0,0],[VW,0,0],[VW,0,VL],[0,0,VL]],'rgba(160,140,100,.45)','rgba(255,255,255,.15)',.5);
-  poly([[0,0,VL],[VW,0,VL],[VW,VH,VL],[0,VH,VL]],'rgba(80,100,130,.35)','rgba(255,255,255,.25)',.5);
-  poly([[VW,0,0],[VW,0,VL],[VW,VH,VL],[VW,VH,0]],'rgba(80,100,130,.2)','rgba(255,255,255,.15)',.5);
-  poly([[0,0,0],[0,0,VL],[0,VH,VL],[0,VH,0]],'rgba(80,100,130,.2)','rgba(255,255,255,.15)',.5);
-  poly([[0,VH,0],[VW,VH,0],[VW,VH,VL],[0,VH,VL]],'rgba(80,100,130,.12)','rgba(255,255,255,.1)',.5);
-  // Front frame (opening)
-  const fr=[[0,0,0],[VW,0,0],[VW,VH,0],[0,VH,0]];
-  for(let i=0;i<fr.length;i++)line(fr[i],fr[(i+1)%fr.length],'rgba(255,255,255,.65)',2);
-
-  // Pallets — LOD based on placement count to keep perf smooth
-  if(vs.result?.placements?.length){
-    const n=vs.result.placements.length;
-    const showBoards=n<=20;   // board planks only when few pallets
-    const showPkgs=n<=60;     // individual packages up to 60 pallets
-    const doStroke=n<=30;     // outline strokes up to 30 pallets
-    const PH=PAL.H;
-    const allFaces=[];
-    vs.result.placements.forEach(pp=>{
-      // per-pallet template stored directly on placement (new) or looked up by palId (legacy)
-      const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
-      if(showPkgs&&pkgList?.length){
-        if(showBoards)
-          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>
-            allFaces.push(..._getVFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,proj)));
-        else
-          allFaces.push(..._getVFaces(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38',proj));
-        pkgList.forEach(pkg=>{
-          let px,pz,pw,pd;
-          if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw=pkg.d;pd=pkg.w;}
-          else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw=pkg.w;pd=pkg.d;}
-          allFaces.push(..._getVFaces(px,pkg.y,pz,pw,pkg.h,pd,pkg.color,proj));
-        });
-      } else {
-        allFaces.push(..._getVFaces(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38',proj));
-        if(pp.totalH>PH)
-          allFaces.push(..._getVFaces(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color,proj));
-      }
-    });
-    allFaces.sort((a,b)=>b.depth-a.depth);
-    if(doStroke){
-      allFaces.forEach(f=>{
-        ctx2.beginPath();ctx2.moveTo(f.v[0][0],f.v[0][1]);
-        for(let i=1;i<f.v.length;i++)ctx2.lineTo(f.v[i][0],f.v[i][1]);
-        ctx2.closePath();ctx2.fillStyle=f.fill;ctx2.fill();
-        ctx2.strokeStyle='rgba(0,0,0,.22)';ctx2.lineWidth=.5;ctx2.stroke();
-      });
-    } else {
-      allFaces.forEach(f=>{
-        ctx2.beginPath();ctx2.moveTo(f.v[0][0],f.v[0][1]);
-        for(let i=1;i<f.v.length;i++)ctx2.lineTo(f.v[i][0],f.v[i][1]);
-        ctx2.closePath();ctx2.fillStyle=f.fill;ctx2.fill();
+  // rebuild static scene only when result changes
+  if(vs.result!==_lastVRes[type]){
+    tv.staticObjects.forEach(o=>tv.scene.remove(o));
+    tv.staticObjects=[];
+    _makeVehicleBoxMeshes(VL,VW,VH).forEach(m=>{tv.scene.add(m);tv.staticObjects.push(m);});
+    if(vs.result?.placements?.length){
+      const PH=PAL.H;
+      vs.result.placements.forEach(pp=>{
+        const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
+        if(pkgList?.length){
+          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>{
+            const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
+            tv.scene.add(m);tv.staticObjects.push(m);
+          });
+          pkgList.forEach(pkg=>{
+            let px,pz,pw2,pd;
+            if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw2=pkg.d;pd=pkg.w;}
+            else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw2=pkg.w;pd=pkg.d;}
+            const m=makeBox3D(px,pkg.y,pz,pw2,pkg.h,pd,pkg.color);
+            tv.scene.add(m);tv.staticObjects.push(m);
+          });
+        } else {
+          const m=makeBox3D(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38');
+          tv.scene.add(m);tv.staticObjects.push(m);
+          if(pp.totalH>PH){
+            const m2=makeBox3D(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color);
+            tv.scene.add(m2);tv.staticObjects.push(m2);
+          }
+        }
+        const pH=pp.totalH||PH;
+        const lw=Math.min(pp.palW*.7,600);
+        const lm=makeHeightLabel3D('',pH,pp.x+pp.palW/2,pp.z+pp.palD+lw*.18,lw);
+        tv.scene.add(lm);tv.staticObjects.push(lm);
       });
     }
-  } else {
-    ctx2.fillStyle='rgba(255,255,255,.35)';ctx2.font=`${Math.max(11,W*0.018)}px Inter,system-ui,sans-serif`;
-    ctx2.textAlign='center';ctx2.textBaseline='middle';
-    ctx2.fillText(`${(VL/1000).toFixed(1)} m × ${(VW/1000).toFixed(2)} m × ${(VH/1000).toFixed(2)} m`,W/2,H*.87);
+    _lastVRes[type]=vs.result;
   }
+  tv.r.render(tv.scene,tv.camera);
 }
 
 function vCamZoom(type,f){vCam[type].zoom=Math.max(.2,Math.min(5,vCam[type].zoom*f));drawVehicle3D(type);}
-function vCamReset(type){vCam[type].theta=0.45;vCam[type].phi=0.40;vCam[type].zoom=1;drawVehicle3D(type);}
+function vCamReset(type){vCam[type].theta=0.45;vCam[type].phi=0.40;vCam[type].zoom=1;vCam[type].panX=0;vCam[type].panY=0;drawVehicle3D(type);}
 
 // RAF throttle — only one draw per animation frame regardless of event rate
 const _vRaf={naczepa:0,kontener:0};
@@ -2586,15 +2588,58 @@ drawVehicle3D=function(type){
 function _initVehicleCanvas(type){
   const cv=document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');
   const cam=vCam[type];
-  let drag=null;
-  cv.addEventListener('mousedown',e=>{drag={x:e.clientX,y:e.clientY,t:cam.theta,p:cam.phi};});
-  window.addEventListener('mousemove',e=>{if(!drag)return;cam.theta=drag.t+(e.clientX-drag.x)*.005;cam.phi=Math.max(.05,Math.min(1.3,drag.p-(e.clientY-drag.y)*.005));drawVehicle3D(type);});
-  window.addEventListener('mouseup',()=>drag=null);
-  cv.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=Math.max(.2,Math.min(5,cam.zoom*(e.deltaY>0?.92:1.087)));drawVehicle3D(type);},{passive:false});
-  let td=null;
-  cv.addEventListener('touchstart',e=>{if(e.touches.length===1)td={x:e.touches[0].clientX,y:e.touches[0].clientY,t:cam.theta,p:cam.phi};},{passive:true});
-  cv.addEventListener('touchmove',e=>{if(!td||e.touches.length!==1)return;cam.theta=td.t+(e.touches[0].clientX-td.x)*.005;cam.phi=Math.max(.05,Math.min(1.3,td.p-(e.touches[0].clientY-td.y)*.005));drawVehicle3D(type);},{passive:true});
-  cv.addEventListener('touchend',()=>td=null);
+  // mouse: left=pan, right=orbit
+  let drag=false,lmx=0,lmy=0,rmb=false;
+  cv.addEventListener('mousedown',e=>{drag=true;lmx=e.clientX;lmy=e.clientY;rmb=e.button===2;});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  window.addEventListener('mousemove',e=>{
+    if(!drag)return;
+    const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
+    if(rmb){cam.theta-=dx*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi-dy*.007));}
+    else{cam.panX+=dx*1.8;cam.panY+=dy*1.8;}
+    drawVehicle3D(type);
+  });
+  window.addEventListener('mouseup',()=>drag=false);
+  cv.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=Math.max(0.15,Math.min(5,cam.zoom*(e.deltaY>0?.92:1.087)));drawVehicle3D(type);},{passive:false});
+  // touch: 1-finger=pan, 2-finger pinch=zoom+pan, anchor-finger=orbit
+  let tpts={},pinch0=null;
+  cv.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    Array.from(e.changedTouches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
+    if(e.touches.length===2){
+      Array.from(e.touches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
+      const[a,b]=[e.touches[0],e.touches[1]];pinch0=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
+    }
+  },{passive:false});
+  cv.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(e.touches.length===2){
+      const[a,b]=[e.touches[0],e.touches[1]];
+      const d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
+      const pa=tpts[a.identifier],pb=tpts[b.identifier];
+      if(pa&&pb){
+        const da=Math.hypot(a.clientX-pa.x,a.clientY-pa.y);
+        const db=Math.hypot(b.clientX-pb.x,b.clientY-pb.y);
+        if(da<3&&db>=3){cam.theta-=(b.clientX-pb.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi-(b.clientY-pb.y)*.007));}
+        else if(db<3&&da>=3){cam.theta-=(a.clientX-pa.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi-(a.clientY-pa.y)*.007));}
+        else{
+          const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
+          const pmx=(pa.x+pb.x)/2,pmy=(pa.y+pb.y)/2;
+          if(pinch0)cam.zoom=Math.max(0.15,Math.min(5,cam.zoom*(d/pinch0)));
+          cam.panX+=(mx-pmx)*1.8;cam.panY+=(my-pmy)*1.8;
+        }
+      }
+      pinch0=d;
+      tpts[a.identifier]={x:a.clientX,y:a.clientY};
+      tpts[b.identifier]={x:b.clientX,y:b.clientY};
+    } else if(e.touches.length===1){
+      const t=e.touches[0],pr=tpts[t.identifier];
+      if(pr){const dx=t.clientX-pr.x,dy=t.clientY-pr.y;cam.panX+=dx*1.8;cam.panY+=dy*1.8;}
+      tpts[t.identifier]={x:t.clientX,y:t.clientY};
+    }
+    drawVehicle3D(type);
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{Array.from(e.changedTouches).forEach(t=>delete tpts[t.identifier]);});
 }
 
 window.addEventListener('resize',()=>{
