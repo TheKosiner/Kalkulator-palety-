@@ -28,6 +28,7 @@
     /* CANVAS */
     #view3d{position:fixed;top:52px;left:0;right:0;bottom:0;background:#c4d8e8;touch-action:none}
     #canvas3d{width:100%;height:100%;display:block;touch-action:none}
+    #canvas2d{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;display:block;}
 
     /* OVERLAYS */
     .ov{position:absolute;border-radius:var(--rl)}
@@ -251,6 +252,7 @@
 
 <div id="view3d">
   <canvas id="canvas3d"></canvas>
+  <canvas id="canvas2d"></canvas>
   <div class="ov" id="statsBar">
     <div class="s"><span class="v" id="rTotal">—</span><span class="l">Paczek</span></div>
     <div class="s" id="sPallets" style="display:none"><span class="v" id="rPallets">—</span><span class="l">Palet</span></div>
@@ -533,6 +535,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════
 // DATA
@@ -1908,7 +1911,8 @@ window.calculate=function(){
 // 3D ENGINE
 // ═══════════════════════════════════════════════════════
 const canvas=document.getElementById('canvas3d');
-const ctx=canvas.getContext('2d');
+const canvas2d=document.getElementById('canvas2d');
+const ctx=canvas2d.getContext('2d');
 let camTheta=0.52,camPhi=0.45,camDist=3800,camZoom=1,panX=0,panY=0;
 let camTargetY=PAL.H/2; // vertical focal point; updated each draw
 
@@ -2016,62 +2020,49 @@ function proj(x,y,z,cx,cy,sc){
   return[(fx/pz)*camDist*sc+cx+panX,(-fy/pz)*camDist*sc+cy+panY,fz];
 }
 
-function col(hex,f){
-  const c=parseInt(hex.replace('#',''),16);
-  let r=(c>>16)&255,g=(c>>8)&255,b=c&255;
-  if(f>=0){r=Math.min(255,r+(255-r)*f);g=Math.min(255,g+(255-g)*f);b=Math.min(255,b+(255-b)*f);}
-  else{r=Math.max(0,r*(1+f));g=Math.max(0,g*(1+f));b=Math.max(0,b*(1+f));}
-  return`rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+// ── Three.js renderer ──────────────────────────────────────────────────────
+let t3=null;
+
+function initThreeJS(){
+  const r=new THREE.WebGLRenderer({canvas,antialias:true});
+  r.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  // gradient background
+  const bg=document.createElement('canvas');bg.width=2;bg.height=256;
+  const bgc=bg.getContext('2d'),bgg=bgc.createLinearGradient(0,0,0,256);
+  bgg.addColorStop(0,'#dce8f2');bgg.addColorStop(1,'#a8c2d6');
+  bgc.fillStyle=bgg;bgc.fillRect(0,0,2,256);
+  scene.background=new THREE.CanvasTexture(bg);
+  // lights
+  scene.add(new THREE.AmbientLight(0xffffff,0.75));
+  const sun=new THREE.DirectionalLight(0xffffff,0.65);
+  sun.position.set(1,3,2);scene.add(sun);
+  const camera=new THREE.PerspectiveCamera(42,1,1,300000);
+  t3={r,scene,camera,objects:[]};
 }
 
-function drawFace(verts,fill,stroke,gt,gb){
-  ctx.beginPath();ctx.moveTo(verts[0][0],verts[0][1]);
-  verts.slice(1).forEach(v=>ctx.lineTo(v[0],v[1]));
-  ctx.closePath();
-  if(gt){
-    const ys=verts.map(v=>v[1]),y0=Math.min(...ys),y1=Math.max(...ys);
-    if(y1-y0>1){
-      const g=ctx.createLinearGradient(0,y0,0,y1);
-      g.addColorStop(0,gt);g.addColorStop(1,gb);
-      ctx.fillStyle=g;
-    }else ctx.fillStyle=fill;
-  }else ctx.fillStyle=fill;
-  ctx.fill();
-  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.0;ctx.stroke();}
-}
-
-function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,cull,pkgCull=false,belowView=false){
-  const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
-  const p=[
-    [x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],
-    [x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]
-  ].map(([px,py,pz])=>{
-    const pr=proj(px,py,pz,cx,cy,sc);
-    const dx=px-_sceneCenterX,dy=py-camTargetY,dz=pz-PAL.D/2;
-    const rz=dx*sT+dz*cT;
-    return[pr[0],pr[1],pr[2],rz*cP-dy*Math.abs(sP)];
-  });
-  const cdx=-sT*cP,cdy=belowView?-sP:Math.abs(sP),cdz=-cT*cP;
-  const sk='rgba(0,0,0,.28)';
-  return[
-    {v:[p[7],p[6],p[2],p[3]],f:col(color,.30),gt:col(color,.45),gb:col(color,.15),s:sk,n:[0, 1,0]},
-    {v:[p[4],p[5],p[6],p[7]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[0, 0,1]},
-    {v:[p[4],p[7],p[3],p[0]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[-1,0,0]},
-    {v:[p[1],p[2],p[6],p[5]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[1, 0,0]},
-    {v:[p[3],p[2],p[1],p[0]],f:col(color,-.12),gt:col(color,.15),gb:col(color,-.28),s:sk,n:[0, 0,-1]},
-    {v:[p[0],p[1],p[5],p[4]],f:col(color,-.40),s:sk,n:[0,-1,0]},
-  ].filter(f=>{
-    if(!cull) return true;
-    if(pkgCull && f.n[1]===-1) return false; // pkg bottom face always hidden (sits on pallet)
-    return f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1;
-  })
-   .map(face=>{const v=face.v;return{...face,depth:(v[0][3]+v[1][3]+v[2][3]+v[3][3])*.25};});
-}
-
-function drawBox(x,y,z,w,h,d,color,sc,cx,cy){
-  getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy)
-    .sort((a,b)=>b.depth-a.depth)
-    .forEach(f=>{drawFace(f.v,f.f,f.s,f.gt,f.gb);});
+function makeBox3D(x,y,z,w,h,d,colorHex,opacity=1){
+  const geo=new THREE.BoxGeometry(w,h,d);
+  const base=new THREE.Color(colorHex);
+  function fc(f){
+    const c=base.clone();
+    return f>=0?c.lerp(new THREE.Color(1,1,1),f*.5):c.lerp(new THREE.Color(0,0,0),-f*.55);
+  }
+  const tr=opacity<1;
+  // face order: +X,-X,+Y(top),-Y(bottom),+Z(back),-Z(front)
+  const mats=[
+    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
+    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
+    new THREE.MeshBasicMaterial({color:fc(.30), transparent:tr,opacity}),
+    new THREE.MeshBasicMaterial({color:fc(-.40),transparent:tr,opacity}),
+    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
+    new THREE.MeshBasicMaterial({color:fc(-.12),transparent:tr,opacity}),
+  ];
+  const mesh=new THREE.Mesh(geo,mats);
+  mesh.position.set(x+w/2,y+h/2,z+d/2);
+  const edgeMat=new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:0.28*opacity+0.04});
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,15),edgeMat));
+  return mesh;
 }
 
 // Returns box specs for one pallet at X-offset ox (used in unified depth sort)
@@ -2088,76 +2079,81 @@ function palletBoxes(ox){
 const PAL_GAP = 200; // gap between pallets in mm
 
 function draw3D(res){
+  if(!t3)initThreeJS();
   const vw=document.getElementById('view3d');
   const W=vw.clientWidth,H=vw.clientHeight;
   const dpr=Math.min(devicePixelRatio,2);
-  canvas.width=W*dpr;canvas.height=H*dpr;
-  canvas.style.width=W+'px';canvas.style.height=H+'px';
-  ctx.scale(dpr,dpr);
 
-  const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // resize 2D overlay canvas
+  canvas2d.width=W*dpr;canvas2d.height=H*dpr;
+  canvas2d.style.width=W+'px';canvas2d.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
 
-  if(!res)return;
+  // resize WebGL renderer
+  t3.r.setSize(W,H);
+  t3.camera.aspect=W/H;
 
-  const numPallets = res.numPallets || 1;
-  const sceneW = numPallets * PAL.W + (numPallets-1) * PAL_GAP;
-  _sceneCenterX = sceneW / 2; // update proj() orbit centre
+  // clear previous objects
+  t3.objects.forEach(o=>t3.scene.remove(o));
+  t3.objects=[];
 
+  if(!res){t3.r.render(t3.scene,t3.camera);return;}
+
+  const numPallets=res.numPallets||1;
+  const sceneW=numPallets*PAL.W+(numPallets-1)*PAL_GAP;
+  _sceneCenterX=sceneW/2;
   const totalH=res.totalH||PAL.H+100;
   camTargetY=totalH/2;
   const maxDim=Math.max(sceneW,PAL.D,totalH);
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/maxDim*camZoom;
   const cx=W/2,cy=H/2;
 
-  // Floor shadows first (always behind everything)
-  for(let i=0;i<numPallets;i++){
-    const ox=i*(PAL.W+PAL_GAP);
-    const sh=[[ox,0,0],[ox+PAL.W,0,0],[ox+PAL.W,0,PAL.D],[ox,0,PAL.D]]
-      .map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
-    ctx.beginPath();sh.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
-    ctx.closePath();ctx.fillStyle='rgba(0,0,0,.16)';ctx.fill();
+  // camera — FOV matches the 2D projection scale exactly
+  const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
+  const pw=1/sc;
+  const lookX=_sceneCenterX+(-cT)*panX*pw+(-sP*sT)*panY*pw;
+  const lookY=camTargetY+cP*panY*pw;
+  const lookZ=PAL.D/2+sT*panX*pw+(-sP*cT)*panY*pw;
+  t3.camera.fov=2*Math.atan(H/(2*camDist*sc))*(180/Math.PI);
+  t3.camera.updateProjectionMatrix();
+  t3.camera.position.set(lookX-camDist*cP*sT,lookY-camDist*sP,lookZ-camDist*cP*cT);
+  t3.camera.lookAt(lookX,lookY,lookZ);
+
+  function addBox(x,y,z,w,h,d,color,opacity=1){
+    const m=makeBox3D(x,y,z,w,h,d,color,opacity);
+    t3.scene.add(m);t3.objects.push(m);
   }
 
-  const FROM_BELOW=camPhi>0.95;
-  const palletFaces=[];
+  // pallet
   for(let i=0;i<numPallets;i++)
     for(const b of palletBoxes(i*(PAL.W+PAL_GAP)))
-      palletFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true,false,FROM_BELOW));
-  const pkgFaces=[];
-  res.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,true,true,FROM_BELOW)));
+      addBox(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
 
-  const drawFaces=faces=>{faces.sort((a,b)=>b.depth-a.depth);faces.forEach(f=>{drawFace(f.v,f.f,f.s,f.gt,f.gb);if(f.hl){ctx.save();ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.3;ctx.lineCap='round';f.hl.forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();});ctx.restore();}});};
-  if(FROM_BELOW){drawFaces(pkgFaces);drawFaces(palletFaces);}
-  else{drawFaces([...palletFaces,...pkgFaces]);}
+  // packages
+  res.placements.forEach(p=>addBox(p.x,p.y,p.z,p.w,p.h,p.d,p.color));
 
-  // manual mode overlays (always single pallet)
+  // manual mode overlays
   if(mode==='manual'){
-    if(manRemoveMode && manHoverRemoveIdx>=0 && manHoverRemoveIdx<manBoxes.length){
-      const b=manBoxes[manHoverRemoveIdx];
-      ctx.globalAlpha=0.55;
-      drawBox(b.x,b.y,b.z,b.w,b.h,b.d,'#e74c3c',sc,cx,cy);
-      ctx.globalAlpha=1;
-    } else if(!manRemoveMode && manGhostX!==null){
-      const {fw,fd,lh}=manGetDims();
-      const gy=manSurfAt(manGhostX,manGhostZ,fw,fd);
-      ctx.globalAlpha=0.38;
-      drawBox(manGhostX,gy,manGhostZ,fw,lh,fd,manSelPkg.color,sc,cx,cy);
-      ctx.globalAlpha=1;
+    if(manRemoveMode&&manHoverRemoveIdx>=0&&manHoverRemoveIdx<manBoxes.length){
+      const b=manBoxes[manHoverRemoveIdx];addBox(b.x,b.y,b.z,b.w,b.h,b.d,'#e74c3c',0.55);
+    }else if(!manRemoveMode&&manGhostX!==null){
+      const{fw,fd,lh}=manGetDims();
+      addBox(manGhostX,manSurfAt(manGhostX,manGhostZ,fw,fd),manGhostZ,fw,lh,fd,manSelPkg.color,0.38);
     }
   }
 
-  // height lines — one per pallet, using the actual height of that pallet's boxes
+  // render 3D scene
+  t3.r.render(t3.scene,t3.camera);
+
+  // 2D overlay: height dimension lines
   const fs=Math.max(11,Math.min(15,W/28));
   ctx.font=`bold ${fs}px Segoe UI`;
-  for (let pi=0; pi<numPallets; pi++) {
+  for(let pi=0;pi<numPallets;pi++){
     const ox=pi*(PAL.W+PAL_GAP);
-    const palH=res.placements
-      .filter(p=>(p.palletIdx??0)===pi)
-      .reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
-    const [lx0,ly0]=proj(ox+PAL.W+90,0,PAL.D/2,cx,cy,sc);
-    const [lx1,ly1]=proj(ox+PAL.W+90,palH,PAL.D/2,cx,cy,sc);
+    const palH=res.placements.filter(p=>(p.palletIdx??0)===pi).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
+    const[lx0,ly0]=proj(ox+PAL.W+90,0,PAL.D/2,cx,cy,sc);
+    const[lx1,ly1]=proj(ox+PAL.W+90,palH,PAL.D/2,cx,cy,sc);
     ctx.beginPath();ctx.moveTo(lx0,ly0);ctx.lineTo(lx1,ly1);
     ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2.5;ctx.stroke();
     [[lx0,ly0],[lx1,ly1]].forEach(([tx,ty])=>{ctx.beginPath();ctx.moveTo(tx-6,ty);ctx.lineTo(tx+6,ty);ctx.strokeStyle='#1a3c5e';ctx.lineWidth=2;ctx.stroke();});
