@@ -2423,21 +2423,29 @@ function arrangeVehicle(type){
   }
 
   // Pack from rear wall (curZ=vs.L) toward loading door (Z=0); no mirroring needed.
-  // No height-group sealing: just fill rows by width. Since unitPallets is sorted tallest-first,
-  // rows filled first (= placed at back) naturally contain the tallest pallets.
-  // Left-aligned (no centering) so pallets pack as tightly as possible against one wall.
+  // sealRow() front-aligns all pallets in the finished row to the same z so they don't
+  // form staggered "tracks" along the container length.
   const placements=[];
-  let curZ=vs.L,rowUsedX=0,rowDepth=0;
+  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowStart=0;
+  function sealRow(){
+    if(!rowDepth)return;
+    const front=curZ-rowDepth;
+    for(let i=rowStart;i<placements.length;i++)placements[i].z=front;
+    curZ=front;rowUsedX=0;rowDepth=0;rowStart=placements.length;
+  }
   for(const up of unitPallets){
     let o=_bestO(up,vs.W-rowUsedX);
-    if(!o){
-      curZ-=rowDepth;rowUsedX=0;rowDepth=0;
-      o=_bestO(up,vs.W);if(!o){leftover++;continue;}
+    if(!o){sealRow();o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
+    // If preferred palD won't fit in remaining container length, try the shallower orientation
+    if(curZ-o.palD<-0.5){
+      const alt={palW:o.rotated?up.w:up.d,palD:o.rotated?up.d:up.w,rotated:!o.rotated};
+      if(alt.palW<=vs.W-rowUsedX+0.5&&curZ-alt.palD>=-0.5)o=alt;
+      else{leftover++;continue;}
     }
-    if(curZ-o.palD<-0.5){leftover++;continue;}
     placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
     rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
   }
+  sealRow();
 
 
   vs.result={placements,leftover};
