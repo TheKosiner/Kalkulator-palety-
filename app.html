@@ -2422,38 +2422,47 @@ function arrangeVehicle(type){
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
   }
 
-  // Row-based packing with pinwheel alternation: every new row flips orientation
-  // relative to the previous row (po długości ↔ po szerokości).
-  // Within each row all pallets use rowPalD → same z, no intra-row gaps.
+  // Two-lane column packing:
+  // Lane A (left):  "po długości"  — narrow dim across vehicle width, long dim along vehicle length
+  // Lane B (right): "po szerokości" — wide dim across vehicle width, short dim along vehicle length
+  // Both lanes run the full vehicle length side-by-side. Pallets alternate between lanes so
+  // both are filled simultaneously, giving the classic pinwheel column appearance.
   const placements=[];
-  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowPalD=null,prevRowPalD=null;
-  for(const up of unitPallets){
-    const avail=vs.W-rowUsedX;
-    let o=null;
-    // Row in progress: orient to match established depth
-    if(rowPalD!==null){
-      if(Math.abs(up.d-rowPalD)<0.5&&up.w<=avail+0.5)o={palW:up.w,palD:up.d,rotated:false};
-      else if(Math.abs(up.w-rowPalD)<0.5&&up.d<=avail+0.5)o={palW:up.d,palD:up.w,rotated:true};
-      if(!o){prevRowPalD=rowPalD;curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowPalD=null;}
-    }
-    // Fresh row: alternate orientation vs previous row
-    if(rowPalD===null){
-      const bestO=_bestO(up,vs.W);
-      if(bestO&&prevRowPalD!==null&&Math.abs(bestO.palD-prevRowPalD)<0.5){
-        // Best orientation repeats previous row's depth — try the other rotation
-        const altO={palW:bestO.rotated?up.w:up.d,palD:bestO.rotated?up.d:up.w,rotated:!bestO.rotated};
-        if(altO.palW<=vs.W+0.5&&curZ-altO.palD>=-0.5)o=altO;
+  const firstUp=unitPallets[0];
+  const twoLane=firstUp&&(Math.min(firstUp.w,firstUp.d)+Math.max(firstUp.w,firstUp.d))<=vs.W+0.5;
+
+  if(twoLane){
+    const wA=Math.min(firstUp.w,firstUp.d); // lane A width (narrow dim)
+    let zA=vs.L,zB=vs.L,useA=true;
+    for(const up of unitPallets){
+      if(up.totalH>vs.H){leftover++;continue;}
+      const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d);
+      const pwB=Math.max(up.w,up.d),pdB=Math.min(up.w,up.d);
+      const canA=pwA<=wA+0.5&&zA-pdA>=-0.5;
+      const canB=pwB<=vs.W-wA+0.5&&zB-pdB>=-0.5;
+      let placed=false;
+      if(canA&&(useA||!canB)){
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:false,placements:up.tmpl});
+        zA-=pdA;useA=false;placed=true;
+      }else if(canB){
+        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:true,placements:up.tmpl});
+        zB-=pdB;useA=true;placed=true;
+      }else if(canA){
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:false,placements:up.tmpl});
+        zA-=pdA;placed=true;
       }
-      if(!o)o=bestO;
-      if(!o){leftover++;continue;}
-      if(curZ-o.palD<-0.5){
-        const alt2={palW:o.rotated?up.w:up.d,palD:o.rotated?up.d:up.w,rotated:!o.rotated};
-        if(alt2.palW<=vs.W+0.5&&curZ-alt2.palD>=-0.5)o=alt2;else{leftover++;continue;}
-      }
-      rowPalD=o.palD;rowDepth=rowPalD;
+      if(!placed)leftover++;
     }
-    placements.push({x:rowUsedX,y:0,z:curZ-rowPalD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
-    rowUsedX+=o.palW;
+  }else{
+    // Fallback for containers where two orientations side-by-side don't fit: row-based packing
+    let curZ=vs.L,rowUsedX=0,rowDepth=0;
+    for(const up of unitPallets){
+      let o=_bestO(up,vs.W-rowUsedX);
+      if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
+      if(curZ-o.palD<-0.5){leftover++;continue;}
+      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
+      rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
+    }
   }
 
 
