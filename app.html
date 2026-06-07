@@ -1462,6 +1462,13 @@ function _computePreviewFaces(A, B, C) {
   return _computeFacesForCanvas(pcv, A, B, C, _prevTheta, _prevPhi);
 }
 
+// Colour shade helper: hex + brightness adjustment factor (e.g. +0.38 = brighter, -0.38 = darker)
+function col(hex,adj){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  const f=1+adj,cl=v=>Math.max(0,Math.min(255,Math.round(v*f)));
+  return`rgb(${cl(r)},${cl(g)},${cl(b)})`;
+}
+
 // Generic canvas face renderer (shared by modal preview + face picker)
 function _renderFaces(canvasEl, faces, baseColor, faceMode) {
   const pc=canvasEl.getContext('2d');
