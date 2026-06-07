@@ -2422,30 +2422,43 @@ function arrangeVehicle(type){
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
   }
 
-  // Pack from rear wall (curZ=vs.L) toward loading door (Z=0); no mirroring needed.
-  // sealRow() front-aligns all pallets in the finished row to the same z so they don't
-  // form staggered "tracks" along the container length.
-  const placements=[];
-  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowStart=0;
-  function sealRow(){
-    if(!rowDepth)return;
-    const front=curZ-rowDepth;
-    for(let i=rowStart;i<placements.length;i++)placements[i].z=front;
-    curZ=front;rowUsedX=0;rowDepth=0;rowStart=placements.length;
+  // Skyline packing: each pallet snaps against the rear wall or the front face of
+  // whatever is directly behind it — no pallet ever floats free.
+  // skyline[i].zFront = front face of the last pallet placed in the x-column [x1,x2].
+  let skyline=[{x1:0,x2:vs.W,zFront:vs.L}];
+  // Minimum zFront that spans [x1, x1+palW] — the "ceiling" the new pallet presses against.
+  function skySz(x1,palW){
+    const x2=x1+palW;let z=vs.L;
+    for(const s of skyline)if(s.x1<x2&&s.x2>x1)z=Math.min(z,s.zFront);
+    return z;
   }
+  function skyUpdate(x1,palW,newFront){
+    const x2=x1+palW,out=[];
+    for(const s of skyline){
+      if(s.x2<=x1||s.x1>=x2){out.push(s);continue;}
+      if(s.x1<x1)out.push({x1:s.x1,x2:x1,zFront:s.zFront});
+      if(s.x2>x2)out.push({x1:x2,x2:s.x2,zFront:s.zFront});
+    }
+    out.push({x1,x2,zFront:newFront});
+    out.sort((a,b)=>a.x1-b.x1);
+    skyline=out;
+  }
+  const placements=[];let rowUsedX=0;
   for(const up of unitPallets){
     let o=_bestO(up,vs.W-rowUsedX);
-    if(!o){sealRow();o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
-    // If preferred palD won't fit in remaining container length, try the shallower orientation
-    if(curZ-o.palD<-0.5){
+    if(!o){rowUsedX=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
+    let skyZ=skySz(rowUsedX,o.palW),palFront=skyZ-o.palD;
+    if(palFront<-0.5){
       const alt={palW:o.rotated?up.w:up.d,palD:o.rotated?up.d:up.w,rotated:!o.rotated};
-      if(alt.palW<=vs.W-rowUsedX+0.5&&curZ-alt.palD>=-0.5)o=alt;
-      else{leftover++;continue;}
+      if(alt.palW<=vs.W-rowUsedX+0.5){
+        const aZ=skySz(rowUsedX,alt.palW),aF=aZ-alt.palD;
+        if(aF>=-0.5){o=alt;skyZ=aZ;palFront=aF;}else{leftover++;continue;}
+      }else{leftover++;continue;}
     }
-    placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
-    rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
+    placements.push({x:rowUsedX,y:0,z:palFront,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
+    skyUpdate(rowUsedX,o.palW,palFront);
+    rowUsedX+=o.palW;
   }
-  sealRow();
 
 
   vs.result={placements,leftover};
