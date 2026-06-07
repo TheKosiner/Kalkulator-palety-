@@ -2436,19 +2436,23 @@ function arrangeVehicle(type){
     let zA=vs.L,zB=vs.L,useA=true;
     for(const up of unitPallets){
       if(up.totalH>vs.H){leftover++;continue;}
-      const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d);
-      const pwB=Math.max(up.w,up.d),pdB=Math.min(up.w,up.d);
+      // Rotation flag: the template tmpl has packages in up.w × up.d coordinate space.
+      // Lane A needs narrow dim (min) across X → if up.w is already narrow, no rotation; otherwise rotate.
+      // Lane B needs wide dim (max) across X → opposite of lane A.
+      const wNarrow=up.w<=up.d;
+      const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d),rotA=!wNarrow;
+      const pwB=Math.max(up.w,up.d),pdB=Math.min(up.w,up.d),rotB=wNarrow;
       const canA=pwA<=wA+0.5&&zA-pdA>=-0.5;
       const canB=pwB<=vs.W-wA+0.5&&zB-pdB>=-0.5;
       let placed=false;
       if(canA&&(useA||!canB)){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:false,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,placements:up.tmpl});
         zA-=pdA;useA=false;placed=true;
       }else if(canB){
-        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:true,placements:up.tmpl});
+        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotB,placements:up.tmpl});
         zB-=pdB;useA=true;placed=true;
       }else if(canA){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:false,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,placements:up.tmpl});
         zA-=pdA;placed=true;
       }
       if(!placed)leftover++;
