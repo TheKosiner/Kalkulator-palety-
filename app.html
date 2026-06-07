@@ -2423,14 +2423,22 @@ function arrangeVehicle(type){
   }
 
   // Row-based packing: fill width (X) first, advance depth (Z) only when a row is full.
-  // This keeps pallets in proper cross-width rows instead of independent depth columns.
-  // All pallets in a row share the same rear face (curZ) — tallest rows land at the back.
+  // rowPalD: once the first pallet in a row sets the depth, every subsequent pallet in
+  // that row is oriented to use the same palD so all share z = curZ-rowPalD — identical
+  // front faces, no gaps between rows for same-dimension pallets.
   const placements=[];
-  let curZ=vs.L,rowUsedX=0,rowDepth=0;
+  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowPalD=null;
   for(const up of unitPallets){
-    let o=_bestO(up,vs.W-rowUsedX);
+    const avail=vs.W-rowUsedX;
+    let o=null;
+    // Prefer orientation that matches established row depth
+    if(rowPalD!==null){
+      if(Math.abs(up.d-rowPalD)<0.5&&up.w<=avail+0.5)o={palW:up.w,palD:up.d,rotated:false};
+      else if(Math.abs(up.w-rowPalD)<0.5&&up.d<=avail+0.5)o={palW:up.d,palD:up.w,rotated:true};
+    }
+    if(!o)o=_bestO(up,avail);
     if(!o){
-      curZ-=rowDepth;rowUsedX=0;rowDepth=0;
+      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowPalD=null;
       o=_bestO(up,vs.W);if(!o){leftover++;continue;}
     }
     if(curZ-o.palD<-0.5){
@@ -2438,6 +2446,7 @@ function arrangeVehicle(type){
       if(alt.palW<=vs.W-rowUsedX+0.5&&curZ-alt.palD>=-0.5)o=alt;
       else{leftover++;continue;}
     }
+    if(rowPalD===null)rowPalD=o.palD;
     placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
     rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
   }
