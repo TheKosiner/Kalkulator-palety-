@@ -2406,15 +2406,18 @@ function arrangeVehicle(type){
   // Tallest first → packed against rear wall (high Z); shorter toward loading door (low Z)
   unitPallets.sort((a,b)=>b.totalH-a.totalH);
 
-  // Pick orientation that fits the MOST pallets per full row width (not just largest palW).
-  // E.g. in a 2370mm container a 1200×800 pallet fits 1× at palW=1200 but 2× at palW=800 → prefer rotated.
+  // Pick orientation that fits the MOST pallets in the remaining row space.
+  // Using availW (not vs.W) makes the second pallet in a row pick the wider orientation
+  // to fill the gap — e.g. 800 + 1200 = 2000mm in a 2350mm container instead of 800+800=1600mm.
+  // When counts are equal, prefer the larger palW to minimise leftover gap.
   function _bestO(up,availW){
     const f1=up.w<=availW+0.5,f2=up.d<=availW+0.5;
     if(!f1&&!f2)return null;
     if(f1&&f2){
-      const n1=Math.floor(vs.W/up.w)||1,n2=Math.floor(vs.W/up.d)||1;
+      const n1=Math.floor(availW/up.w)||1,n2=Math.floor(availW/up.d)||1;
       if(n2>n1)return{palW:up.d,palD:up.w,rotated:true};
-      return{palW:up.w,palD:up.d,rotated:false};
+      if(n1>n2)return{palW:up.w,palD:up.d,rotated:false};
+      return up.w>=up.d?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
     }
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
   }
