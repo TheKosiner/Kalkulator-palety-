@@ -2443,21 +2443,32 @@ function arrangeVehicle(type){
     out.sort((a,b)=>a.x1-b.x1);
     skyline=out;
   }
-  const placements=[];let rowUsedX=0;
+  // For each pallet try every skyline x-start left-to-right (leftmost-fit).
+  // When the left column is full, the loop advances past it to the next open column
+  // rather than giving up — fixes the "11 pallets don't fit when right column is empty" bug.
+  const placements=[];
   for(const up of unitPallets){
-    let o=_bestO(up,vs.W-rowUsedX);
-    if(!o){rowUsedX=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
-    let skyZ=skySz(rowUsedX,o.palW),palFront=skyZ-o.palD;
-    if(palFront<-0.5){
+    const xs=[...new Set([0,...skyline.map(s=>s.x1)])].filter(x=>x<vs.W-0.5).sort((a,b)=>a-b);
+    let placed=false;
+    for(const x of xs){
+      const avail=vs.W-x;
+      const o=_bestO(up,avail);
+      if(!o)continue;
+      const sz=skySz(x,o.palW),front=sz-o.palD;
+      if(front>=-0.5){
+        placements.push({x,y:0,z:front,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
+        skyUpdate(x,o.palW,front);placed=true;break;
+      }
       const alt={palW:o.rotated?up.w:up.d,palD:o.rotated?up.d:up.w,rotated:!o.rotated};
-      if(alt.palW<=vs.W-rowUsedX+0.5){
-        const aZ=skySz(rowUsedX,alt.palW),aF=aZ-alt.palD;
-        if(aF>=-0.5){o=alt;skyZ=aZ;palFront=aF;}else{leftover++;continue;}
-      }else{leftover++;continue;}
+      if(alt.palW<=avail+0.5){
+        const sz2=skySz(x,alt.palW),front2=sz2-alt.palD;
+        if(front2>=-0.5){
+          placements.push({x,y:0,z:front2,palW:alt.palW,palD:alt.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:alt.rotated,placements:up.tmpl});
+          skyUpdate(x,alt.palW,front2);placed=true;break;
+        }
+      }
     }
-    placements.push({x:rowUsedX,y:0,z:palFront,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
-    skyUpdate(rowUsedX,o.palW,palFront);
-    rowUsedX+=o.palW;
+    if(!placed)leftover++;
   }
 
 
