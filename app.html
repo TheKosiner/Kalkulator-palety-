@@ -2422,33 +2422,38 @@ function arrangeVehicle(type){
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
   }
 
-  // Row-based packing: fill width (X) first, advance depth (Z) only when a row is full.
-  // rowPalD: once the first pallet in a row sets the depth, every subsequent pallet in
-  // that row is oriented to use the same palD so all share z = curZ-rowPalD — identical
-  // front faces, no gaps between rows for same-dimension pallets.
+  // Row-based packing with pinwheel alternation: every new row flips orientation
+  // relative to the previous row (po długości ↔ po szerokości).
+  // Within each row all pallets use rowPalD → same z, no intra-row gaps.
   const placements=[];
-  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowPalD=null;
+  let curZ=vs.L,rowUsedX=0,rowDepth=0,rowPalD=null,prevRowPalD=null;
   for(const up of unitPallets){
     const avail=vs.W-rowUsedX;
     let o=null;
-    // Prefer orientation that matches established row depth
+    // Row in progress: orient to match established depth
     if(rowPalD!==null){
       if(Math.abs(up.d-rowPalD)<0.5&&up.w<=avail+0.5)o={palW:up.w,palD:up.d,rotated:false};
       else if(Math.abs(up.w-rowPalD)<0.5&&up.d<=avail+0.5)o={palW:up.d,palD:up.w,rotated:true};
+      if(!o){prevRowPalD=rowPalD;curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowPalD=null;}
     }
-    if(!o)o=_bestO(up,avail);
-    if(!o){
-      curZ-=rowDepth;rowUsedX=0;rowDepth=0;rowPalD=null;
-      o=_bestO(up,vs.W);if(!o){leftover++;continue;}
+    // Fresh row: alternate orientation vs previous row
+    if(rowPalD===null){
+      const bestO=_bestO(up,vs.W);
+      if(bestO&&prevRowPalD!==null&&Math.abs(bestO.palD-prevRowPalD)<0.5){
+        // Best orientation repeats previous row's depth — try the other rotation
+        const altO={palW:bestO.rotated?up.w:up.d,palD:bestO.rotated?up.d:up.w,rotated:!bestO.rotated};
+        if(altO.palW<=vs.W+0.5&&curZ-altO.palD>=-0.5)o=altO;
+      }
+      if(!o)o=bestO;
+      if(!o){leftover++;continue;}
+      if(curZ-o.palD<-0.5){
+        const alt2={palW:o.rotated?up.w:up.d,palD:o.rotated?up.d:up.w,rotated:!o.rotated};
+        if(alt2.palW<=vs.W+0.5&&curZ-alt2.palD>=-0.5)o=alt2;else{leftover++;continue;}
+      }
+      rowPalD=o.palD;rowDepth=rowPalD;
     }
-    if(curZ-o.palD<-0.5){
-      const alt={palW:o.rotated?up.w:up.d,palD:o.rotated?up.d:up.w,rotated:!o.rotated};
-      if(alt.palW<=vs.W-rowUsedX+0.5&&curZ-alt.palD>=-0.5)o=alt;
-      else{leftover++;continue;}
-    }
-    if(rowPalD===null)rowPalD=o.palD;
-    placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
-    rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
+    placements.push({x:rowUsedX,y:0,z:curZ-rowPalD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
+    rowUsedX+=o.palW;
   }
 
 
