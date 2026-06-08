@@ -2429,23 +2429,24 @@ function arrangeVehicle(type){
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
   }
 
-  // Two-lane column packing:
-  // Lane A (left):  "po długości"  — narrow dim across vehicle width, long dim along vehicle length
-  // Lane B (right): "po szerokości" — wide dim across vehicle width, short dim along vehicle length
-  // Both lanes run the full vehicle length side-by-side. Pallets alternate between lanes so
-  // both are filled simultaneously, giving the classic pinwheel column appearance.
+  // Packing strategy:
+  // • Semi-trailer (naczepa): row-based with _bestO — wide vehicle naturally fits 3 pallets
+  //   po długości per row with uniform depth, so no gaps arise.
+  // • Container (kontener): two-lane column packing — one lane "po długości" (narrow across)
+  //   and one lane "po szerokości" (wide across) run the full container length side by side,
+  //   avoiding the depth-mismatch gaps that row-based produces in a narrow container.
   const placements=[];
   const firstUp=unitPallets[0];
-  const twoLane=firstUp&&(Math.min(firstUp.w,firstUp.d)+Math.max(firstUp.w,firstUp.d))<=vs.W+0.5;
 
-  if(twoLane){
-    const wA=Math.min(firstUp.w,firstUp.d); // lane A width (narrow dim)
+  const useTwoLane = type==='kontener'
+    && firstUp
+    && (Math.min(firstUp.w,firstUp.d)+Math.max(firstUp.w,firstUp.d))<=vs.W+0.5;
+
+  if(useTwoLane){
+    const wA=Math.min(firstUp.w,firstUp.d);
     let zA=vs.L,zB=vs.L,useA=true;
     for(const up of unitPallets){
       if(up.totalH>vs.H){leftover++;continue;}
-      // Rotation flag: the template tmpl has packages in up.w × up.d coordinate space.
-      // Lane A needs narrow dim (min) across X → if up.w is already narrow, no rotation; otherwise rotate.
-      // Lane B needs wide dim (max) across X → opposite of lane A.
       const wNarrow=up.w<=up.d;
       const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d),rotA=!wNarrow;
       const pwB=Math.max(up.w,up.d),pdB=Math.min(up.w,up.d),rotB=wNarrow;
@@ -2465,7 +2466,8 @@ function arrangeVehicle(type){
       if(!placed)leftover++;
     }
   }else{
-    // Fallback for containers where two orientations side-by-side don't fit: row-based packing
+    // Row-based packing with _bestO: fills left→right, starts a new row when current row is full.
+    // For wide vehicles _bestO naturally selects a uniform orientation for all pallets in a row.
     let curZ=vs.L,rowUsedX=0,rowDepth=0;
     for(const up of unitPallets){
       let o=_bestO(up,vs.W-rowUsedX);
