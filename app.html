@@ -190,6 +190,8 @@
     .spal-carton .spal-dot{border-radius:50%}
     .vsec-title{font-size:.64rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin:14px 0 6px;display:flex;align-items:center;gap:6px}
     .vsec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+    .opt-chk{display:flex;align-items:center;gap:7px;font-size:.78rem;color:var(--text-2);cursor:pointer;padding:4px 0;user-select:none}
+    .opt-chk input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;flex-shrink:0}
     #sSave{display:none}
     #sSave button{background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.75);font-size:.68rem;font-weight:600;padding:4px 10px;cursor:pointer;transition:all .15s;white-space:nowrap}
     #sSave button:hover{border-color:rgba(255,255,255,.4);color:#fff;background:rgba(255,255,255,.08)}
@@ -325,6 +327,7 @@
       <div id="naczNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
       <div class="vsec-title">Kartony luzem</div>
       <div id="naczCartonList"></div>
+      <label class="opt-chk"><input type="checkbox" id="naczLoadOnPal"> Ładuj kartony na palety (jeśli jest miejsce)</label>
       <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
     </div>
   </div>
@@ -371,6 +374,7 @@
       <div id="kontNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
       <div class="vsec-title">Kartony luzem</div>
       <div id="kontCartonList"></div>
+      <label class="opt-chk"><input type="checkbox" id="kontLoadOnPal"> Ładuj kartony na palety (jeśli jest miejsce)</label>
       <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
     </div>
   </div>
@@ -2558,12 +2562,59 @@ function arrangeVehicle(type){
       }
     }
   }
-  // Add loose carton stacks — capped at the height of the shortest pallet so cartons
-  // never tower above the pallet load. Each stack = as many cartons as fit under that cap.
-  const _minPalH=unitPallets.length
+  // Mutable remaining qty pool for carton requests
+  const remaining=cartonRequests.map(r=>({pkg:r.pkg,rem:r.qty}));
+
+  // Capture original min pallet height before any cartons are stacked on top of pallets.
+  const _origMinPalH=unitPallets.length
     ?unitPallets.reduce((m,u)=>Math.min(m,u.totalH),Infinity)
     :vs.H;
-  for(const {pkg,qty} of cartonRequests){
+
+  // If "load cartons onto pallets" is checked, fill free vertical space on each pallet first.
+  const loadOnPal=document.getElementById(`${p}LoadOnPal`)?.checked;
+  if(loadOnPal && unitPallets.length){
+    for(const up of unitPallets){
+      let palTop=up.totalH;
+      if(vs.H-palTop<=0) continue;
+      for(const cr of remaining){
+        if(cr.rem<=0) continue;
+        const isCyl=cr.pkg.type==='cylinder';
+        const cL=cr.pkg.dims[0];
+        const cW=isCyl?cr.pkg.dims[0]:cr.pkg.dims[1];
+        const cH=isCyl?cr.pkg.dims[1]:cr.pkg.dims[2];
+        if(cH>vs.H-palTop) continue;
+        // Best tiling orientation on pallet footprint
+        let fw=cL,fd=cW,tx=Math.floor(up.w/cL),tz=Math.floor(up.d/cW);
+        const rtx=Math.floor(up.w/cW),rtz=Math.floor(up.d/cL);
+        if(rtx*rtz>tx*tz){fw=cW;fd=cL;tx=rtx;tz=rtz;}
+        if(tx===0||tz===0) continue;
+        const perLayer=tx*tz;
+        const layers=Math.floor((vs.H-palTop)/cH);
+        if(layers===0) continue;
+        const toPlace=Math.min(cr.rem,perLayer*layers);
+        let placed=0;
+        outer:for(let ly=0;ly<layers;ly++){
+          for(let iz=0;iz<tz;iz++){
+            for(let ix=0;ix<tx;ix++){
+              if(placed>=toPlace) break outer;
+              up.tmpl.push({x:ix*fw,y:palTop+ly*cH,z:iz*fd,w:fw,h:cH,d:fd,color:cr.pkg.color,shape:isCyl?'cylinder':undefined});
+              placed++;
+            }
+          }
+        }
+        cr.rem-=placed;
+        up.totalH=palTop+Math.ceil(placed/perLayer)*cH;
+        palTop=up.totalH;
+      }
+    }
+  }
+
+  // Add loose carton stacks from remaining — capped at the original (pre-top-loading) min
+  // pallet height so loose stacks next to pallets never tower above the pallet load.
+  const _minPalH=_origMinPalH;
+  for(const cr of remaining){
+    const {pkg}=cr;let qty=cr.rem;
+    if(qty<=0) continue;
     const isCyl=pkg.type==='cylinder';
     const L=pkg.dims[0],W=isCyl?pkg.dims[0]:pkg.dims[1],H=isCyl?pkg.dims[1]:pkg.dims[2];
     if(H>_minPalH){leftover+=qty;continue;}
