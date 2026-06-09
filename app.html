@@ -204,6 +204,9 @@
     .modal-row label{font-size:.72rem;font-weight:500;color:var(--text-2);display:block;margin-bottom:4px}
     .modal-row input[type=text],.modal-row input[type=number]{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-size:.9rem;outline:none;color:var(--text);transition:border-color .15s,box-shadow .15s}
     .modal-row input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+    .modal-type-row{display:flex;gap:6px;margin-bottom:12px}
+    .modal-type-btn{flex:1;padding:8px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);font-size:.78rem;font-weight:600;cursor:pointer;color:var(--text-2);transition:all .15s}
+    .modal-type-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
     .modal-dims{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
     .modal-color-row{display:flex;align-items:center;gap:12px}
     .modal-color-row input[type=color]{width:44px;height:38px;padding:2px 3px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg);flex-shrink:0}
@@ -502,16 +505,23 @@
     <div class="modal-layout">
       <!-- left: form fields -->
       <div class="modal-form">
+        <input type="hidden" id="mType" value="box"/>
+        <div class="modal-type-row">
+          <button class="modal-type-btn active" id="mTypeBox" onclick="setModalType('box')">&#x1F4E6; Karton</button>
+          <button class="modal-type-btn" id="mTypeCyl" onclick="setModalType('cylinder')">&#x1F6E2; Rolka/Beczka</button>
+        </div>
         <div class="modal-row">
           <label>Nazwa</label>
           <input type="text" id="mName" placeholder="np. Karton XL" maxlength="48"/>
         </div>
         <div class="modal-row">
-          <label>Wymiary mm — Dł &times; Szer &times; Wys</label>
+          <label id="mDimLabel">Wymiary mm — Dł &times; Szer &times; Wys</label>
           <div class="modal-dims">
             <input type="number" id="mDimA" placeholder="Dług." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
             <input type="number" id="mDimB" placeholder="Szer." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
-            <input type="number" id="mDimC" placeholder="Wys."  min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+            <div id="mDimCRow">
+              <input type="number" id="mDimC" placeholder="Wys."  min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+            </div>
           </div>
         </div>
         <div class="modal-row">
@@ -1020,6 +1030,12 @@ function bestFit(palW, palD, fw, fd) {
 }
 
 function orientCandidates(dims, orientMode) {
+  if (dims.length === 2) {
+    // Cylinder: dims = [diameter, height]
+    const [D, H] = dims;
+    if (orientMode === 'lying') return [[H, D, D]];
+    return [[D, D, H]]; // standing (default)
+  }
   const d=dims;
   if (orientMode==='flat') {
     const s=[...d].sort((a,b)=>a-b);
@@ -1079,7 +1095,7 @@ function packSingle(pkg, qty, maxH, orientMode, margin=0) {
         groups[0].layers.push({layer:L,y:yBase,h:lh0});
         for(let ix=0;ix<nx&&rem>0;ix++)
           for(let iy=0;iy<ny&&rem>0;iy++){
-            placements.push({x:ix*bfw+oxs+margin,y:yBase+margin,z:iy*bfd+ozs+margin,w:rw,h:lh0,d:rd,pkgId:pkg.id,color:pkg.color});
+            placements.push({x:ix*bfw+oxs+margin,y:yBase+margin,z:iy*bfd+ozs+margin,w:rw,h:lh0,d:rd,pkgId:pkg.id,color:pkg.color,shape:pkg.type==='cylinder'?'cylinder':undefined});
             rem--;
           }
       }
@@ -1197,6 +1213,12 @@ function faceDownCandidates(dims) {
 // Returns [[fw, fd, lh, fw0, fd0, lh0], ...]
 // fw/fd/lh = effective dims (with 2*margin padding); fw0/fd0/lh0 = visual dims.
 function genOrients(dims, faceMode, margin) {
+  if (dims.length === 2) {
+    // Cylinder: dims = [diameter, height]
+    const [D, H] = dims;
+    const m2 = (margin||0)*2;
+    return [[D+m2, D+m2, H+m2, D, D, H]]; // always standing
+  }
   const m2 = (margin || 0) * 2;
   const allFaces = faceDownCandidates(dims);
   const facesToTry = faceMode === 'auto'
@@ -1235,9 +1257,10 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
   _placed = [...initialPlaced]; // start from provided state (supports resuming a partial pallet)
 
   // Large boxes first → stable base, lower overall pallet height
-  const sorted = [...entries].sort((a, b) =>
-    b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2] - a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2]
-  );
+  const vol = p => p.dims.length===2
+    ? Math.PI*(p.dims[0]/2)**2*p.dims[1]
+    : p.dims[0]*p.dims[1]*p.dims[2];
+  const sorted = [...entries].sort((a, b) => vol(b.pkg) - vol(a.pkg));
 
   // Pack sequentially: exhaust all boxes of each type before moving to smaller types.
   // This lets large boxes form a complete flat layer first; smaller types then fill
@@ -1268,7 +1291,8 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
       placements.push({
         x: bestPos.x + margin, y: bestPos.y + margin, z: bestPos.z + margin,
         w: bestOrient.fw0, h: bestOrient.lh0, d: bestOrient.fd0,
-        pkgId: pkg.id, color: pkg.color
+        pkgId: pkg.id, color: pkg.color,
+        shape: pkg.type==='cylinder'?'cylinder':undefined
       });
       qtysLeft.set(pkg.id, qty - 1);
       groupMap.get(pkg.id).placed++;
@@ -1304,17 +1328,35 @@ function packMixedOptimal(entries, maxH, pkgOrientMap, margin, initialPlaced=[])
 // PACKAGE MODAL (add / edit)
 // ═══════════════════════════════════════════════════════
 let _modalEditId = null; // null = new package, string = editing existing
+let _modalType = 'box'; // current modal type
+
+function setModalType(type) {
+  _modalType = type;
+  document.getElementById('mType').value = type;
+  document.getElementById('mTypeBox').classList.toggle('active', type === 'box');
+  document.getElementById('mTypeCyl').classList.toggle('active', type === 'cylinder');
+  const isCyl = type === 'cylinder';
+  document.getElementById('mDimLabel').textContent = isCyl
+    ? 'Wymiary mm — Średnicy \xd7 Wysokość'
+    : 'Wymiary mm — Dł \xd7 Szer \xd7 Wys';
+  document.getElementById('mDimA').placeholder = isCyl ? 'Średn.' : 'Dług.';
+  document.getElementById('mDimB').placeholder = isCyl ? 'Wys.' : 'Szer.';
+  document.getElementById('mDimCRow').style.display = isCyl ? 'none' : '';
+  // Hide/show face picker section for cylinders
+  const previewHint = document.querySelector('.preview-hint');
+  if (previewHint) previewHint.style.display = isCyl ? 'none' : '';
+  drawPreview();
+}
+window.setModalType = setModalType;
 
 function openPkgModal(id) {
   _modalEditId = id || null;
   const isNew = !id;
   const pkg = id ? PKGS.find(p=>p.id===id) : null;
 
-  document.getElementById('modalTitle').textContent = isNew ? 'Nowy karton' : 'Edytuj karton';
+  document.getElementById('modalTitle').textContent = isNew ? 'Nowy element' : 'Edytuj element';
   document.getElementById('mName').value  = pkg?.name  || '';
-  document.getElementById('mDimA').value  = pkg?.dims[0] || '';
-  document.getElementById('mDimB').value  = pkg?.dims[1] || '';
-  document.getElementById('mDimC').value  = pkg?.dims[2] || '';
+
   const color = pkg?.color || '#3498db';
   document.getElementById('mColor').value    = color;
   document.getElementById('mColorHex').textContent = color;
@@ -1325,6 +1367,19 @@ function openPkgModal(id) {
 
   // Show "restore defaults" hint when editing
   document.getElementById('modalRestoreRow').style.display = isNew ? 'none' : 'block';
+
+  const pkgType = pkg?.type || 'box';
+  _modalType = pkgType;
+  setModalType(pkgType);
+  if (pkgType === 'cylinder') {
+    document.getElementById('mDimA').value = pkg?.dims[0] || '';
+    document.getElementById('mDimB').value = pkg?.dims[1] || '';
+    document.getElementById('mDimC').value = '';
+  } else {
+    document.getElementById('mDimA').value  = pkg?.dims[0] || '';
+    document.getElementById('mDimB').value  = pkg?.dims[1] || '';
+    document.getElementById('mDimC').value  = pkg?.dims[2] || '';
+  }
 
   _previewFaceMode = pkg?.topFace || 'auto';
   _prevTheta = 0.52; _prevPhi = 0.38;
@@ -1344,21 +1399,29 @@ function modalBgClick(e) {
 
 function modalSave() {
   const name = document.getElementById('mName').value.trim();
+  const type = document.getElementById('mType').value || 'box';
   const A = parseInt(document.getElementById('mDimA').value);
   const B = parseInt(document.getElementById('mDimB').value);
-  const C = parseInt(document.getElementById('mDimC').value);
+  const C = type === 'box' ? parseInt(document.getElementById('mDimC').value) : null;
   const color = document.getElementById('mColor').value;
 
-  if (!name)          { alert('Podaj nazwę kartonu.'); return; }
-  if (!A||!B||!C||A<=0||B<=0||C<=0) { alert('Podaj prawidłowe wymiary (mm > 0).'); return; }
+  if (!name) { alert('Podaj nazwę.'); return; }
+  if (type === 'box') {
+    if (!A||!B||!C||A<=0||B<=0||C<=0) { alert('Podaj prawidłowe wymiary (mm > 0).'); return; }
+  } else {
+    if (!A||!B||A<=0||B<=0) { alert('Podaj prawidłowe wymiary (mm > 0).'); return; }
+  }
+
+  const dims = type === 'cylinder' ? [A, B] : [A, B, C];
+  const topFace = type === 'cylinder' ? 'auto' : _previewFaceMode;
 
   if (_modalEditId) {
     // Edit existing
     const pkg = PKGS.find(p=>p.id===_modalEditId);
-    if (pkg) { pkg.name=name; pkg.dims=[A,B,C]; pkg.color=color; pkg.topFace=_previewFaceMode; }
+    if (pkg) { pkg.name=name; pkg.type=type; pkg.dims=dims; pkg.color=color; pkg.topFace=topFace; }
   } else {
     // New custom package
-    PKGS.push({ id:'pkg_'+Date.now(), name, dims:[A,B,C], color, topFace:_previewFaceMode });
+    PKGS.push({ id:'pkg_'+Date.now(), name, type, dims, color, topFace });
   }
   savePkgs();
   modalClose();
@@ -1629,8 +1692,41 @@ function drawPreview() {
   if(!pcv) return;
   const A=parseInt(document.getElementById('mDimA').value)||300;
   const B=parseInt(document.getElementById('mDimB').value)||200;
-  const C=parseInt(document.getElementById('mDimC').value)||150;
+  const type=document.getElementById('mType')?.value||'box';
   const baseColor=document.getElementById('mColor')?.value||'#3498db';
+
+  if(type==='cylinder'){
+    // Draw a simple 2D cylinder projection on the canvas
+    const pc=pcv.getContext('2d');
+    const W=pcv.width,H=pcv.height;
+    pc.clearRect(0,0,W,H);
+    const D=A,Ht=B; // diameter, height
+    const sc=Math.min(W,H)*0.32/Math.max(D,Ht);
+    const r=D/2*sc;
+    const ht=Ht*sc;
+    const ry=r*0.38;
+    const cx=W/2,cy=H/2;
+    const topY=cy-ht/2,botY=cy+ht/2;
+    // Side fill
+    pc.fillStyle=baseColor;
+    pc.fillRect(cx-r,topY,r*2,ht);
+    // Bottom ellipse (darker)
+    pc.beginPath();pc.ellipse(cx,botY,r,ry,0,0,Math.PI*2);
+    pc.fillStyle=col(baseColor,-0.25);pc.fill();
+    pc.strokeStyle='rgba(0,0,0,.2)';pc.lineWidth=0.8;pc.stroke();
+    // Top ellipse (brighter)
+    pc.beginPath();pc.ellipse(cx,topY,r,ry,0,0,Math.PI*2);
+    pc.fillStyle=col(baseColor,0.35);pc.fill();
+    pc.stroke();
+    // Side outline
+    pc.strokeStyle='rgba(0,0,0,.2)';pc.lineWidth=0.8;
+    pc.strokeRect(cx-r,topY,r*2,ht);
+    const lbl=document.getElementById('prevFaceLabel');
+    if(lbl) lbl.textContent=`Ø${D}\xd7${Ht}`;
+    return;
+  }
+
+  const C=parseInt(document.getElementById('mDimC').value)||150;
   const faceNames={'0':`${A}×${B} ↑`,'1':`${A}×${C} ↑`,'2':`${B}×${C} ↑`};
   _renderFaces(pcv,_computePreviewFaces(A,B,C),baseColor,_previewFaceMode);
   const lbl=document.getElementById('prevFaceLabel');
@@ -2140,6 +2236,24 @@ function makeBox3D(x,y,z,w,h,d,colorHex,opacity=1){
   return mesh;
 }
 
+function makeCylinder3D(x,y,z,diameter,height,colorHex,opacity=1){
+  const r=Math.max(0.5,diameter/2-0.5),h=Math.max(1,height-1);
+  const geo=new THREE.CylinderGeometry(r,r,h,24);
+  const tc=(hex,adj)=>{
+    const ri=parseInt(hex.slice(1,3),16)/255,gi=parseInt(hex.slice(3,5),16)/255,bi=parseInt(hex.slice(5,7),16)/255;
+    const f=1+adj;return new THREE.Color(Math.min(1,ri*f),Math.min(1,gi*f),Math.min(1,bi*f));
+  };
+  const mesh=new THREE.Mesh(geo,[
+    new THREE.MeshBasicMaterial({color:tc(colorHex,0),transparent:opacity<1,opacity}),
+    new THREE.MeshBasicMaterial({color:tc(colorHex,.35),transparent:opacity<1,opacity}),
+    new THREE.MeshBasicMaterial({color:tc(colorHex,-.2),transparent:opacity<1,opacity}),
+  ]);
+  mesh.position.set(x+diameter/2,y+height/2,z+diameter/2);
+  const edgeMat=new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:opacity*.3});
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,30),edgeMat));
+  return mesh;
+}
+
 function makeHeightLabel3D(palLabel,palH,x,z,labelW){
   const cw=440,ch=160,lw=labelW||PAL.W*.7;
   const cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
@@ -2210,7 +2324,9 @@ function draw3D(res){
         t3.scene.add(m);t3.staticObjects.push(m);
       }
     res.placements.forEach(p=>{
-      const m=makeBox3D(p.x,p.y,p.z,p.w,p.h,p.d,p.color);
+      const m=p.shape==='cylinder'
+        ?makeCylinder3D(p.x,p.y,p.z,p.w,p.h,p.color)
+        :makeBox3D(p.x,p.y,p.z,p.w,p.h,p.d,p.color);
       t3.scene.add(m);t3.staticObjects.push(m);
     });
     // 3D height labels — lie flat on floor in front of each pallet
@@ -2386,12 +2502,15 @@ function buildVehicleSavedLists(){
     clist.innerHTML='';
     PKGS.forEach(pkg=>{
       const [L,W,H]=pkg.dims;
+      const dimText=pkg.type==='cylinder'
+        ?`\xd8${L} \xd7 ${W} mm wys.`
+        :`${L}\xd7${W}\xd7${H} mm`;
       const d=document.createElement('div');
       d.className='spal-item spal-carton';
       d.innerHTML=`<div class="spal-dot" style="background:${pkg.color}"></div>
         <div class="spal-info">
           <div class="spal-name">${pkg.name}</div>
-          <div class="spal-dim">${L}×${W}×${H} mm</div>
+          <div class="spal-dim">${dimText}</div>
         </div>
         <div class="spal-qty-wrap"><label>szt.:</label>
           <input class="spal-qty" type="number" id="${p}_cqty_${pkg.id}" value="0" min="0" max="9999" inputmode="numeric"/></div>`;
@@ -2443,15 +2562,18 @@ function arrangeVehicle(type){
   // Each stack = as many cartons as fit under the vehicle ceiling. The tmpl contains one entry
   // per carton in the stack so the renderer draws individual boxes at their correct y positions.
   for(const {pkg,qty} of cartonRequests){
-    const [L,W,H]=pkg.dims;
+    const isCyl=pkg.type==='cylinder';
+    const L=pkg.dims[0],W=isCyl?pkg.dims[0]:pkg.dims[1],H=isCyl?pkg.dims[1]:pkg.dims[2];
+    // For cylinder: footprint L×W = D×D, height = H
+    // For box: footprint L×W, height H
     if(H>vs.H){leftover+=qty;continue;}
     const stackCnt=Math.max(1,Math.floor(vs.H/H));
     let rem=qty;
     while(rem>0){
       const n=Math.min(stackCnt,rem);
       const tmpl=[];
-      for(let c=0;c<n;c++) tmpl.push({x:0,y:c*H,z:0,w:L,h:H,d:W,color:pkg.color});
-      unitPallets.push({w:L,d:W,totalH:n*H,color:pkg.color,name:pkg.name,palId:null,tmpl,isCarton:true});
+      for(let c=0;c<n;c++) tmpl.push({x:0,y:c*H,z:0,w:L,h:H,d:W,color:pkg.color,shape:isCyl?'cylinder':undefined});
+      unitPallets.push({w:L,d:W,totalH:n*H,color:pkg.color,name:pkg.name,palId:null,tmpl,isCarton:true,isCylinder:isCyl});
       rem-=n;
     }
   }
@@ -2674,7 +2796,9 @@ function drawVehicle3D(type){
             let px,pz,pw2,pd;
             if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw2=pkg.d;pd=pkg.w;}
             else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw2=pkg.w;pd=pkg.d;}
-            const m=makeBox3D(px,pkg.y,pz,pw2,pkg.h,pd,pkg.color);
+            const m=pkg.shape==='cylinder'
+              ?makeCylinder3D(px,pkg.y,pz,pw2,pkg.h,pkg.color)
+              :makeBox3D(px,pkg.y,pz,pw2,pkg.h,pd,pkg.color);
             tv.scene.add(m);tv.staticObjects.push(m);
           });
         } else {
