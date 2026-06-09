@@ -2578,8 +2578,12 @@ function arrangeVehicle(type){
     }
   }
 
-  // Tallest first → packed against rear wall (high Z); shorter toward loading door (low Z)
-  unitPallets.sort((a,b)=>b.totalH-a.totalH);
+  // Pallets first (rear wall), loose cartons last (near loading door).
+  // Within each group sort tallest-first so the heaviest items go deepest.
+  const _pals=unitPallets.filter(u=>!u.isCarton).sort((a,b)=>b.totalH-a.totalH);
+  const _cars=unitPallets.filter(u=> u.isCarton).sort((a,b)=>b.totalH-a.totalH);
+  unitPallets.length=0;
+  unitPallets.push(..._pals,..._cars);
 
   // Pick orientation that fits the MOST pallets in the remaining row space.
   // Using availW (not vs.W) makes the second pallet in a row pick the wider orientation
