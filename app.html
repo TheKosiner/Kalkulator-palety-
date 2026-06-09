@@ -2558,16 +2558,16 @@ function arrangeVehicle(type){
       }
     }
   }
-  // Add loose carton stacks — cartons are stacked vertically to maximise height utilisation.
-  // Each stack = as many cartons as fit under the vehicle ceiling. The tmpl contains one entry
-  // per carton in the stack so the renderer draws individual boxes at their correct y positions.
+  // Add loose carton stacks — capped at the height of the shortest pallet so cartons
+  // never tower above the pallet load. Each stack = as many cartons as fit under that cap.
+  const _minPalH=unitPallets.length
+    ?unitPallets.reduce((m,u)=>Math.min(m,u.totalH),Infinity)
+    :vs.H;
   for(const {pkg,qty} of cartonRequests){
     const isCyl=pkg.type==='cylinder';
     const L=pkg.dims[0],W=isCyl?pkg.dims[0]:pkg.dims[1],H=isCyl?pkg.dims[1]:pkg.dims[2];
-    // For cylinder: footprint L×W = D×D, height = H
-    // For box: footprint L×W, height H
-    if(H>vs.H){leftover+=qty;continue;}
-    const stackCnt=Math.max(1,Math.floor(vs.H/H));
+    if(H>_minPalH){leftover+=qty;continue;}
+    const stackCnt=Math.max(1,Math.floor(_minPalH/H));
     let rem=qty;
     while(rem>0){
       const n=Math.min(stackCnt,rem);
