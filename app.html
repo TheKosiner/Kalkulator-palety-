@@ -2697,15 +2697,47 @@ function arrangeVehicle(type){
   }else{
     // Row-based packing with _bestO: fills left→right, starts a new row when current row is full.
     // For wide vehicles _bestO naturally selects a uniform orientation for all pallets in a row.
-    let curZ=vs.L,rowUsedX=0,rowDepth=0,inCartons=false;
-    for(const up of unitPallets){
-      // When the first loose carton stack is reached, flush any partial pallet row so carton
-      // rows start their own row depth — this eliminates the visual gap caused by cartons
-      // landing at curZ-300 while pallets in the same partial row sit at curZ-1200.
-      if(up.isCarton&&!inCartons){
-        if(rowUsedX>0||rowDepth>0){curZ-=rowDepth;rowUsedX=0;rowDepth=0;}
-        inCartons=true;
+    let curZ=vs.L,rowUsedX=0,rowDepth=0;
+
+    // Pass 1: pack all pallet units
+    for(const up of unitPallets.filter(u=>!u.isCarton)){
+      let o=_bestO(up,vs.W-rowUsedX);
+      if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
+      if(curZ-o.palD<-0.5){leftover++;continue;}
+      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
+      rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
+    }
+
+    const cartonUnits=unitPallets.filter(u=>u.isCarton);
+    let ci=0;
+
+    // Pass 2: fill the partial pallet row's remaining width with carton stacks.
+    // Cartons are tiled left→right in X, front→back in Z within the rectangle
+    // (rowUsedX .. vs.W) × (curZ-rowDepth .. curZ), so they sit flush beside pallets.
+    if(rowUsedX>0&&rowDepth>0&&ci<cartonUnits.length){
+      const subW=vs.W-rowUsedX;
+      let subZ=0,subX=0,subZRow=0;
+      while(ci<cartonUnits.length){
+        if(subZ>=rowDepth-0.5) break;
+        const up=cartonUnits[ci];
+        let o=_bestO(up,subW-subX);
+        if(!o){
+          subZ+=subZRow;subX=0;subZRow=0;
+          if(subZ>=rowDepth-0.5) break;
+          o=_bestO(up,subW);
+          if(!o) break; // carton too wide for sub-space → spill to full rows
+        }
+        if(subZ+o.palD>rowDepth+0.5) break;
+        placements.push({x:rowUsedX+subX,y:0,z:curZ-rowDepth+subZ,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
+        subX+=o.palW;subZRow=Math.max(subZRow,o.palD);
+        ci++;
       }
+      curZ-=rowDepth;rowUsedX=0;rowDepth=0;
+    }
+
+    // Pass 3: remaining carton stacks in full-width rows continuing toward loading door
+    for(;ci<cartonUnits.length;ci++){
+      const up=cartonUnits[ci];
       let o=_bestO(up,vs.W-rowUsedX);
       if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
       if(curZ-o.palD<-0.5){leftover++;continue;}
