@@ -187,6 +187,9 @@
     .spal-del{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:.88rem;padding:2px 5px;border-radius:4px;flex-shrink:0}
     .spal-del:hover{color:var(--red);background:var(--red-dim)}
     .no-saved-msg{font-size:.74rem;color:var(--text-3);padding:8px 0;line-height:1.6}
+    .spal-carton .spal-dot{border-radius:50%}
+    .vsec-title{font-size:.64rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin:14px 0 6px;display:flex;align-items:center;gap:6px}
+    .vsec-title::after{content:'';flex:1;height:1px;background:var(--border)}
     #sSave{display:none}
     #sSave button{background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.75);font-size:.68rem;font-weight:600;padding:4px 10px;cursor:pointer;transition:all .15s;white-space:nowrap}
     #sSave button:hover{border-color:rgba(255,255,255,.4);color:#fff;background:rgba(255,255,255,.08)}
@@ -282,7 +285,7 @@
 <div id="paneNaczepa" class="vpane" style="display:none">
   <canvas id="naczCanvas" class="vpane-canvas"></canvas>
   <div class="v-stats" id="naczStats">
-    <div class="s"><span class="v" id="naczStatPal">—</span><span class="l">Palet</span></div>
+    <div class="s"><span class="v" id="naczStatPal">—</span><span class="l" id="naczStatPalLbl">Palet</span></div>
     <div class="s"><span class="v" id="naczStatUtil">—</span><span class="l">Podłogi</span></div>
     <div class="s"><span class="v" id="naczStatLeft">—</span><span class="l">Nie zmieści</span></div>
   </div>
@@ -317,7 +320,9 @@
       <div class="stitle" style="margin-top:14px">Palety do załadunku</div>
       <div id="naczPalList"></div>
       <div id="naczNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
-      <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px">Ułóż palety automatycznie</button>
+      <div class="vsec-title">Kartony luzem</div>
+      <div id="naczCartonList"></div>
+      <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
     </div>
   </div>
 </div>
@@ -326,7 +331,7 @@
 <div id="paneKontener" class="vpane" style="display:none">
   <canvas id="kontCanvas" class="vpane-canvas"></canvas>
   <div class="v-stats" id="kontStats">
-    <div class="s"><span class="v" id="kontStatPal">—</span><span class="l">Palet</span></div>
+    <div class="s"><span class="v" id="kontStatPal">—</span><span class="l" id="kontStatPalLbl">Palet</span></div>
     <div class="s"><span class="v" id="kontStatUtil">—</span><span class="l">Podłogi</span></div>
     <div class="s"><span class="v" id="kontStatLeft">—</span><span class="l">Nie zmieści</span></div>
   </div>
@@ -361,7 +366,9 @@
       <div class="stitle" style="margin-top:14px">Palety do załadunku</div>
       <div id="kontPalList"></div>
       <div id="kontNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
-      <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px">Ułóż palety automatycznie</button>
+      <div class="vsec-title">Kartony luzem</div>
+      <div id="kontCartonList"></div>
+      <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
     </div>
   </div>
 </div>
@@ -551,7 +558,7 @@ const DEFAULT_PKGS = [
 ];
 const BUILTIN_IDS = new Set(DEFAULT_PKGS.map(p=>p.id));
 
-function savePkgs() { try{localStorage.setItem('pkgs',JSON.stringify(PKGS));}catch(e){} }
+function savePkgs() { try{localStorage.setItem('pkgs',JSON.stringify(PKGS));}catch(e){} if(typeof buildVehicleSavedLists==='function')buildVehicleSavedLists(); }
 function loadPkgsFromStorage() {
   try {
     const raw = localStorage.getItem('pkgs');
@@ -2373,6 +2380,23 @@ function buildVehicleSavedLists(){
         <button class="spal-del" title="Usuń" onclick="deleteSavedPallet('${pal.id}')">🗑️</button>`;
       list.appendChild(d);
     });
+    // Loose carton list — one row per package type in PKGS
+    const clist=document.getElementById(p+'CartonList');
+    if(!clist)return;
+    clist.innerHTML='';
+    PKGS.forEach(pkg=>{
+      const [L,W,H]=pkg.dims;
+      const d=document.createElement('div');
+      d.className='spal-item spal-carton';
+      d.innerHTML=`<div class="spal-dot" style="background:${pkg.color}"></div>
+        <div class="spal-info">
+          <div class="spal-name">${pkg.name}</div>
+          <div class="spal-dim">${L}×${W}×${H} mm</div>
+        </div>
+        <div class="spal-qty-wrap"><label>szt.:</label>
+          <input class="spal-qty" type="number" id="${p}_cqty_${pkg.id}" value="0" min="0" max="9999" inputmode="numeric"/></div>`;
+      clist.appendChild(d);
+    });
   });
 }
 
@@ -2388,9 +2412,14 @@ function arrangeVehicle(type){
     return qty>0?{pal,qty}:null;
   }).filter(Boolean);
 
-  if(!requests.length){
+  const cartonRequests=PKGS.map(pkg=>{
+    const qty=parseInt(document.getElementById(`${p}_cqty_${pkg.id}`)?.value)||0;
+    return qty>0?{pkg,qty}:null;
+  }).filter(Boolean);
+
+  if(!requests.length&&!cartonRequests.length){
     const wb=document.getElementById(p+'WarnBar');
-    wb.textContent='Dodaj palety do załadunku – ustaw ilość > 0.';wb.style.display='block';return;
+    wb.textContent='Dodaj palety lub kartony do załadunku – ustaw ilość > 0.';wb.style.display='block';return;
   }
 
   // Expand every set into individual unit pallets, computing each board's ACTUAL height
@@ -2410,6 +2439,23 @@ function arrangeVehicle(type){
       }
     }
   }
+  // Add loose carton stacks — cartons are stacked vertically to maximise height utilisation.
+  // Each stack = as many cartons as fit under the vehicle ceiling. The tmpl contains one entry
+  // per carton in the stack so the renderer draws individual boxes at their correct y positions.
+  for(const {pkg,qty} of cartonRequests){
+    const [L,W,H]=pkg.dims;
+    if(H>vs.H){leftover+=qty;continue;}
+    const stackCnt=Math.max(1,Math.floor(vs.H/H));
+    let rem=qty;
+    while(rem>0){
+      const n=Math.min(stackCnt,rem);
+      const tmpl=[];
+      for(let c=0;c<n;c++) tmpl.push({x:0,y:c*H,z:0,w:L,h:H,d:W,color:pkg.color});
+      unitPallets.push({w:L,d:W,totalH:n*H,color:pkg.color,name:pkg.name,palId:null,tmpl,isCarton:true});
+      rem-=n;
+    }
+  }
+
   // Tallest first → packed against rear wall (high Z); shorter toward loading door (low Z)
   unitPallets.sort((a,b)=>b.totalH-a.totalH);
 
@@ -2454,13 +2500,13 @@ function arrangeVehicle(type){
       const canB=pwB<=vs.W-wA+0.5&&zB-pdB>=-0.5;
       let placed=false;
       if(canA&&(useA||!canB)){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:up.isCarton,placements:up.tmpl});
         zA-=pdA;useA=false;placed=true;
       }else if(canB){
-        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotB,placements:up.tmpl});
+        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotB,isCarton:up.isCarton,placements:up.tmpl});
         zB-=pdB;useA=true;placed=true;
       }else if(canA){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:up.isCarton,placements:up.tmpl});
         zA-=pdA;placed=true;
       }
       if(!placed)leftover++;
@@ -2473,7 +2519,7 @@ function arrangeVehicle(type){
       let o=_bestO(up,vs.W-rowUsedX);
       if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
       if(curZ-o.palD<-0.5){leftover++;continue;}
-      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,placements:up.tmpl});
+      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
       rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
     }
   }
@@ -2481,12 +2527,16 @@ function arrangeVehicle(type){
 
   vs.result={placements,leftover};
   document.getElementById(p+'Stats').style.display='flex';
-  document.getElementById(p+'StatPal').textContent=placements.length;
+  const nPal=placements.filter(pp=>!pp.isCarton).length;
+  const nCar=placements.filter(pp=>pp.isCarton).length;
+  document.getElementById(p+'StatPal').textContent=nCar>0?(nPal>0?`${nPal}p+${nCar}k`:nCar):nPal;
+  const lbl=document.getElementById(p+'StatPalLbl');
+  if(lbl)lbl.textContent=nCar>0&&nPal===0?'Kartonów':nCar>0?'Palet+kart.':'Palet';
   const util=Math.round(placements.reduce((s,pp)=>s+pp.palW*pp.palD,0)/(vs.L*vs.W)*100);
   document.getElementById(p+'StatUtil').textContent=util+'%';
   document.getElementById(p+'StatLeft').textContent=leftover;
   const wb=document.getElementById(p+'WarnBar');
-  if(leftover>0){wb.textContent=`Nie zmieściło się ${leftover} palet – za mało miejsca.`;wb.style.display='block';}
+  if(leftover>0){wb.textContent=`Nie zmieściło się ${leftover} elementów – za mało miejsca.`;wb.style.display='block';}
   else wb.style.display='none';
   drawVehicle3D(type);
 }
@@ -2607,15 +2657,18 @@ function drawVehicle3D(type){
     dimSpr('Szer.: '+mm(VW), VW/2,  VH*.1, -VW*.5);
     dimSpr('Wys.: '+mm(VH), -VW*.5, VH/2,   VL*.05);
 
-    // pallets at their actual positions inside the vehicle
+    // pallets and loose cartons at their actual positions inside the vehicle
     if(vs.result?.placements?.length){
       const PH=PAL.H;
       vs.result.placements.forEach(pp=>{
         const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
-        _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>{
-          const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
-          tv.scene.add(m);tv.staticObjects.push(m);
-        });
+        // Skip the wooden pallet base for loose carton stacks
+        if(!pp.isCarton){
+          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>{
+            const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
+            tv.scene.add(m);tv.staticObjects.push(m);
+          });
+        }
         if(pkgList?.length){
           pkgList.forEach(pkg=>{
             let px,pz,pw2,pd;
