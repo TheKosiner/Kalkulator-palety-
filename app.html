@@ -2667,9 +2667,15 @@ function arrangeVehicle(type){
 
   if(useTwoLane){
     const wA=Math.min(firstUp.w,firstUp.d);
-    let zA=vs.L,zB=vs.L,useA=true;
+    let zA=vs.L,zB=vs.L,useA=true,tlInCartons=false;
     for(const up of unitPallets){
       if(up.totalH>vs.H){leftover++;continue;}
+      // Sync both lane pointers when transitioning to cartons so carton stacks start
+      // flush against the front face of the pallet group — no gap.
+      if(up.isCarton&&!tlInCartons){
+        const front=Math.min(zA,zB);zA=front;zB=front;
+        tlInCartons=true;
+      }
       const wNarrow=up.w<=up.d;
       const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d),rotA=!wNarrow;
       const pwB=Math.max(up.w,up.d),pdB=Math.min(up.w,up.d),rotB=wNarrow;
@@ -2691,8 +2697,15 @@ function arrangeVehicle(type){
   }else{
     // Row-based packing with _bestO: fills left→right, starts a new row when current row is full.
     // For wide vehicles _bestO naturally selects a uniform orientation for all pallets in a row.
-    let curZ=vs.L,rowUsedX=0,rowDepth=0;
+    let curZ=vs.L,rowUsedX=0,rowDepth=0,inCartons=false;
     for(const up of unitPallets){
+      // When the first loose carton stack is reached, flush any partial pallet row so carton
+      // rows start their own row depth — this eliminates the visual gap caused by cartons
+      // landing at curZ-300 while pallets in the same partial row sit at curZ-1200.
+      if(up.isCarton&&!inCartons){
+        if(rowUsedX>0||rowDepth>0){curZ-=rowDepth;rowUsedX=0;rowDepth=0;}
+        inCartons=true;
+      }
       let o=_bestO(up,vs.W-rowUsedX);
       if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
       if(curZ-o.palD<-0.5){leftover++;continue;}
