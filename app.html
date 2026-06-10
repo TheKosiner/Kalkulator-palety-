@@ -2668,7 +2668,8 @@ function arrangeVehicle(type){
   if(useTwoLane){
     const wA=Math.min(firstUp.w,firstUp.d);
     let zA=vs.L,zB=vs.L,useA=true;
-    for(const up of unitPallets){
+    // Pack pallets with two-lane column algorithm
+    for(const up of unitPallets.filter(u=>!u.isCarton)){
       if(up.totalH>vs.H){leftover++;continue;}
       const wNarrow=up.w<=up.d;
       const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d),rotA=!wNarrow;
@@ -2687,6 +2688,18 @@ function arrangeVehicle(type){
         zA-=pdA;placed=true;
       }
       if(!placed)leftover++;
+    }
+    // Loose cartons use row-based packing from the front of the pallet group.
+    // _bestO freely picks orientation to maximise items per row across the full vehicle width.
+    {
+      let curZ=Math.min(zA,zB),rowUsedX=0,rowDepth=0;
+      for(const up of unitPallets.filter(u=>u.isCarton)){
+        let o=_bestO(up,vs.W-rowUsedX);
+        if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
+        if(curZ-o.palD<-0.5){leftover++;continue;}
+        placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
+        rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
+      }
     }
   }else{
     // Row-based packing with _bestO: fills left→right, starts a new row when current row is full.
