@@ -2722,12 +2722,18 @@ function arrangeVehicle(type){
         const up=cartonUnits[ci];
         let o=_bestO(up,subW-subX);
         if(!o){
+          // End of X-row (or carton too wide). Start new Z-row.
           subZ+=subZRow;subX=0;subZRow=0;
           if(subZ>=rowDepth-0.5) break;
           o=_bestO(up,subW);
-          if(!o) break; // carton too wide for sub-space → spill to full rows
+          if(!o){ci++;continue;} // carton too wide for sub-space in any orientation → full rows
         }
-        if(subZ+o.palD>rowDepth+0.5) break;
+        if(subZ+o.palD>rowDepth+0.5){
+          // This orientation goes too deep. Try the other orientation (swap palW/palD).
+          const alt={palW:o.palD,palD:o.palW,rotated:!o.rotated};
+          if(alt.palW<=subW-subX+0.5&&subZ+alt.palD<=rowDepth+0.5) o=alt;
+          else{ci++;continue;} // neither orientation fits in remaining depth → full rows
+        }
         placements.push({x:rowUsedX+subX,y:0,z:curZ-rowDepth+subZ,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
         subX+=o.palW;subZRow=Math.max(subZRow,o.palD);
         ci++;
