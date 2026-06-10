@@ -2667,15 +2667,9 @@ function arrangeVehicle(type){
 
   if(useTwoLane){
     const wA=Math.min(firstUp.w,firstUp.d);
-    let zA=vs.L,zB=vs.L,useA=true,tlInCartons=false;
+    let zA=vs.L,zB=vs.L,useA=true;
     for(const up of unitPallets){
       if(up.totalH>vs.H){leftover++;continue;}
-      // Sync both lane pointers when transitioning to cartons so carton stacks start
-      // flush against the front face of the pallet group — no gap.
-      if(up.isCarton&&!tlInCartons){
-        const front=Math.min(zA,zB);zA=front;zB=front;
-        tlInCartons=true;
-      }
       const wNarrow=up.w<=up.d;
       const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d),rotA=!wNarrow;
       const pwB=Math.max(up.w,up.d),pdB=Math.min(up.w,up.d),rotB=wNarrow;
@@ -2722,17 +2716,16 @@ function arrangeVehicle(type){
         const up=cartonUnits[ci];
         let o=_bestO(up,subW-subX);
         if(!o){
-          // End of X-row (or carton too wide). Start new Z-row.
           subZ+=subZRow;subX=0;subZRow=0;
           if(subZ>=rowDepth-0.5) break;
           o=_bestO(up,subW);
-          if(!o){ci++;continue;} // carton too wide for sub-space in any orientation → full rows
+          if(!o) break; // carton too wide for sub-space → remaining go to full rows
         }
         if(subZ+o.palD>rowDepth+0.5){
-          // This orientation goes too deep. Try the other orientation (swap palW/palD).
+          // Try the other orientation (swap palW↔palD) — smaller palD may fit in remaining depth
           const alt={palW:o.palD,palD:o.palW,rotated:!o.rotated};
           if(alt.palW<=subW-subX+0.5&&subZ+alt.palD<=rowDepth+0.5) o=alt;
-          else{ci++;continue;} // neither orientation fits in remaining depth → full rows
+          else break; // neither orientation fits → remaining go to full rows
         }
         placements.push({x:rowUsedX+subX,y:0,z:curZ-rowDepth+subZ,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
         subX+=o.palW;subZRow=Math.max(subZRow,o.palD);
