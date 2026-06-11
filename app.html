@@ -328,6 +328,9 @@
       <div class="vsec-title">Kartony luzem</div>
       <div id="naczCartonList"></div>
       <label class="opt-chk"><input type="checkbox" id="naczLoadOnPal"> Ładuj kartony na palety (jeśli jest miejsce)</label>
+      <label class="opt-chk"><input type="checkbox" id="naczCartonHigher"> Kartony luzem mogą być wyższe niż palety</label>
+      <div class="vsec-title" style="margin-top:10px">Opcje układania</div>
+      <label class="opt-chk"><input type="checkbox" id="naczStackPallets"> Palety mogą być układane jedna na drugą</label>
       <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
     </div>
   </div>
@@ -375,6 +378,9 @@
       <div class="vsec-title">Kartony luzem</div>
       <div id="kontCartonList"></div>
       <label class="opt-chk"><input type="checkbox" id="kontLoadOnPal"> Ładuj kartony na palety (jeśli jest miejsce)</label>
+      <label class="opt-chk"><input type="checkbox" id="kontCartonHigher"> Kartony luzem mogą być wyższe niż palety</label>
+      <div class="vsec-title" style="margin-top:10px">Opcje układania</div>
+      <label class="opt-chk"><input type="checkbox" id="kontStackPallets"> Palety mogą być układane jedna na drugą</label>
       <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
     </div>
   </div>
@@ -2548,7 +2554,7 @@ function arrangeVehicle(type){
   // Expand every set into individual unit pallets, computing each board's ACTUAL height
   // from its own package list (pal.totalH is the set maximum and is the same for all boards,
   // so using it for sorting keeps all boards of one set together — wrong).
-  const unitPallets=[];let leftover=0;
+  let unitPallets=[];let leftover=0;
   for(const {pal,qty} of requests){
     const nPal=pal.numPallets||1;
     const allPP=pal.allPalletPlacements||[pal.placements];
@@ -2612,6 +2618,44 @@ function arrangeVehicle(type){
   // Sort tallest-first so the heaviest pallets go deepest (rear of vehicle).
   unitPallets.sort((a,b)=>b.totalH-a.totalH);
 
+  // Pre-merge pallets into vertical stacks when "stack pallets" option is checked.
+  const stackPallets=document.getElementById(`${p}StackPallets`)?.checked;
+  if(stackPallets && unitPallets.length>1){
+    const groups=new Map();
+    for(const up of unitPallets){
+      const key=`${Math.round(up.w)}_${Math.round(up.d)}`;
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(up);
+    }
+    const merged=[];
+    for(const grp of groups.values()){
+      // already sorted tallest-first; pair tallest with shortest compatible partner
+      const used=new Array(grp.length).fill(false);
+      for(let i=0;i<grp.length;i++){
+        if(used[i])continue;
+        const p1=grp[i];
+        let paired=false;
+        for(let j=grp.length-1;j>i;j--){
+          if(used[j])continue;
+          const p2=grp[j];
+          if(p1.totalH+p2.totalH<=vs.H){
+            merged.push({
+              w:p1.w,d:p1.d,
+              totalH:p1.totalH+p2.totalH,
+              color:p1.color,name:p1.name,palId:p1.palId,
+              tmpl:[...p1.tmpl,...p2.tmpl.map(pkg=>({...pkg,y:(pkg.y||0)+p1.totalH}))],
+              extraBases:[p1.totalH]
+            });
+            used[i]=true;used[j]=true;paired=true;break;
+          }
+        }
+        if(!paired){merged.push({...p1,extraBases:[]});used[i]=true;}
+      }
+    }
+    unitPallets=merged;
+    unitPallets.sort((a,b)=>b.totalH-a.totalH);
+  }
+
   // Pick orientation that fits the MOST pallets in the remaining row space.
   // Using availW (not vs.W) makes the second pallet in a row pick the wider orientation
   // to fill the gap — e.g. 800 + 1200 = 2000mm in a 2350mm container instead of 800+800=1600mm.
@@ -2654,13 +2698,13 @@ function arrangeVehicle(type){
       const canB=pwB<=vs.W-wA+0.5&&zB-pdB>=-0.5;
       let placed=false;
       if(canA&&(useA||!canB)){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:false,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:false,placements:up.tmpl,extraBases:up.extraBases||[]});
         zA-=pdA;useA=false;placed=true;
       }else if(canB){
-        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotB,isCarton:false,placements:up.tmpl});
+        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotB,isCarton:false,placements:up.tmpl,extraBases:up.extraBases||[]});
         zB-=pdB;useA=true;placed=true;
       }else if(canA){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:false,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:false,placements:up.tmpl,extraBases:up.extraBases||[]});
         zA-=pdA;placed=true;
       }
       if(!placed)leftover++;
@@ -2672,7 +2716,7 @@ function arrangeVehicle(type){
       let o=_bestO(up,vs.W-rowUsedX);
       if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
       if(curZ-o.palD<-0.5){leftover++;continue;}
-      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:false,placements:up.tmpl});
+      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:false,placements:up.tmpl,extraBases:up.extraBases||[]});
       rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
     }
   }
@@ -2684,7 +2728,8 @@ function arrangeVehicle(type){
     PAL.W=vs.W; PAL.D=vs.L; PAL.H=0;
     const savedPlaced=_placed;
     _placed=placements.map(pp=>({x:pp.x,y:0,z:pp.z,w:pp.palW,h:pp.totalH,d:pp.palD}));
-    const cartonMaxH=loadOnPal?vs.H:(_origMinPalH<Infinity?_origMinPalH:vs.H);
+    const cartonHigher=document.getElementById(`${p}CartonHigher`)?.checked;
+    const cartonMaxH=(loadOnPal||cartonHigher)?vs.H:(_origMinPalH<Infinity?_origMinPalH:vs.H);
     // Frontmost pallet z — caps the z-comparison so the narrow right strip (free all the way
     // to the rear wall) doesn't beat the side gap beside pallets on the z-sort.
     // Positions at z >= _minPalZ all get cz = _minPalZ and fall back to x ASC (left-first).
@@ -2805,14 +2850,14 @@ function _getVFaces(x,y,z,w,h,d,color,proj){
   ].map(f=>{const v=f.v;return{...f,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
 }
 
-function _vPalBoardBoxes(ox,oz,palW,palD){
+function _vPalBoardBoxes(ox,oz,palW,palD,yOff=0){
   const PH=PAL.H,b=[];
   const bw=Math.max(1,Math.floor(palW/6));
-  for(let i=0;i<6;i++) b.push({x:ox+i*bw,y:PH-22,z:oz,w:bw-2,h:22,d:palD,color:'#c8a86a'});
-  [0,palD/2-50,palD-100].forEach(dz=>b.push({x:ox,y:0,z:oz+dz,w:palW,h:20,d:100,color:'#b8965a'}));
+  for(let i=0;i<6;i++) b.push({x:ox+i*bw,y:yOff+PH-22,z:oz,w:bw-2,h:22,d:palD,color:'#c8a86a'});
+  [0,palD/2-50,palD-100].forEach(dz=>b.push({x:ox,y:yOff,z:oz+dz,w:palW,h:20,d:100,color:'#b8965a'}));
   [0,palW/2-50,palW-100].forEach(dx=>[0,palD/2-50,palD-100].forEach(dz=>
-    b.push({x:ox+dx,y:20,z:oz+dz,w:100,h:72,d:100,color:'#9a6e38'})));
-  [0,palD/2-40,palD-80].forEach(dz=>b.push({x:ox,y:92,z:oz+dz,w:palW,h:20,d:80,color:'#b8965a'}));
+    b.push({x:ox+dx,y:yOff+20,z:oz+dz,w:100,h:72,d:100,color:'#9a6e38'})));
+  [0,palD/2-40,palD-80].forEach(dz=>b.push({x:ox,y:yOff+92,z:oz+dz,w:palW,h:20,d:80,color:'#b8965a'}));
   return b;
 }
 
@@ -2899,6 +2944,13 @@ function drawVehicle3D(type){
           _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>{
             const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
             tv.scene.add(m);tv.staticObjects.push(m);
+          });
+          // Extra bases for stacked pallets (one base per stacked level)
+          (pp.extraBases||[]).forEach(yOff=>{
+            _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD,yOff).forEach(b=>{
+              const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
+              tv.scene.add(m);tv.staticObjects.push(m);
+            });
           });
         }
         if(pkgList?.length){
