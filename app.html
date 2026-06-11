@@ -2681,14 +2681,14 @@ function arrangeVehicle(type){
   // Pallets already placed become obstacles; cartons fill free floor space and stack where flat.
   if(remaining.some(cr=>cr.rem>0)){
     const origW=PAL.W,origD=PAL.D,origH=PAL.H;
-    PAL.D=vs.L; PAL.H=0;
+    PAL.W=vs.W; PAL.D=vs.L; PAL.H=0;
     const savedPlaced=_placed;
     _placed=placements.map(pp=>({x:pp.x,y:0,z:pp.z,w:pp.palW,h:pp.totalH,d:pp.palD}));
-    // Restrict width to the rightmost pallet edge so cartons never go into the
-    // narrow strip between the last pallet column and the container wall.
-    PAL.W=_placed.reduce((m,b)=>Math.max(m,b.x+b.w),0)||vs.W;
     const cartonMaxH=loadOnPal?vs.H:(_origMinPalH<Infinity?_origMinPalH:vs.H);
-    // Custom position finder: rear-first (high Z), left-first (low X), lowest height.
+    // Frontmost pallet z — caps the z-comparison so the narrow right strip (free all the way
+    // to the rear wall) doesn't beat the side gap beside pallets on the z-sort.
+    // Positions at z >= _minPalZ all get cz = _minPalZ and fall back to x ASC (left-first).
+    const _minPalZ=_placed.length>0?_placed.reduce((m,b)=>Math.min(m,b.z),Infinity):0;
     function _findPosVeh(fw,fd,lh,maxH){
       const xs=new Set([0]),zs=new Set([0]);
       for(const b of _placed){
@@ -2705,8 +2705,12 @@ function arrangeVehicle(type){
           const y=_maxSurf(x,z,fw,fd);
           if(y+lh>maxH)continue;
           if(!_isFlat(x,z,fw,fd,y))continue;
-          if(!best||y<best.y||(y===best.y&&z>best.z)||(y===best.y&&z===best.z&&x<best.x))
-            best={x,y,z};
+          const cz=Math.min(z,_minPalZ); // cap: all pallet-zone positions equal on z
+          if(!best||y<best.y||
+             (y===best.y&&cz>best.cz)||
+             (y===best.y&&cz===best.cz&&x<best.x)||
+             (y===best.y&&cz===best.cz&&x===best.x&&z>best.z))
+            best={x,y,z,cz};
         }
       }
       return best;
@@ -2723,7 +2727,10 @@ function arrangeVehicle(type){
           const [fw,fd,lh]=orient;
           const pos=_findPosVeh(fw,fd,lh,cartonMaxH);
           if(!pos) continue;
-          if(!bPos||pos.y<bPos.y||(pos.y===bPos.y&&pos.z>bPos.z)||(pos.y===bPos.y&&pos.z===bPos.z&&pos.x<bPos.x))
+          if(!bPos||pos.y<bPos.y||
+             (pos.y===bPos.y&&pos.cz>bPos.cz)||
+             (pos.y===bPos.y&&pos.cz===bPos.cz&&pos.x<bPos.x)||
+             (pos.y===bPos.y&&pos.cz===bPos.cz&&pos.x===bPos.x&&pos.z>bPos.z))
             {bPos=pos;bOrient=orient;}
         }
         if(!bPos){leftover++;continue;}
