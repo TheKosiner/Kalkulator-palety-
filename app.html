@@ -2694,10 +2694,12 @@ function arrangeVehicle(type){
       // Dense grid: every fw/fd-aligned cell from wall to wall
       for(let xi=0;xi<=PAL.W;xi+=fw)xs.add(xi);
       for(let zi=0;zi<=PAL.D;zi+=fd)zs.add(zi);
-      // Obstacle edges give extra candidate positions (gap edges, pallet faces)
+      // Obstacle edges + "face-touching" positions so cartons snap to pallet faces
       for(const b of _placed){
         xs.add(b.x);xs.add(b.x+b.w);
+        if(b.x-fw>=0)xs.add(b.x-fw);   // place carton flush against left face of b
         zs.add(b.z);zs.add(b.z+b.d);
+        if(b.z-fd>=0)zs.add(b.z-fd);   // place carton flush against front face of b
       }
       let best=null;
       for(const x of xs){
