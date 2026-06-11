@@ -2720,25 +2720,33 @@ function arrangeVehicle(type){
     for(const cr of sortedCr){
       const {pkg}=cr;
       const isCyl=pkg.type==='cylinder';
-      const orients=genOrients(pkg.dims,'auto',0);
-      for(let i=0;i<cr.rem;i++){
-        let bPos=null,bOrient=null;
-        for(const orient of orients){
-          const [fw,fd,lh]=orient;
-          const pos=_findPosVeh(fw,fd,lh,cartonMaxH);
-          if(!pos) continue;
+      let rem=cr.rem;
+      while(rem>0){
+        let bPos=null,bOrient=null,bN=0;
+        for(const orient of genOrients(pkg.dims,'auto',0)){
+          const [fw,fd,lh,fw0,fd0,lh0]=orient;
+          // Stack as many cartons as fit vertically — same as pallet packing
+          const maxN=Math.max(1,Math.floor(cartonMaxH/lh));
+          const n=Math.min(maxN,rem);
+          const pos=_findPosVeh(fw,fd,n*lh,cartonMaxH);
+          if(!pos)continue;
           if(!bPos||pos.y<bPos.y||
              (pos.y===bPos.y&&pos.cz>bPos.cz)||
              (pos.y===bPos.y&&pos.cz===bPos.cz&&pos.x<bPos.x)||
              (pos.y===bPos.y&&pos.cz===bPos.cz&&pos.x===bPos.x&&pos.z>bPos.z))
-            {bPos=pos;bOrient=orient;}
+            {bPos=pos;bOrient=orient;bN=n;}
         }
-        if(!bPos){leftover++;continue;}
+        if(!bPos){leftover+=rem;break;}
         const [fw,fd,lh,fw0,fd0,lh0]=bOrient;
-        _placed.push({x:bPos.x,y:bPos.y,z:bPos.z,w:fw,h:lh,d:fd});
-        placements.push({x:bPos.x,y:0,z:bPos.z,palW:fw0,palD:fd0,totalH:bPos.y+lh0,
-          color:pkg.color,name:pkg.name,palId:null,rotated:false,isCarton:true,
-          placements:[{x:0,y:bPos.y,z:0,w:fw0,h:lh0,d:fd0,color:pkg.color,shape:isCyl?'cylinder':undefined}]});
+        _placed.push({x:bPos.x,y:bPos.y,z:bPos.z,w:fw,h:bN*lh,d:fd});
+        const subItems=[];
+        for(let i=0;i<bN;i++)
+          subItems.push({x:0,y:bPos.y+i*lh0,z:0,w:fw0,h:lh0,d:fd0,
+            color:pkg.color,shape:isCyl?'cylinder':undefined});
+        placements.push({x:bPos.x,y:0,z:bPos.z,palW:fw0,palD:fd0,
+          totalH:bPos.y+bN*lh0,color:pkg.color,name:pkg.name,palId:null,
+          rotated:false,isCarton:true,placements:subItems});
+        rem-=bN;
       }
     }
     _placed=savedPlaced;
