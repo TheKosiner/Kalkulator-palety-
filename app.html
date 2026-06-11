@@ -2690,12 +2690,14 @@ function arrangeVehicle(type){
     // Positions at z >= _minPalZ all get cz = _minPalZ and fall back to x ASC (left-first).
     const _minPalZ=_placed.length>0?_placed.reduce((m,b)=>Math.min(m,b.z),Infinity):0;
     function _findPosVeh(fw,fd,lh,maxH){
-      const xs=new Set([0]),zs=new Set([0]);
+      const xs=new Set(),zs=new Set();
+      // Dense grid: every fw/fd-aligned cell from wall to wall
+      for(let xi=0;xi<=PAL.W;xi+=fw)xs.add(xi);
+      for(let zi=0;zi<=PAL.D;zi+=fd)zs.add(zi);
+      // Obstacle edges give extra candidate positions (gap edges, pallet faces)
       for(const b of _placed){
         xs.add(b.x);xs.add(b.x+b.w);
-        for(let xi=b.x+fw;xi<b.x+b.w;xi+=fw)xs.add(xi);
         zs.add(b.z);zs.add(b.z+b.d);
-        for(let zi=b.z+fd;zi<b.z+b.d;zi+=fd)zs.add(zi);
       }
       let best=null;
       for(const x of xs){
