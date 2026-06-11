@@ -2609,32 +2609,8 @@ function arrangeVehicle(type){
     }
   }
 
-  // Add loose carton stacks from remaining — capped at the original (pre-top-loading) min
-  // pallet height so loose stacks next to pallets never tower above the pallet load.
-  const _minPalH=_origMinPalH;
-  for(const cr of remaining){
-    const {pkg}=cr;let qty=cr.rem;
-    if(qty<=0) continue;
-    const isCyl=pkg.type==='cylinder';
-    const L=pkg.dims[0],W=isCyl?pkg.dims[0]:pkg.dims[1],H=isCyl?pkg.dims[1]:pkg.dims[2];
-    if(H>_minPalH){leftover+=qty;continue;}
-    const stackCnt=Math.max(1,Math.floor(_minPalH/H));
-    let rem=qty;
-    while(rem>0){
-      const n=Math.min(stackCnt,rem);
-      const tmpl=[];
-      for(let c=0;c<n;c++) tmpl.push({x:0,y:c*H,z:0,w:L,h:H,d:W,color:pkg.color,shape:isCyl?'cylinder':undefined});
-      unitPallets.push({w:L,d:W,totalH:n*H,color:pkg.color,name:pkg.name,palId:null,tmpl,isCarton:true,isCylinder:isCyl});
-      rem-=n;
-    }
-  }
-
-  // Pallets first (rear wall), loose cartons last (near loading door).
-  // Within each group sort tallest-first so the heaviest items go deepest.
-  const _pals=unitPallets.filter(u=>!u.isCarton).sort((a,b)=>b.totalH-a.totalH);
-  const _cars=unitPallets.filter(u=> u.isCarton).sort((a,b)=>b.totalH-a.totalH);
-  unitPallets.length=0;
-  unitPallets.push(..._pals,..._cars);
+  // Sort tallest-first so the heaviest pallets go deepest (rear of vehicle).
+  unitPallets.sort((a,b)=>b.totalH-a.totalH);
 
   // Pick orientation that fits the MOST pallets in the remaining row space.
   // Using availW (not vs.W) makes the second pallet in a row pick the wider orientation
@@ -2669,7 +2645,7 @@ function arrangeVehicle(type){
     const wA=Math.min(firstUp.w,firstUp.d);
     let zA=vs.L,zB=vs.L,useA=true;
     // Pack pallets with two-lane column algorithm
-    for(const up of unitPallets.filter(u=>!u.isCarton)){
+    for(const up of unitPallets){
       if(up.totalH>vs.H){leftover++;continue;}
       const wNarrow=up.w<=up.d;
       const pwA=Math.min(up.w,up.d),pdA=Math.max(up.w,up.d),rotA=!wNarrow;
@@ -2678,86 +2654,62 @@ function arrangeVehicle(type){
       const canB=pwB<=vs.W-wA+0.5&&zB-pdB>=-0.5;
       let placed=false;
       if(canA&&(useA||!canB)){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:up.isCarton,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:false,placements:up.tmpl});
         zA-=pdA;useA=false;placed=true;
       }else if(canB){
-        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotB,isCarton:up.isCarton,placements:up.tmpl});
+        placements.push({x:wA,y:0,z:zB-pdB,palW:pwB,palD:pdB,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotB,isCarton:false,placements:up.tmpl});
         zB-=pdB;useA=true;placed=true;
       }else if(canA){
-        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:up.isCarton,placements:up.tmpl});
+        placements.push({x:0,y:0,z:zA-pdA,palW:pwA,palD:pdA,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:rotA,isCarton:false,placements:up.tmpl});
         zA-=pdA;placed=true;
       }
       if(!placed)leftover++;
     }
-    // Loose cartons use row-based packing from the front of the pallet group.
-    // _bestO freely picks orientation to maximise items per row across the full vehicle width.
-    {
-      let curZ=Math.min(zA,zB),rowUsedX=0,rowDepth=0;
-      for(const up of unitPallets.filter(u=>u.isCarton)){
-        let o=_bestO(up,vs.W-rowUsedX);
-        if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
-        if(curZ-o.palD<-0.5){leftover++;continue;}
-        placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
-        rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
-      }
-    }
   }else{
     // Row-based packing with _bestO: fills left→right, starts a new row when current row is full.
-    // For wide vehicles _bestO naturally selects a uniform orientation for all pallets in a row.
     let curZ=vs.L,rowUsedX=0,rowDepth=0;
-
-    // Pass 1: pack all pallet units
-    for(const up of unitPallets.filter(u=>!u.isCarton)){
+    for(const up of unitPallets){
       let o=_bestO(up,vs.W-rowUsedX);
       if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
       if(curZ-o.palD<-0.5){leftover++;continue;}
-      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
-      rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
-    }
-
-    const cartonUnits=unitPallets.filter(u=>u.isCarton);
-    let ci=0;
-
-    // Pass 2: fill the partial pallet row's remaining width with carton stacks.
-    // Cartons are tiled left→right in X, front→back in Z within the rectangle
-    // (rowUsedX .. vs.W) × (curZ-rowDepth .. curZ), so they sit flush beside pallets.
-    if(rowUsedX>0&&rowDepth>0&&ci<cartonUnits.length){
-      const subW=vs.W-rowUsedX;
-      let subZ=0,subX=0,subZRow=0;
-      while(ci<cartonUnits.length){
-        if(subZ>=rowDepth-0.5) break;
-        const up=cartonUnits[ci];
-        let o=_bestO(up,subW-subX);
-        if(!o){
-          subZ+=subZRow;subX=0;subZRow=0;
-          if(subZ>=rowDepth-0.5) break;
-          o=_bestO(up,subW);
-          if(!o) break; // carton too wide for sub-space → remaining go to full rows
-        }
-        if(subZ+o.palD>rowDepth+0.5){
-          // Try the other orientation (swap palW↔palD) — smaller palD may fit in remaining depth
-          const alt={palW:o.palD,palD:o.palW,rotated:!o.rotated};
-          if(alt.palW<=subW-subX+0.5&&subZ+alt.palD<=rowDepth+0.5) o=alt;
-          else break; // neither orientation fits → remaining go to full rows
-        }
-        placements.push({x:rowUsedX+subX,y:0,z:curZ-rowDepth+subZ,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
-        subX+=o.palW;subZRow=Math.max(subZRow,o.palD);
-        ci++;
-      }
-      curZ-=rowDepth;rowUsedX=0;rowDepth=0;
-    }
-
-    // Pass 3: remaining carton stacks in full-width rows continuing toward loading door
-    for(;ci<cartonUnits.length;ci++){
-      const up=cartonUnits[ci];
-      let o=_bestO(up,vs.W-rowUsedX);
-      if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
-      if(curZ-o.palD<-0.5){leftover++;continue;}
-      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:up.isCarton,placements:up.tmpl});
+      placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:false,placements:up.tmpl});
       rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
     }
   }
 
+  // Pack remaining loose cartons using vehicle-floor heightmap — same algorithm as pallet packMixed.
+  // Pallets already placed become obstacles; cartons fill free floor space and stack where flat.
+  if(remaining.some(cr=>cr.rem>0)){
+    const origW=PAL.W,origD=PAL.D,origH=PAL.H;
+    PAL.W=vs.W; PAL.D=vs.L; PAL.H=0;
+    const savedPlaced=_placed;
+    _placed=placements.map(pp=>({x:pp.x,y:0,z:pp.z,w:pp.palW,h:pp.totalH,d:pp.palD}));
+    const cartonMaxH=loadOnPal?vs.H:(_origMinPalH<Infinity?_origMinPalH:vs.H);
+    const _vol=p=>p.dims.length===2?Math.PI*(p.dims[0]/2)**2*p.dims[1]:p.dims[0]*p.dims[1]*p.dims[2];
+    const sortedCr=remaining.filter(cr=>cr.rem>0).sort((a,b)=>_vol(b.pkg)-_vol(a.pkg));
+    for(const cr of sortedCr){
+      const {pkg}=cr;
+      const isCyl=pkg.type==='cylinder';
+      const orients=genOrients(pkg.dims,'auto',0);
+      for(let i=0;i<cr.rem;i++){
+        let bPos=null,bOrient=null;
+        for(const orient of orients){
+          const [fw,fd,lh]=orient;
+          const pos=_findPos(fw,fd,lh,cartonMaxH,0);
+          if(!pos) continue;
+          if(!bPos||pos.y<bPos.y||(pos.y===bPos.y&&pos.dc<bPos.dc)){bPos=pos;bOrient=orient;}
+        }
+        if(!bPos){leftover++;continue;}
+        const [fw,fd,lh,fw0,fd0,lh0]=bOrient;
+        _placed.push({x:bPos.x,y:bPos.y,z:bPos.z,w:fw,h:lh,d:fd});
+        placements.push({x:bPos.x,y:0,z:bPos.z,palW:fw0,palD:fd0,totalH:bPos.y+lh0,
+          color:pkg.color,name:pkg.name,palId:null,rotated:false,isCarton:true,
+          placements:[{x:0,y:bPos.y,z:0,w:fw0,h:lh0,d:fd0,color:pkg.color,shape:isCyl?'cylinder':undefined}]});
+      }
+    }
+    _placed=savedPlaced;
+    PAL.W=origW; PAL.D=origD; PAL.H=origH;
+  }
 
   vs.result={placements,leftover};
   document.getElementById(p+'Stats').style.display='flex';
