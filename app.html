@@ -2685,6 +2685,10 @@ function arrangeVehicle(type){
     const savedPlaced=_placed;
     _placed=placements.map(pp=>({x:pp.x,y:0,z:pp.z,w:pp.palW,h:pp.totalH,d:pp.palD}));
     const cartonMaxH=loadOnPal?vs.H:(_origMinPalH<Infinity?_origMinPalH:vs.H);
+    // Rightmost pallet x-edge — used to de-prioritise positions in the narrow strip
+    // between the last pallet column and the container wall (strip has high Z but is
+    // undesirable: cartons there look detached from the pallet group).
+    const _palMaxX=_placed.reduce((m,b)=>Math.max(m,b.x+b.w),0)||PAL.W;
     // Custom position finder for vehicle floor: prefer rear-first (high Z), then left-first (low X),
     // then lowest height — the opposite of _findPos which biases toward the pallet centre.
     function _findPosVeh(fw,fd,lh,maxH){
@@ -2703,9 +2707,14 @@ function arrangeVehicle(type){
           const y=_maxSurf(x,z,fw,fd);
           if(y+lh>maxH)continue;
           if(!_isFlat(x,z,fw,fd,y))continue;
-          // Sort: lowest y first, then highest z (rear of vehicle first), then lowest x (left-first)
-          if(!best||y<best.y||(y===best.y&&z>best.z)||(y===best.y&&z===best.z&&x<best.x))
-            best={x,y,z};
+          // 1=within pallet x-footprint, 0=in the right-wall strip beyond pallets
+          const inRange=x+fw<=_palMaxX+0.5?1:0;
+          // Sort: lowest y → within-pallet-range first → highest z → lowest x
+          if(!best||y<best.y||
+             (y===best.y&&inRange>best.inRange)||
+             (y===best.y&&inRange===best.inRange&&z>best.z)||
+             (y===best.y&&inRange===best.inRange&&z===best.z&&x<best.x))
+            best={x,y,z,inRange};
         }
       }
       return best;
@@ -2722,7 +2731,10 @@ function arrangeVehicle(type){
           const [fw,fd,lh]=orient;
           const pos=_findPosVeh(fw,fd,lh,cartonMaxH);
           if(!pos) continue;
-          if(!bPos||pos.y<bPos.y||(pos.y===bPos.y&&pos.z>bPos.z)||(pos.y===bPos.y&&pos.z===bPos.z&&pos.x<bPos.x))
+          if(!bPos||pos.y<bPos.y||
+             (pos.y===bPos.y&&pos.inRange>bPos.inRange)||
+             (pos.y===bPos.y&&pos.inRange===bPos.inRange&&pos.z>bPos.z)||
+             (pos.y===bPos.y&&pos.inRange===bPos.inRange&&pos.z===bPos.z&&pos.x<bPos.x))
             {bPos=pos;bOrient=orient;}
         }
         if(!bPos){leftover++;continue;}
