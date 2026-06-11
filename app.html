@@ -2685,6 +2685,31 @@ function arrangeVehicle(type){
     const savedPlaced=_placed;
     _placed=placements.map(pp=>({x:pp.x,y:0,z:pp.z,w:pp.palW,h:pp.totalH,d:pp.palD}));
     const cartonMaxH=loadOnPal?vs.H:(_origMinPalH<Infinity?_origMinPalH:vs.H);
+    // Custom position finder for vehicle floor: prefer rear-first (high Z), then left-first (low X),
+    // then lowest height — the opposite of _findPos which biases toward the pallet centre.
+    function _findPosVeh(fw,fd,lh,maxH){
+      const xs=new Set([0]),zs=new Set([0]);
+      for(const b of _placed){
+        xs.add(b.x);xs.add(b.x+b.w);
+        for(let xi=b.x+fw;xi<b.x+b.w;xi+=fw)xs.add(xi);
+        zs.add(b.z);zs.add(b.z+b.d);
+        for(let zi=b.z+fd;zi<b.z+b.d;zi+=fd)zs.add(zi);
+      }
+      let best=null;
+      for(const x of xs){
+        if(x+fw>PAL.W)continue;
+        for(const z of zs){
+          if(z+fd>PAL.D)continue;
+          const y=_maxSurf(x,z,fw,fd);
+          if(y+lh>maxH)continue;
+          if(!_isFlat(x,z,fw,fd,y))continue;
+          // Sort: lowest y first, then highest z (rear of vehicle first), then lowest x (left-first)
+          if(!best||y<best.y||(y===best.y&&z>best.z)||(y===best.y&&z===best.z&&x<best.x))
+            best={x,y,z};
+        }
+      }
+      return best;
+    }
     const _vol=p=>p.dims.length===2?Math.PI*(p.dims[0]/2)**2*p.dims[1]:p.dims[0]*p.dims[1]*p.dims[2];
     const sortedCr=remaining.filter(cr=>cr.rem>0).sort((a,b)=>_vol(b.pkg)-_vol(a.pkg));
     for(const cr of sortedCr){
@@ -2695,9 +2720,10 @@ function arrangeVehicle(type){
         let bPos=null,bOrient=null;
         for(const orient of orients){
           const [fw,fd,lh]=orient;
-          const pos=_findPos(fw,fd,lh,cartonMaxH,0);
+          const pos=_findPosVeh(fw,fd,lh,cartonMaxH);
           if(!pos) continue;
-          if(!bPos||pos.y<bPos.y||(pos.y===bPos.y&&pos.dc<bPos.dc)){bPos=pos;bOrient=orient;}
+          if(!bPos||pos.y<bPos.y||(pos.y===bPos.y&&pos.z>bPos.z)||(pos.y===bPos.y&&pos.z===bPos.z&&pos.x<bPos.x))
+            {bPos=pos;bOrient=orient;}
         }
         if(!bPos){leftover++;continue;}
         const [fw,fd,lh,fw0,fd0,lh0]=bOrient;
