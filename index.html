@@ -3,883 +3,741 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kalkulator Palety 3D – Optymalizuj załadunek</title>
+  <title>Kalkulator Palety 3D — Inteligentna logistyka załadunku</title>
+  <meta name="description" content="Planuj załadunek palet, naczep i kontenerów w 3D. Algorytm optymalnego upakowania dla firm logistycznych."/>
   <link rel="icon" type="image/png" href="logo.png"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --bg:#0a1020;--surface:#111827;--surface-2:#1a2740;--surface-3:#223051;
-      --border:#1e2e45;--border-2:#2d4060;
-      --text:#e8edf4;--text-2:#8fa3bc;--text-3:#546a84;
-      --accent:#3b82f6;--accent-h:#60a5fa;--accent-dim:rgba(59,130,246,.14);
-      --accent-glow:rgba(59,130,246,.28);
-      --green:#22c55e;--orange:#f59e0b;--red:#f87171;
-      --r:10px;--rl:16px;--rxl:24px;
+      --bg:#070d1a;--bg-2:#0a1222;--surface:#111a2e;--surface-2:#18233c;--surface-3:#21304f;
+      --border:#1d2a44;--border-2:#2e405f;
+      --text:#eef2f8;--text-2:#93a5be;--text-3:#56688a;
+      --accent:#3b82f6;--accent-h:#60a5fa;--accent-2:#818cf8;
+      --accent-dim:rgba(59,130,246,.13);--accent-glow:rgba(59,130,246,.3);
+      --green:#34d399;--orange:#fbbf24;
+      --r:10px;--rl:18px;
     }
-    html{scroll-behavior:smooth}
+    html{scroll-behavior:smooth;overflow-x:clip}
     body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
     a{color:inherit;text-decoration:none}
-    img{max-width:100%}
+    button{font-family:inherit}
+    ::selection{background:rgba(59,130,246,.35)}
 
     /* ─── NAV ─── */
-    nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 24px;height:64px;display:flex;align-items:center;gap:16px;background:rgba(10,16,32,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}
-    .nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1rem;letter-spacing:-.02em;flex:1}
-    .nav-logo-icon{width:36px;height:36px;flex-shrink:0}
-    .nav-logo-icon img{width:36px;height:36px;object-fit:contain;display:block}
-    .nav-links{display:flex;gap:28px;font-size:.85rem;color:var(--text-2)}
+    nav{position:fixed;top:0;left:0;right:0;z-index:200;height:68px;display:flex;align-items:center;gap:16px;padding:0 28px;background:rgba(7,13,26,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.05);transform:translateY(-100%)}
+    .nav-logo{display:flex;align-items:center;gap:11px;font-weight:800;font-size:1.02rem;letter-spacing:-.02em;flex:1}
+    .nav-logo img{width:34px;height:34px;object-fit:contain;display:block}
+    .nav-logo b{color:var(--accent-h)}
+    .nav-links{display:flex;gap:30px;font-size:.86rem;color:var(--text-2);font-weight:500}
+    .nav-links a{position:relative;padding:4px 0;transition:color .2s}
+    .nav-links a::after{content:'';position:absolute;left:0;bottom:0;width:0;height:2px;background:var(--accent);border-radius:2px;transition:width .25s}
     .nav-links a:hover{color:var(--text)}
-    .nav-actions{display:flex;gap:10px;align-items:center;margin-left:16px}
-    .btn-ghost{padding:8px 16px;border:1px solid var(--border-2);border-radius:var(--r);font-size:.84rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-2);transition:color .15s,border-color .15s}
+    .nav-links a:hover::after{width:100%}
+    .nav-actions{display:flex;gap:10px;margin-left:18px}
+    .btn-ghost{padding:9px 18px;border:1px solid var(--border-2);border-radius:var(--r);font-size:.84rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-2);transition:all .2s}
     .btn-ghost:hover{color:var(--text);border-color:var(--text-3)}
-    .btn-primary{padding:9px 20px;background:var(--accent);border:none;border-radius:var(--r);font-size:.85rem;font-weight:700;cursor:pointer;color:#fff;transition:background .15s,box-shadow .15s;box-shadow:0 2px 14px var(--accent-glow)}
-    .btn-primary:hover{background:var(--accent-h);box-shadow:0 2px 20px rgba(96,165,250,.35)}
-    .nav-mobile-menu{display:none;background:none;border:none;color:var(--text-2);font-size:1.4rem;cursor:pointer;padding:4px 8px}
+    .btn-primary{padding:10px 22px;background:var(--accent);border:none;border-radius:var(--r);font-size:.85rem;font-weight:700;cursor:pointer;color:#fff;transition:all .2s;box-shadow:0 2px 16px var(--accent-glow)}
+    .btn-primary:hover{background:var(--accent-h);box-shadow:0 4px 24px rgba(96,165,250,.4);transform:translateY(-1px)}
+    .nav-burger{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;padding:4px 10px}
+
+    /* mobile menu */
+    .mobile-menu{position:fixed;inset:0;z-index:300;background:rgba(7,13,26,.97);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;opacity:0;pointer-events:none;transition:opacity .25s}
+    .mobile-menu.open{opacity:1;pointer-events:all}
+    .mobile-menu a{font-size:1.4rem;font-weight:700;color:var(--text-2)}
+    .mobile-menu a:active{color:var(--accent-h)}
+    .mobile-menu .mm-close{position:absolute;top:18px;right:24px;font-size:2rem;background:none;border:none;color:var(--text-2);cursor:pointer}
 
     /* ─── HERO ─── */
-    .hero{min-height:100vh;padding:120px 24px 80px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-    .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.12) 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 80% 60%,rgba(99,102,241,.08) 0%,transparent 60%);pointer-events:none}
-    .hero-grid-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(59,130,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.04) 1px,transparent 1px);background-size:64px 64px;pointer-events:none}
-    .hero-inner{max-width:1160px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;position:relative;z-index:1}
-    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.3);border-radius:20px;padding:5px 14px;font-size:.75rem;font-weight:600;color:var(--accent-h);margin-bottom:20px}
-    .hero-badge span{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-    .hero h1{font-size:3.2rem;font-weight:800;line-height:1.1;letter-spacing:-.03em;margin-bottom:20px}
-    .hero h1 em{font-style:normal;color:var(--accent-h)}
-    .hero-sub{font-size:1.05rem;color:var(--text-2);line-height:1.6;max-width:480px;margin-bottom:36px}
-    .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
-    .btn-hero-primary{padding:14px 28px;background:var(--accent);border:none;border-radius:var(--r);font-size:.96rem;font-weight:700;cursor:pointer;color:#fff;transition:background .15s,box-shadow .15s,transform .1s;box-shadow:0 4px 24px var(--accent-glow)}
-    .btn-hero-primary:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 6px 28px rgba(96,165,250,.4)}
-    .btn-hero-secondary{padding:14px 28px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r);font-size:.96rem;font-weight:700;cursor:pointer;color:var(--text);transition:border-color .15s,background .15s}
-    .btn-hero-secondary:hover{border-color:var(--text-3);background:var(--surface-3)}
-    .hero-note{margin-top:16px;font-size:.78rem;color:var(--text-3);display:flex;align-items:center;gap:6px}
-    .hero-note::before{content:'';width:4px;height:4px;background:var(--green);border-radius:50%;flex-shrink:0}
+    .hero{position:relative;min-height:100svh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:110px 24px 60px}
+    #heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+    .hero-vignette{position:absolute;inset:0;pointer-events:none;background:
+      radial-gradient(ellipse 90% 65% at 50% 10%,rgba(59,130,246,.14) 0%,transparent 60%),
+      linear-gradient(to bottom,rgba(7,13,26,.25) 0%,rgba(7,13,26,0) 30%,rgba(7,13,26,.35) 78%,var(--bg) 100%)}
+    .hero-content{position:relative;z-index:2;text-align:center;max-width:880px}
+    .hero-badge{display:inline-flex;align-items:center;gap:9px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.32);border-radius:24px;padding:7px 18px;font-size:.78rem;font-weight:600;color:var(--accent-h);margin-bottom:28px;backdrop-filter:blur(6px)}
+    .hero-badge i{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{opacity:.6;box-shadow:0 0 0 5px rgba(52,211,153,0)}}
+    .hero h1{font-size:clamp(2.3rem,6vw,4.4rem);font-weight:800;line-height:1.07;letter-spacing:-.035em;margin-bottom:24px}
+    .hero h1 .accent{background:linear-gradient(100deg,var(--accent-h),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero h1 .word{display:inline-block}
+    .hero-sub{font-size:clamp(.98rem,2vw,1.18rem);color:var(--text-2);line-height:1.65;max-width:620px;margin:0 auto 40px}
+    .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+    .btn-hero{padding:16px 34px;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s}
+    .btn-hero.solid{background:var(--accent);border:none;color:#fff;box-shadow:0 6px 32px var(--accent-glow)}
+    .btn-hero.solid:hover{background:var(--accent-h);transform:translateY(-2px);box-shadow:0 10px 40px rgba(96,165,250,.45)}
+    .btn-hero.line{background:rgba(255,255,255,.04);border:1px solid var(--border-2);color:var(--text);backdrop-filter:blur(6px)}
+    .btn-hero.line:hover{border-color:var(--text-3);background:rgba(255,255,255,.08)}
+    .hero-hint{margin-top:22px;font-size:.78rem;color:var(--text-3)}
+    .scroll-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-3);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase}
+    .scroll-cue::after{content:'';width:1px;height:34px;background:linear-gradient(var(--text-3),transparent);animation:cue 1.8s infinite}
+    @keyframes cue{0%{transform:scaleY(0);transform-origin:top}45%{transform:scaleY(1);transform-origin:top}55%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
 
-    /* ─── APP MOCKUP ─── */
-    .app-mockup{position:relative}
-    .app-mockup::before{content:'';position:absolute;inset:-2px;border-radius:calc(var(--rl) + 2px);background:linear-gradient(135deg,rgba(59,130,246,.4),rgba(99,102,241,.2),transparent 50%);z-index:-1}
-    .app-window{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--rl);overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04)}
-    .app-titlebar{height:36px;background:var(--surface-2);display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:1px solid var(--border)}
-    .app-dots{display:flex;gap:6px}
-    .app-dots span{width:11px;height:11px;border-radius:50%}
-    .app-dots span:nth-child(1){background:#ff5f56}
-    .app-dots span:nth-child(2){background:#ffbd2e}
-    .app-dots span:nth-child(3){background:#27c93f}
-    .app-titlebar-name{font-size:.72rem;color:var(--text-3);flex:1;text-align:center;font-weight:500}
-    .app-body{display:flex;height:320px}
-    .app-sidebar-mock{width:140px;background:var(--bg);border-right:1px solid var(--border);padding:12px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow:hidden}
-    .mock-label{font-size:.55rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
-    .mock-tabs{display:flex;gap:3px;background:var(--surface);border-radius:5px;padding:2px}
-    .mock-tab{flex:1;padding:3px;border-radius:4px;font-size:.5rem;color:var(--text-3);text-align:center}
-    .mock-tab.a{background:var(--accent);color:#fff}
-    .mock-pkg{display:flex;align-items:center;gap:6px;padding:5px 7px;background:var(--surface);border-radius:5px;border:1px solid transparent}
-    .mock-pkg.sel{border-color:var(--accent);background:var(--accent-dim)}
-    .mock-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
-    .mock-pkg-info{flex:1;min-width:0}
-    .mock-pkg-name{font-size:.52rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .mock-pkg-dim{font-size:.45rem;color:var(--text-3)}
-    .mock-input-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-    .mock-input{height:22px;background:var(--surface);border:1px solid var(--border);border-radius:4px}
-    .mock-btn{height:26px;background:var(--accent);border-radius:5px;margin-top:4px;box-shadow:0 2px 8px var(--accent-glow)}
+    /* ─── STATS ─── */
+    .stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-2)}
+    .stats-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:52px 24px;gap:30px}
+    .stat{text-align:center}
+    .stat-v{font-size:clamp(1.9rem,4vw,2.7rem);font-weight:800;letter-spacing:-.03em;color:#fff;line-height:1}
+    .stat-v span{color:var(--accent-h)}
+    .stat-l{font-size:.8rem;color:var(--text-3);margin-top:8px}
 
-    .app-viewport-mock{flex:1;position:relative;overflow:hidden;background:#c8d8e8}
-    #demoCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
-    #demoCanvas:active{cursor:grabbing}
-
-    /* Stats overlay in mockup */
-    .mock-stats{position:absolute;top:8px;left:8px;right:8px;background:rgba(10,16,32,.8);backdrop-filter:blur(6px);border-radius:8px;padding:7px 12px;display:flex;gap:14px;border:1px solid rgba(255,255,255,.07)}
-    .mock-stat{display:flex;flex-direction:column;align-items:center}
-    .mock-stat-v{font-size:.85rem;font-weight:800;color:#fff}
-    .mock-stat-l{font-size:.44rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
-
-    /* ─── STATS STRIP ─── */
-    .stats-strip{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:36px 24px}
-    .stats-inner{max-width:900px;margin:0 auto;display:flex;justify-content:space-around;gap:24px;flex-wrap:wrap}
-    .stat-item{text-align:center}
-    .stat-num{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;color:#fff;line-height:1}
-    .stat-label{font-size:.78rem;color:var(--text-3);margin-top:4px}
-    .stat-num em{font-style:normal;color:var(--accent-h)}
-
-    /* ─── SECTION COMMONS ─── */
-    .section{padding:96px 24px}
+    /* ─── SECTIONS ─── */
+    .section{padding:110px 24px;position:relative}
     .section-inner{max-width:1160px;margin:0 auto}
-    .section-tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
-    .section-title{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
-    .section-sub{font-size:1rem;color:var(--text-2);line-height:1.6;max-width:540px}
-    .section-header{margin-bottom:56px}
-    .section-header.center{text-align:center}
-    .section-header.center .section-sub{margin:0 auto}
+    .tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-h);margin-bottom:14px}
+    .h2{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.12;margin-bottom:16px}
+    .sub{font-size:1.02rem;color:var(--text-2);line-height:1.65;max-width:560px}
+    .center{text-align:center}
+    .center .sub{margin:0 auto}
+    .sec-head{margin-bottom:64px}
 
-    /* ─── HOW IT WORKS ─── */
-    .how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
-    .how-steps::before{content:'';position:absolute;top:48px;left:calc(16.66% + 24px);right:calc(16.66% + 24px);height:1px;background:linear-gradient(90deg,var(--border-2),var(--border-2));z-index:0}
-    .how-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;position:relative;z-index:1;transition:border-color .2s,transform .2s}
-    .how-step:hover{border-color:var(--border-2);transform:translateY(-4px)}
-    .step-num{width:48px;height:48px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--accent);margin-bottom:20px}
-    .step-title{font-size:1.08rem;font-weight:700;margin-bottom:8px;color:var(--text)}
-    .step-desc{font-size:.87rem;color:var(--text-2);line-height:1.6}
+    /* ─── HOW ─── */
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;counter-reset:step}
+    .step{background:linear-gradient(160deg,var(--surface) 0%,var(--bg-2) 100%);border:1px solid var(--border);border-radius:var(--rl);padding:34px 30px;position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
+    .step:hover{border-color:var(--border-2);transform:translateY(-5px)}
+    .step::before{counter-increment:step;content:counter(step,decimal-leading-zero);position:absolute;top:18px;right:22px;font-size:3.4rem;font-weight:800;color:rgba(59,130,246,.1);line-height:1}
+    .step-ic{width:52px;height:52px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.3);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:22px}
+    .step h3{font-size:1.12rem;font-weight:700;margin-bottom:10px}
+    .step p{font-size:.88rem;color:var(--text-2);line-height:1.65}
 
     /* ─── FEATURES ─── */
-    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;transition:border-color .2s,background .2s}
-    .feat-card:hover{border-color:var(--border-2);background:var(--surface-2)}
-    .feat-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:16px}
-    .feat-title{font-size:.96rem;font-weight:700;margin-bottom:8px}
-    .feat-desc{font-size:.85rem;color:var(--text-2);line-height:1.6}
-    .fi-blue{background:rgba(59,130,246,.15)}
-    .fi-green{background:rgba(34,197,94,.12)}
-    .fi-orange{background:rgba(245,158,11,.12)}
-    .fi-purple{background:rgba(168,85,247,.12)}
-    .fi-teal{background:rgba(20,184,166,.12)}
-    .fi-pink{background:rgba(236,72,153,.12)}
+    .feats-wrap{background:var(--bg-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+    .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+    .feat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;transition:all .25s;position:relative;overflow:hidden}
+    .feat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2));opacity:0;transition:opacity .25s}
+    .feat:hover{border-color:var(--border-2);transform:translateY(-4px)}
+    .feat:hover::after{opacity:1}
+    .feat-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.35rem;margin-bottom:18px}
+    .feat h3{font-size:1rem;font-weight:700;margin-bottom:9px}
+    .feat p{font-size:.86rem;color:var(--text-2);line-height:1.6}
+    .ic-b{background:rgba(59,130,246,.14)}.ic-g{background:rgba(52,211,153,.12)}
+    .ic-o{background:rgba(251,191,36,.12)}.ic-p{background:rgba(168,85,247,.13)}
+    .ic-t{background:rgba(45,212,191,.12)}.ic-r{background:rgba(244,114,182,.12)}
 
-    /* ─── ACCOUNT BENEFITS ─── */
-    .account-section{background:var(--surface)}
-    .account-inner{max-width:1160px;margin:0 auto;padding:96px 24px;display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
-    .account-visual{background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--rl);padding:32px;position:relative;overflow:hidden}
-    .account-visual::after{content:'';position:absolute;bottom:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,var(--accent-dim) 0%,transparent 70%);pointer-events:none}
-    .profile-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
-    .profile-avatar{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),#6366f1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:#fff;flex-shrink:0}
-    .profile-name{font-size:1rem;font-weight:700}
-    .profile-plan{font-size:.75rem;color:var(--accent-h);font-weight:600;background:var(--accent-dim);padding:2px 10px;border-radius:20px;display:inline-block;margin-top:3px}
-    .saved-pkgs-list{display:flex;flex-direction:column;gap:8px}
-    .saved-pkg{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
-    .saved-pkg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
-    .saved-pkg-name{font-size:.82rem;font-weight:600}
-    .saved-pkg-dim{font-size:.68rem;color:var(--text-3)}
-    .saved-pkg-badge{margin-left:auto;font-size:.62rem;color:var(--accent-h);background:var(--accent-dim);padding:2px 8px;border-radius:10px}
-    .benefit-list{list-style:none;display:flex;flex-direction:column;gap:18px}
-    .benefit-list li{display:flex;align-items:flex-start;gap:14px}
-    .benefit-check{width:28px;height:28px;background:rgba(34,197,94,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:.9rem;flex-shrink:0;margin-top:1px}
-    .benefit-text strong{display:block;font-size:.94rem;font-weight:700;margin-bottom:3px}
-    .benefit-text span{font-size:.84rem;color:var(--text-2);line-height:1.5}
+    /* ─── SHOWCASE ─── */
+    .show-grid{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}
+    .show-visual{position:relative}
+    .show-frame{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--rl);overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03)}
+    .show-bar{height:38px;background:var(--surface-2);display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid var(--border)}
+    .show-bar i{width:11px;height:11px;border-radius:50%;display:block}
+    .show-bar i:nth-child(1){background:#ff5f56}.show-bar i:nth-child(2){background:#ffbd2e}.show-bar i:nth-child(3){background:#27c93f}
+    .show-bar span{flex:1;text-align:center;font-size:.72rem;color:var(--text-3);font-style:normal}
+    #showCanvas{display:block;width:100%;height:340px;background:linear-gradient(#dce8f2,#a8c2d6);cursor:grab}
+    #showCanvas:active{cursor:grabbing}
+    .show-glow{position:absolute;inset:-40px;background:radial-gradient(ellipse 60% 60% at 50% 50%,rgba(59,130,246,.14),transparent 70%);z-index:-1;pointer-events:none}
+    .checks{list-style:none;display:flex;flex-direction:column;gap:20px;margin-top:34px}
+    .checks li{display:flex;gap:15px;align-items:flex-start}
+    .chk{width:30px;height:30px;background:rgba(52,211,153,.12);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--green);font-size:.92rem;flex-shrink:0}
+    .checks strong{display:block;font-size:.96rem;margin-bottom:4px}
+    .checks span{font-size:.85rem;color:var(--text-2);line-height:1.55}
 
     /* ─── PRICING ─── */
-    .pricing-grid{display:flex;justify-content:center}
-    .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;transition:border-color .2s,transform .2s;position:relative}
-    .price-card.popular{border-color:var(--accent);transform:scale(1.02);box-shadow:0 0 0 1px var(--accent),0 24px 48px rgba(59,130,246,.18)}
-    .popular-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.68rem;font-weight:700;padding:4px 14px;border-radius:20px;white-space:nowrap;letter-spacing:.05em}
-    .price-plan{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px}
-    .price-amount{font-size:2.6rem;font-weight:800;letter-spacing:-.04em;line-height:1;color:#fff;margin-bottom:4px}
-    .price-amount sup{font-size:1rem;vertical-align:top;margin-top:.4em;font-weight:600;color:var(--text-2)}
-    .price-amount sub{font-size:.85rem;font-weight:500;color:var(--text-3);vertical-align:baseline}
-    .price-amount.free-tag{font-size:2rem;color:var(--green)}
-    .price-desc{font-size:.82rem;color:var(--text-2);margin-bottom:24px;line-height:1.5;min-height:2.6em}
-    .price-divider{border:none;border-top:1px solid var(--border);margin:20px 0}
-    .price-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px}
-    .price-features li{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--text-2)}
-    .price-features li::before{content:'✓';color:var(--green);font-weight:700;font-size:.88rem;flex-shrink:0}
-    .price-features li.off{color:var(--text-3)}
-    .price-features li.off::before{content:'–';color:var(--text-3)}
-    .btn-plan{width:100%;padding:12px;border:none;border-radius:var(--r);font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s,box-shadow .15s}
-    .btn-plan-primary{background:var(--accent);color:#fff;box-shadow:0 2px 14px var(--accent-glow)}
-    .btn-plan-primary:hover{background:var(--accent-h);box-shadow:0 2px 20px rgba(96,165,250,.35)}
-    .btn-plan-outline{background:transparent;color:var(--text);border:1px solid var(--border-2)}
-    .btn-plan-outline:hover{border-color:var(--text-3);background:var(--surface-2)}
-    .btn-plan-ghost{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
-    .btn-plan-ghost:hover{background:var(--surface-3);color:var(--text)}
-    .price-note{text-align:center;font-size:.75rem;color:var(--text-3);margin-top:24px}
+    .price-wrap{display:flex;justify-content:center}
+    .price{background:linear-gradient(160deg,var(--surface) 0%,var(--bg-2) 100%);border:1px solid var(--accent);border-radius:22px;padding:40px;max-width:430px;width:100%;position:relative;box-shadow:0 0 0 1px rgba(59,130,246,.25),0 30px 70px rgba(59,130,246,.14)}
+    .price-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;letter-spacing:.08em;padding:5px 18px;border-radius:20px;white-space:nowrap}
+    .price-amount{font-size:3.2rem;font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1;margin:18px 0 6px}
+    .price-amount sup{font-size:1.1rem;font-weight:600;color:var(--text-2);vertical-align:top;margin-top:.5em}
+    .price-amount sub{font-size:.9rem;font-weight:500;color:var(--text-3)}
+    .price-desc{font-size:.86rem;color:var(--text-2);margin-bottom:26px}
+    .price ul{list-style:none;display:flex;flex-direction:column;gap:13px;margin-bottom:32px;text-align:left}
+    .price li{display:flex;gap:11px;align-items:center;font-size:.88rem;color:var(--text-2)}
+    .price li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+    .price-note{text-align:center;font-size:.76rem;color:var(--text-3);margin-top:26px}
 
-    /* ─── SIGNUP CTA ─── */
-    .signup-cta{padding:96px 24px;background:radial-gradient(ellipse 70% 80% at 50% 50%,rgba(59,130,246,.09) 0%,transparent 65%)}
-    .signup-box{max-width:480px;margin:0 auto;text-align:center}
-    .signup-box h2{font-size:2rem;font-weight:800;letter-spacing:-.02em;margin-bottom:12px}
-    .signup-box p{color:var(--text-2);margin-bottom:36px;line-height:1.6}
-    .signup-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;text-align:left}
-    .form-group{margin-bottom:16px}
-    .form-group label{display:block;font-size:.76rem;font-weight:500;color:var(--text-2);margin-bottom:5px}
-    .form-group input{width:100%;padding:11px 13px;background:var(--bg);border:1px solid var(--border-2);border-radius:var(--r);font-size:.93rem;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
-    .form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
-    .form-group input::placeholder{color:var(--text-3)}
-    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .btn-signup-submit{width:100%;padding:13px;background:var(--accent);border:none;border-radius:var(--r);font-size:.95rem;font-weight:700;color:#fff;cursor:pointer;margin-top:8px;transition:background .15s,box-shadow .15s;box-shadow:0 2px 18px var(--accent-glow)}
-    .btn-signup-submit:hover{background:var(--accent-h)}
-    .form-terms{font-size:.71rem;color:var(--text-3);text-align:center;margin-top:12px;line-height:1.5}
-    .form-terms a{color:var(--accent-h)}
-    .form-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text-3);font-size:.75rem}
-    .form-divider::before,.form-divider::after{content:'';flex:1;height:1px;background:var(--border)}
-    .login-link{text-align:center;margin-top:16px;font-size:.83rem;color:var(--text-2)}
-    .login-link a{color:var(--accent-h);font-weight:600}
+    /* ─── CTA ─── */
+    .cta{padding:130px 24px;text-align:center;position:relative;overflow:hidden}
+    .cta::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(59,130,246,.12),transparent 65%);pointer-events:none}
+    .cta h2{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.03em;margin-bottom:18px;position:relative}
+    .cta p{color:var(--text-2);font-size:1.05rem;margin-bottom:40px;position:relative}
 
     /* ─── FOOTER ─── */
-    footer{background:var(--surface);border-top:1px solid var(--border);padding:48px 24px 32px}
-    .footer-inner{max-width:1160px;margin:0 auto}
-    .footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
-    .footer-brand p{font-size:.85rem;color:var(--text-3);margin-top:12px;line-height:1.6;max-width:260px}
-    .footer-col h4{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:14px}
-    .footer-col a{display:block;font-size:.85rem;color:var(--text-2);margin-bottom:9px;transition:color .15s}
-    .footer-col a:hover{color:var(--text)}
-    .footer-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-    .footer-copy{font-size:.78rem;color:var(--text-3)}
-    .footer-legal{display:flex;gap:20px}
-    .footer-legal a{font-size:.78rem;color:var(--text-3)}
-    .footer-legal a:hover{color:var(--text-2)}
+    footer{background:var(--bg-2);border-top:1px solid var(--border);padding:54px 24px 30px}
+    .foot{max-width:1160px;margin:0 auto}
+    .foot-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:44px}
+    .foot-brand p{font-size:.85rem;color:var(--text-3);margin-top:14px;line-height:1.6;max-width:270px}
+    .foot h4{font-size:.74rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:15px}
+    .foot-col a{display:block;font-size:.86rem;color:var(--text-2);margin-bottom:10px;transition:color .15s}
+    .foot-col a:hover{color:var(--text)}
+    .foot-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:.78rem;color:var(--text-3)}
+    .foot-bottom a{margin-left:20px}
+    .foot-bottom a:hover{color:var(--text-2)}
 
-    /* ─── MODAL ─── */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .2s}
-    .modal-backdrop.open{opacity:1;pointer-events:all}
-    .modal{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--rl);width:100%;max-width:420px;padding:32px;box-shadow:0 32px 80px rgba(0,0,0,.6);transform:translateY(20px) scale(.97);transition:transform .22s,opacity .22s}
-    .modal-backdrop.open .modal{transform:none}
-    .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-3);font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s}
-    .modal-close:hover{color:var(--text)}
-    .modal-title{font-size:1.2rem;font-weight:800;margin-bottom:6px}
-    .modal-sub{font-size:.85rem;color:var(--text-2);margin-bottom:24px}
+    /* ─── MODALS ─── */
+    .mb{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .22s;padding:20px}
+    .mb.open{opacity:1;pointer-events:all}
+    .modal{background:var(--surface);border:1px solid var(--border-2);border-radius:20px;width:100%;max-width:420px;padding:34px;position:relative;transform:translateY(24px) scale(.96);transition:transform .25s cubic-bezier(.2,.9,.3,1.2)}
+    .mb.open .modal{transform:none}
+    .m-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-3);font-size:1.4rem;cursor:pointer}
+    .m-close:hover{color:var(--text)}
+    .m-title{font-size:1.25rem;font-weight:800;margin-bottom:6px}
+    .m-sub{font-size:.85rem;color:var(--text-2);margin-bottom:24px}
+    .fg{margin-bottom:15px}
+    .fg label{display:block;font-size:.76rem;font-weight:500;color:var(--text-2);margin-bottom:6px}
+    .fg input{width:100%;padding:12px 14px;background:var(--bg);border:1px solid var(--border-2);border-radius:var(--r);font-size:.93rem;color:var(--text);outline:none;transition:all .15s}
+    .fg input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+    .fg input::placeholder{color:var(--text-3)}
+    .frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .m-submit{width:100%;padding:13px;background:var(--accent);border:none;border-radius:var(--r);font-size:.95rem;font-weight:700;color:#fff;cursor:pointer;margin-top:6px;transition:background .15s;box-shadow:0 2px 18px var(--accent-glow)}
+    .m-submit:hover{background:var(--accent-h)}
+    .m-foot{text-align:center;margin-top:16px;font-size:.82rem;color:var(--text-2)}
+    .m-foot a{color:var(--accent-h);font-weight:600}
 
-    /* ─── ANIMATIONS ─── */
-    .fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
-    .fade-in.visible{opacity:1;transform:none}
+    /* ─── REVEAL DEFAULTS (animated by GSAP) ─── */
+    .rv{opacity:0}
+    @media (prefers-reduced-motion:reduce){
+      .rv{opacity:1!important;transform:none!important}
+      *{animation-duration:.001s!important;transition-duration:.001s!important}
+    }
 
     /* ─── RESPONSIVE ─── */
-    @media(max-width:900px){
-      .hero-inner{grid-template-columns:1fr;gap:48px;text-align:center}
-      .hero h1{font-size:2.4rem}
-      .hero-sub{margin:0 auto 36px}
-      .hero-actions{justify-content:center}
-      .hero-note{justify-content:center}
-      .app-mockup::before{display:none}
-      .how-steps{grid-template-columns:1fr}
-      .how-steps::before{display:none}
-      .features-grid{grid-template-columns:1fr 1fr}
-      .account-inner{grid-template-columns:1fr;gap:40px;padding:64px 24px}
-      .pricing-grid{flex-direction:column;align-items:center}
-      .price-card.popular{transform:none}
-      .footer-top{grid-template-columns:1fr 1fr;gap:24px}
-      .nav-links{display:none}
-      .nav-mobile-menu{display:block}
+    @media(max-width:960px){
+      .nav-links,.nav-actions{display:none}
+      .nav-burger{display:block}
+      .steps{grid-template-columns:1fr}
+      .feats{grid-template-columns:1fr 1fr}
+      .show-grid{grid-template-columns:1fr;gap:48px}
+      .stats-inner{grid-template-columns:1fr 1fr;gap:36px 16px;padding:42px 20px}
+      .foot-top{grid-template-columns:1fr 1fr}
     }
-    @media(max-width:560px){
-      .features-grid{grid-template-columns:1fr}
-      .hero h1{font-size:2rem}
-      .section-title{font-size:1.8rem}
-      .stats-inner{gap:32px}
-      .footer-top{grid-template-columns:1fr}
-      .footer-bottom{flex-direction:column;text-align:center}
-      .form-row{grid-template-columns:1fr}
+    @media(max-width:580px){
+      .feats{grid-template-columns:1fr}
+      .section{padding:80px 20px}
+      .hero{padding:100px 18px 70px}
+      .btn-hero{width:100%;max-width:340px}
+      .foot-top{grid-template-columns:1fr}
+      .foot-bottom{flex-direction:column;text-align:center}
+      .foot-bottom a{margin:0 10px}
+      .frow{grid-template-columns:1fr}
+      #showCanvas{height:260px}
+      .price{padding:32px 24px}
     }
   </style>
 </head>
 <body>
 
 <!-- ═══ NAV ═══ -->
-<nav>
-  <div class="nav-logo">
-    <div class="nav-logo-icon"><img src="logo.png" alt="logo"/></div>
-    Kalkulator Palety 3D
-  </div>
+<nav id="nav">
+  <div class="nav-logo"><img src="logo.png" alt=""/>Kalkulator <b>Palety&nbsp;3D</b></div>
   <div class="nav-links">
     <a href="#jak-dziala">Jak to działa</a>
     <a href="#funkcje">Funkcje</a>
+    <a href="#pojazdy">Naczepy i kontenery</a>
     <a href="#cennik">Cennik</a>
-    <a href="#zaloz-konto">Konto</a>
   </div>
   <div class="nav-actions">
     <button class="btn-ghost" onclick="openModal('login')">Zaloguj się</button>
     <button class="btn-primary" onclick="openModal('signup')">Załóż konto</button>
   </div>
-  <button class="nav-mobile-menu" onclick="openModal('signup')">☰</button>
+  <button class="nav-burger" onclick="document.getElementById('mm').classList.add('open')" aria-label="Menu">☰</button>
 </nav>
 
+<!-- mobile menu -->
+<div class="mobile-menu" id="mm">
+  <button class="mm-close" onclick="document.getElementById('mm').classList.remove('open')" aria-label="Zamknij">×</button>
+  <a href="#jak-dziala" onclick="mmClose()">Jak to działa</a>
+  <a href="#funkcje" onclick="mmClose()">Funkcje</a>
+  <a href="#pojazdy" onclick="mmClose()">Naczepy i kontenery</a>
+  <a href="#cennik" onclick="mmClose()">Cennik</a>
+  <button class="btn-primary" style="padding:14px 38px;font-size:1rem" onclick="mmClose();openModal('signup')">Załóż konto</button>
+</div>
+
 <!-- ═══ HERO ═══ -->
-<section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-grid-lines"></div>
-  <div class="hero-inner">
-
-    <div class="hero-content">
-      <div class="hero-badge"><span></span>Nowa wersja z wizualizacją 3D</div>
-      <h1>Optymalizuj załadunek<br><em>palet w 3D</em></h1>
-      <p class="hero-sub">Oblicz idealny układ kartonów na europalecie — w kilka sekund, z interaktywną wizualizacją 3D. Oszczędzaj przestrzeń, czas i pieniądze.</p>
-      <div class="hero-actions">
-        <a href="app.html"><button class="btn-hero-primary">Wypróbuj bezpłatnie</button></a>
-        <button class="btn-hero-secondary" onclick="openModal('signup')">Załóż konto</button>
-      </div>
-      <div class="hero-note">50 zł / mies. &nbsp;·&nbsp; Pełen dostęp &nbsp;·&nbsp; Anuluj kiedy chcesz</div>
+<header class="hero" id="top">
+  <canvas id="heroCanvas"></canvas>
+  <div class="hero-vignette"></div>
+  <div class="hero-content">
+    <div class="hero-badge rv" id="heroBadge"><i></i>Wizualizacja 3D palet, naczep i kontenerów</div>
+    <h1 id="heroTitle">
+      <span class="word">Logistyka</span> <span class="word">załadunku</span><br>
+      <span class="word accent">zaplanowana</span> <span class="word accent">w 3D</span>
+    </h1>
+    <p class="hero-sub rv" id="heroSub">Algorytm optymalnego upakowania rozmieszcza kartony na paletach, a palety w naczepach i kontenerach — z uwzględnieniem wagi, piętrowania i luźnych paczek. Wynik widzisz natychmiast w interaktywnym 3D.</p>
+    <div class="hero-actions rv" id="heroActions">
+      <a href="app.html"><button class="btn-hero solid">Uruchom kalkulator →</button></a>
+      <button class="btn-hero line" onclick="openModal('signup')">Załóż konto firmowe</button>
     </div>
-
-    <!-- App mockup -->
-    <div class="app-mockup fade-in">
-      <div class="app-window">
-        <div class="app-titlebar">
-          <div class="app-dots"><span></span><span></span><span></span></div>
-          <span class="app-titlebar-name">Kalkulator Palety 3D</span>
-        </div>
-        <div class="app-body">
-          <div class="app-sidebar-mock">
-            <div class="mock-label">Tryb</div>
-            <div class="mock-tabs">
-              <div class="mock-tab a">Jeden</div>
-              <div class="mock-tab">Mieszane</div>
-              <div class="mock-tab">Ręcznie</div>
-            </div>
-            <div class="mock-label" style="margin-top:8px">Kartony</div>
-            <div class="mock-pkg sel">
-              <div class="mock-dot" style="background:#e74c3c"></div>
-              <div class="mock-pkg-info">
-                <div class="mock-pkg-name">Karton 1</div>
-                <div class="mock-pkg-dim">600×400×300</div>
-              </div>
-            </div>
-            <div class="mock-pkg">
-              <div class="mock-dot" style="background:#e67e22"></div>
-              <div class="mock-pkg-info">
-                <div class="mock-pkg-name">Karton 2</div>
-                <div class="mock-pkg-dim">600×400×300</div>
-              </div>
-            </div>
-            <div class="mock-pkg">
-              <div class="mock-dot" style="background:#27ae60"></div>
-              <div class="mock-pkg-info">
-                <div class="mock-pkg-name">Karton 3</div>
-                <div class="mock-pkg-dim">600×400×350</div>
-              </div>
-            </div>
-            <div class="mock-label" style="margin-top:6px">Parametry</div>
-            <div class="mock-input-row">
-              <div class="mock-input"></div>
-              <div class="mock-input"></div>
-            </div>
-            <div class="mock-btn"></div>
-          </div>
-
-          <div class="app-viewport-mock">
-            <!-- Stats overlay -->
-            <div class="mock-stats">
-              <div class="mock-stat"><div class="mock-stat-v">12</div><div class="mock-stat-l">Paczek</div></div>
-              <div class="mock-stat"><div class="mock-stat-v">3</div><div class="mock-stat-l">Warstw</div></div>
-              <div class="mock-stat"><div class="mock-stat-v">1094</div><div class="mock-stat-l">Wys. mm</div></div>
-              <div class="mock-stat"><div class="mock-stat-v">0</div><div class="mock-stat-l">Zostało</div></div>
-            </div>
-            <canvas id="demoCanvas"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    <div class="hero-hint rv" id="heroHint">Działa w przeglądarce · Bez instalacji · Komputer, tablet i telefon</div>
   </div>
-</section>
+  <div class="scroll-cue">przewiń</div>
+</header>
 
-<!-- ═══ STATS STRIP ═══ -->
-<div class="stats-strip">
+<!-- ═══ STATS ═══ -->
+<div class="stats">
   <div class="stats-inner">
-    <div class="stat-item fade-in">
-      <div class="stat-num"><em>23%</em></div>
-      <div class="stat-label">Średnia oszczędność miejsca</div>
-    </div>
-    <div class="stat-item fade-in">
-      <div class="stat-num"><em>&lt;2s</em></div>
-      <div class="stat-label">Czas obliczenia</div>
-    </div>
-    <div class="stat-item fade-in">
-      <div class="stat-num"><em>100%</em></div>
-      <div class="stat-label">Przeglądarkowy – bez instalacji</div>
-    </div>
-    <div class="stat-item fade-in">
-      <div class="stat-num"><em>1200×800</em></div>
-      <div class="stat-label">Europaleta (norma ISO 6780)</div>
-    </div>
+    <div class="stat rv"><div class="stat-v"><span data-count="23">0</span>%</div><div class="stat-l">średnio mniej pustej przestrzeni</div></div>
+    <div class="stat rv"><div class="stat-v">&lt;<span data-count="2">0</span>s</div><div class="stat-l">czas pełnego obliczenia</div></div>
+    <div class="stat rv"><div class="stat-v"><span data-count="3">0</span></div><div class="stat-l">tryby: paleta · naczepa · kontener</div></div>
+    <div class="stat rv"><div class="stat-v"><span data-count="100">0</span>%</div><div class="stat-l">w przeglądarce — zero instalacji</div></div>
   </div>
 </div>
 
 <!-- ═══ HOW IT WORKS ═══ -->
 <section class="section" id="jak-dziala">
   <div class="section-inner">
-    <div class="section-header center fade-in">
-      <div class="section-tag">Jak to działa</div>
-      <h2 class="section-title">Od kartonów do gotowej palety<br>w trzech krokach</h2>
-      <p class="section-sub">Nie trzeba żadnych specjalistycznych narzędzi ani wiedzy. Wystarczy podać wymiary i ilości kartonów.</p>
+    <div class="sec-head center">
+      <div class="tag rv">Jak to działa</div>
+      <h2 class="h2 rv">Od kartonu do pełnego kontenera<br>w trzech krokach</h2>
+      <p class="sub rv">Bez arkuszy kalkulacyjnych i zgadywania. Definiujesz ładunek — resztą zajmuje się algorytm.</p>
     </div>
-    <div class="how-steps">
-      <div class="how-step fade-in">
-        <div class="step-num">1</div>
-        <div class="step-title">Zdefiniuj kartony</div>
-        <p class="step-desc">Wprowadź wymiary i ilości kartonów. Możesz wybrać spośród predefiniowanych typów lub dodać własne — zapisane na Twoim koncie.</p>
+    <div class="steps">
+      <div class="step rv">
+        <div class="step-ic">📦</div>
+        <h3>Zdefiniuj ładunek</h3>
+        <p>Dodaj kartony i rolki z wymiarami, wagą i kolorem etykiety. Wybierz ścianę nośną, ustaw marginesy. Własne typy zapisują się na Twoim koncie.</p>
       </div>
-      <div class="how-step fade-in">
-        <div class="step-num">2</div>
-        <div class="step-title">Oblicz układ</div>
-        <p class="step-desc">Kliknij „Oblicz i wizualizuj". Algorytm automatycznie dobiera optymalną orientację i rozplanowanie kartonów na palecie.</p>
+      <div class="step rv">
+        <div class="step-ic">⚙️</div>
+        <h3>Algorytm układa</h3>
+        <p>Heightmapowy algorytm 3D dobiera orientacje i rozmieszczenie: najcięższe na dół, warstwy płaskie, zero lewitujących paczek. Tryb mieszany i ręczny w komplecie.</p>
       </div>
-      <div class="how-step fade-in">
-        <div class="step-num">3</div>
-        <div class="step-title">Wizualizuj w 3D</div>
-        <p class="step-desc">Obejrzyj wynik w interaktywnej wizualizacji 3D — obracaj, zoomuj i analizuj układ z dowolnej perspektywy. Tryb ręczny daje pełną kontrolę.</p>
+      <div class="step rv">
+        <div class="step-ic">🚛</div>
+        <h3>Załaduj pojazd</h3>
+        <p>Gotowe palety rozmieszczasz w naczepie lub kontenerze. Piętrowanie palet, kartony luzem wypełniające luki, opcje wysokości — wszystko w interaktywnym 3D.</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ═══ FEATURES ═══ -->
-<section class="section" id="funkcje" style="background:var(--surface);padding-top:80px;padding-bottom:80px">
+<section class="feats-wrap section" id="funkcje">
   <div class="section-inner">
-    <div class="section-header fade-in">
-      <div class="section-tag">Funkcje</div>
-      <h2 class="section-title">Wszystko czego potrzebujesz<br>do planowania załadunku</h2>
+    <div class="sec-head">
+      <div class="tag rv">Funkcje</div>
+      <h2 class="h2 rv">Wszystko, czego potrzebuje<br>dział logistyki</h2>
     </div>
-    <div class="features-grid">
-      <div class="feat-card fade-in">
-        <div class="feat-icon fi-blue">&#9671;</div>
-        <div class="feat-title">Wizualizacja 3D w czasie rzeczywistym</div>
-        <p class="feat-desc">Interaktywny widok 3D z pełną kontrolą kamery — obracanie, zoom, panorama. Dokładne odwzorowanie europalety 1200×800 mm.</p>
-      </div>
-      <div class="feat-card fade-in">
-        <div class="feat-icon fi-green">&#9632;</div>
-        <div class="feat-title">Algorytm optymalnego upakowania</div>
-        <p class="feat-desc">Automatyczne dobieranie orientacji i kolejności układania. Obsługa wielu typów kartonów jednocześnie (tryb mieszany).</p>
-      </div>
-      <div class="feat-card fade-in">
-        <div class="feat-icon fi-orange">&#9670;</div>
-        <div class="feat-title">Tryb ręczny</div>
-        <p class="feat-desc">Układaj kartony ręcznie — kliknij na paletę aby postawić karton. Narzędzia cofnij, wypełnij i usuń dla pełnej elastyczności.</p>
-      </div>
-      <div class="feat-card fade-in">
-        <div class="feat-icon fi-purple">&#9651;</div>
-        <div class="feat-title">Wiele palet jednocześnie</div>
-        <p class="feat-desc">Nadwyżka kartonów automatycznie przechodzi na kolejną paletę. Skonfiguruj maksymalną liczbę palet i wysokość załadunku.</p>
-      </div>
-      <div class="feat-card fade-in">
-        <div class="feat-icon fi-teal">&#9654;</div>
-        <div class="feat-title">Wybór ściany nośnej</div>
-        <p class="feat-desc">Dla każdego kartonu określ, która ściana ma leżeć na dole. Interaktywny selektor 3D umożliwia precyzyjny wybór orientacji.</p>
-      </div>
-      <div class="feat-card fade-in">
-        <div class="feat-icon fi-pink">&#9650;</div>
-        <div class="feat-title">Margines bezpieczeństwa</div>
-        <p class="feat-desc">Ustaw margines bezpieczeństwa od krawędzi palety. Obsługa folii stretch i innych wymogów logistycznych.</p>
-      </div>
+    <div class="feats">
+      <div class="feat rv"><div class="feat-ic ic-b">🧊</div><h3>Wizualizacja 3D w czasie rzeczywistym</h3><p>Pełna kontrola kamery: obracanie, zoom, panorama — myszą i dotykiem. Każdy karton, paleta i pojazd odwzorowane w skali.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-g">⚖️</div><h3>Układanie według wagi</h3><p>Najcięższe paczki trafiają na dolne warstwy, najcięższe palety na podłogę pojazdu. Lżejsze palety wjeżdżają na górę przy piętrowaniu.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-o">🏗️</div><h3>Piętrowanie palet</h3><p>Opcjonalne układanie palet jedna na drugiej z poszanowaniem limitu wysokości pojazdu i dopasowaniem wymiarów podstaw.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-p">📐</div><h3>Heightmapowy algorytm upakowania</h3><p>Paczki mogą stać obok siebie, nie tylko w równych warstwach. Gwarancja pełnego podparcia — nic nie wisi w powietrzu.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-t">🚚</div><h3>Naczepy i kontenery</h3><p>Presety Mega 13.6m, 40′ HC i własne wymiary. Kartony luzem automatycznie wypełniają luki między paletami i przestrzeń nad nimi.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-r">✋</div><h3>Tryb ręczny</h3><p>Pełna kontrola: stawiaj kartony klikając na paletę, usuwaj pojedyncze sztuki, cofaj zmiany. Idealny do nietypowych załadunków.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ ACCOUNT BENEFITS ═══ -->
-<section class="account-section" id="zaloz-konto">
-  <div class="account-inner">
-    <div class="fade-in">
-      <div class="section-tag">Twoje konto</div>
-      <h2 class="section-title">Własne konto odblokowuje<br>pełne możliwości</h2>
-      <p class="section-sub" style="margin-bottom:36px">Zapisuj własne typy kartonów w chmurze, korzystaj z historii obliczeń i synchronizuj dane między urządzeniami.</p>
-      <ul class="benefit-list">
-        <li>
-          <div class="benefit-check">&#10003;</div>
-          <div class="benefit-text">
-            <strong>Własne kartony zapisane w chmurze</strong>
-            <span>Dodawaj nieograniczoną liczbę typów kartonów z dowolnymi wymiarami, nazwami i kolorami. Dostępne na każdym urządzeniu po zalogowaniu.</span>
-          </div>
-        </li>
-        <li>
-          <div class="benefit-check">&#10003;</div>
-          <div class="benefit-text">
-            <strong>Historia obliczeń</strong>
-            <span>Każde obliczenie zostaje zapisane. Wróć do dowolnego wcześniejszego układu palety bez przeliczania od nowa.</span>
-          </div>
-        </li>
-        <li>
-          <div class="benefit-check">&#10003;</div>
-          <div class="benefit-text">
-            <strong>Szablony konfiguracji</strong>
-            <span>Zapisuj zestawy kartonów jako szablony. Jednym kliknięciem załaduj ulubiony schemat załadunku.</span>
-          </div>
-        </li>
-        <li>
-          <div class="benefit-check">&#10003;</div>
-          <div class="benefit-text">
-            <strong>Synchronizacja między urządzeniami</strong>
-            <span>Zacznij obliczenie na komputerze, sprawdź wynik na tablecie w magazynie — Twoje dane są zawsze aktualne.</span>
-          </div>
-        </li>
+<!-- ═══ SHOWCASE ═══ -->
+<section class="section" id="pojazdy">
+  <div class="section-inner show-grid">
+    <div class="rv" id="showText">
+      <div class="tag">Załadunek pojazdów</div>
+      <h2 class="h2">Z palety prosto<br>do kontenera</h2>
+      <p class="sub">Zapisane palety stają się klockami, które algorytm rozmieszcza w przestrzeni ładunkowej — a Ty widzisz dokładnie, co i gdzie pojedzie.</p>
+      <ul class="checks">
+        <li><div class="chk">✓</div><div><strong>Dwupasmowe pakowanie kontenera</strong><span>Wąskie i szerokie orientacje palet w dwóch równoległych pasach minimalizują stratę szerokości.</span></div></li>
+        <li><div class="chk">✓</div><div><strong>Kartony luzem dopełniają przestrzeń</strong><span>Luźne paczki wypełniają luki przy paletach i mogą być ładowane na palety, jeśli zostało miejsce.</span></div></li>
+        <li><div class="chk">✓</div><div><strong>Statystyki zapełnienia</strong><span>Liczba palet i kartonów, procent zajętej podłogi oraz lista tego, co się nie zmieściło.</span></div></li>
       </ul>
     </div>
-    <div class="account-visual fade-in">
-      <div class="profile-header">
-        <div class="profile-avatar">MW</div>
-        <div>
-          <div class="profile-name">Marek Wiśniewski</div>
-          <div class="profile-plan">Standard</div>
-        </div>
+    <div class="show-visual rv" id="showVis">
+      <div class="show-glow"></div>
+      <div class="show-frame">
+        <div class="show-bar"><i></i><i></i><i></i><span>Kalkulator Palety 3D — Kontener 40′ HC</span></div>
+        <canvas id="showCanvas"></canvas>
       </div>
-      <div style="font-size:.7rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:10px">Moje kartony (8)</div>
-      <div class="saved-pkgs-list">
-        <div class="saved-pkg">
-          <div class="saved-pkg-dot" style="background:#e74c3c"></div>
-          <div>
-            <div class="saved-pkg-name">Karton RF4</div>
-            <div class="saved-pkg-dim">770 × 380 × 533 mm</div>
-          </div>
-          <div class="saved-pkg-badge">własny</div>
-        </div>
-        <div class="saved-pkg">
-          <div class="saved-pkg-dot" style="background:#e67e22"></div>
-          <div>
-            <div class="saved-pkg-name">Opakowanie XL premium</div>
-            <div class="saved-pkg-dim">900 × 500 × 600 mm</div>
-          </div>
-          <div class="saved-pkg-badge">własny</div>
-        </div>
-        <div class="saved-pkg">
-          <div class="saved-pkg-dot" style="background:#27ae60"></div>
-          <div>
-            <div class="saved-pkg-name">Karton sezonowy</div>
-            <div class="saved-pkg-dim">400 × 300 × 250 mm</div>
-          </div>
-          <div class="saved-pkg-badge">własny</div>
-        </div>
-        <div class="saved-pkg" style="opacity:.5">
-          <div class="saved-pkg-dot" style="background:#2980b9"></div>
-          <div>
-            <div class="saved-pkg-name">+ 5 więcej kartonów...</div>
-            <div class="saved-pkg-dim">zapisanych na Twoim koncie</div>
-          </div>
-        </div>
-      </div>
-      <button class="btn-primary" style="width:100%;margin-top:24px;padding:12px" onclick="openModal('signup')">Załóż konto i dodaj własne kartony</button>
     </div>
   </div>
 </section>
 
 <!-- ═══ PRICING ═══ -->
-<section class="section" id="cennik">
+<section class="section" id="cennik" style="background:var(--bg-2);border-top:1px solid var(--border)">
   <div class="section-inner">
-    <div class="section-header center fade-in">
-      <div class="section-tag">Cennik</div>
-      <h2 class="section-title">Jeden plan. Pełen dostęp.</h2>
-      <p class="section-sub">Bez limitów, bez ukrytych opłat.</p>
+    <div class="sec-head center">
+      <div class="tag rv">Cennik</div>
+      <h2 class="h2 rv">Jeden plan. Pełen dostęp.</h2>
+      <p class="sub rv">Bez limitów, bez ukrytych opłat. Jedna subskrypcja dla Twojego zespołu logistyki.</p>
     </div>
-    <div class="pricing-grid">
-
-      <div class="price-card popular fade-in" style="max-width:420px;width:100%">
-        <div class="popular-badge">PEŁEN DOSTĘP</div>
-        <div class="price-plan">Subskrypcja</div>
+    <div class="price-wrap">
+      <div class="price rv">
+        <div class="price-badge">PEŁEN DOSTĘP</div>
         <div class="price-amount"><sup>zł</sup>50<sub>/mies.</sub></div>
-        <p class="price-desc">Jedno konto — pełen dostęp do wszystkich funkcji kalkulatora.</p>
-        <hr class="price-divider"/>
-        <ul class="price-features">
-          <li>Kalkulator 3D bez ograniczeń</li>
-          <li>Własne kartony zapisane na koncie</li>
-          <li>Nielimitowana historia obliczeń</li>
+        <p class="price-desc">Jedno konto — wszystkie funkcje kalkulatora bez ograniczeń.</p>
+        <ul>
+          <li>Kalkulator palet, naczep i kontenerów</li>
+          <li>Własne kartony i wagi zapisane na koncie</li>
+          <li>Piętrowanie palet i kartony luzem</li>
           <li>Tryb automatyczny, mieszany i ręczny</li>
           <li>Wsparcie techniczne</li>
         </ul>
-        <button class="btn-plan btn-plan-primary" onclick="openModal('signup')">Załóż konto i zacznij</button>
+        <button class="btn-hero solid" style="width:100%" onclick="openModal('signup')">Załóż konto i zacznij</button>
+        <p class="price-note">Cena netto + 23% VAT · Anuluj w dowolnym momencie</p>
       </div>
-
     </div>
-    <p class="price-note">Cena netto, + 23% VAT &nbsp;·&nbsp; Płatność miesięczna &nbsp;·&nbsp; Anuluj w dowolnym momencie</p>
   </div>
 </section>
 
-<!-- ═══ SIGNUP CTA ═══ -->
-<section class="signup-cta" id="zaloz-konto-form">
-  <div class="signup-box">
-    <div class="fade-in">
-      <div class="section-tag" style="display:block;text-align:center;margin-bottom:10px">Zacznij teraz</div>
-      <h2>Załóż konto<br>w 30 sekund</h2>
-      <p>Pełen dostęp do wszystkich funkcji. 50 zł / miesiąc. Anuluj kiedy chcesz.</p>
-    </div>
-    <div class="signup-form fade-in">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Imię</label>
-          <input type="text" placeholder="Jan"/>
-        </div>
-        <div class="form-group">
-          <label>Nazwisko</label>
-          <input type="text" placeholder="Kowalski"/>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Adres e-mail</label>
-        <input type="email" placeholder="jan@firma.pl"/>
-      </div>
-      <div class="form-group">
-        <label>Hasło</label>
-        <input type="password" placeholder="Min. 8 znaków"/>
-      </div>
-      <div class="form-group">
-        <label>Firma (opcjonalnie)</label>
-        <input type="text" placeholder="Nazwa firmy"/>
-      </div>
-      <button class="btn-signup-submit" onclick="handleSignup(event)">Utwórz konto bezpłatnie</button>
-      <p class="form-terms">Rejestrując się akceptujesz <a href="#">Regulamin</a> i <a href="#">Politykę prywatności</a>.</p>
-      <div class="form-divider">lub</div>
-      <div class="login-link">Masz już konto? <a href="#" onclick="openModal('login');return false">Zaloguj się</a></div>
-    </div>
-  </div>
+<!-- ═══ CTA ═══ -->
+<section class="cta">
+  <h2 class="rv">Przestań zgadywać.<br>Zacznij planować.</h2>
+  <p class="rv">Pierwsze obliczenie zrobisz w mniej niż minutę — bez zakładania konta.</p>
+  <a href="app.html" class="rv" style="display:inline-block;position:relative"><button class="btn-hero solid">Otwórz kalkulator →</button></a>
 </section>
 
 <!-- ═══ FOOTER ═══ -->
 <footer>
-  <div class="footer-inner">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <div class="nav-logo" style="flex:none">
-          <div class="nav-logo-icon"><img src="logo.png" alt="logo"/></div>
-          Kalkulator Palety 3D
-        </div>
-        <p>Profesjonalne narzędzie do optymalizacji załadunku europalety. Szybko, precyzyjnie, wizualnie.</p>
+  <div class="foot">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <div class="nav-logo" style="flex:none"><img src="logo.png" alt=""/>Kalkulator <b>Palety&nbsp;3D</b></div>
+        <p>Profesjonalne narzędzie do optymalizacji załadunku palet, naczep i kontenerów. Szybko, precyzyjnie, wizualnie.</p>
       </div>
-      <div class="footer-col">
-        <h4>Produkt</h4>
-        <a href="#jak-dziala">Jak to działa</a>
-        <a href="#funkcje">Funkcje</a>
-        <a href="#cennik">Cennik</a>
-        <a href="app.html">Otwórz kalkulator</a>
+      <div class="foot-col"><h4>Produkt</h4>
+        <a href="#jak-dziala">Jak to działa</a><a href="#funkcje">Funkcje</a><a href="#cennik">Cennik</a><a href="app.html">Otwórz kalkulator</a>
       </div>
-      <div class="footer-col">
-        <h4>Konto</h4>
-        <a href="#" onclick="openModal('signup');return false">Rejestracja</a>
-        <a href="#" onclick="openModal('login');return false">Logowanie</a>
-        <a href="#cennik">Subskrypcja</a>
-        <a href="#">Moje kartony</a>
+      <div class="foot-col"><h4>Konto</h4>
+        <a href="#" onclick="openModal('signup');return false">Rejestracja</a><a href="#" onclick="openModal('login');return false">Logowanie</a><a href="#cennik">Subskrypcja</a>
       </div>
-      <div class="footer-col">
-        <h4>Pomoc</h4>
-        <a href="#">Dokumentacja</a>
-        <a href="#">FAQ</a>
-        <a href="#">Kontakt</a>
-        <a href="#">Status systemu</a>
+      <div class="foot-col"><h4>Pomoc</h4>
+        <a href="#">Dokumentacja</a><a href="#">FAQ</a><a href="#">Kontakt</a>
       </div>
     </div>
-    <div class="footer-bottom">
-      <div class="footer-copy">&copy; 2025 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
-      <div class="footer-legal">
-        <a href="#">Regulamin</a>
-        <a href="#">Polityka prywatności</a>
-        <a href="#">Cookies</a>
-      </div>
+    <div class="foot-bottom">
+      <div>© 2026 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
+      <div><a href="#">Regulamin</a><a href="#">Polityka prywatności</a><a href="#">Cookies</a></div>
     </div>
   </div>
 </footer>
 
-<!-- ═══ LOGIN MODAL ═══ -->
-<div class="modal-backdrop" id="loginModal" onclick="closeMBg(event,'loginModal')">
-  <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
-    <div class="modal-title">Zaloguj się</div>
-    <p class="modal-sub">Witaj z powrotem! Wprowadź swoje dane.</p>
-    <div class="form-group">
-      <label>E-mail</label>
-      <input type="email" placeholder="jan@firma.pl"/>
+<!-- ═══ MODALS ═══ -->
+<div class="mb" id="loginModal" onclick="if(event.target===this)closeModal('loginModal')">
+  <div class="modal">
+    <button class="m-close" onclick="closeModal('loginModal')">×</button>
+    <div class="m-title">Zaloguj się</div>
+    <p class="m-sub">Witaj z powrotem! Wprowadź swoje dane.</p>
+    <div class="fg"><label>E-mail</label><input type="email" placeholder="jan@firma.pl"/></div>
+    <div class="fg"><label>Hasło</label><input type="password" placeholder="Twoje hasło"/></div>
+    <button class="m-submit" onclick="fakeAuth(this,'Logowanie…','Zalogowano! Otwieranie…')">Zaloguj się</button>
+    <div class="m-foot">Nie masz konta? <a href="#" onclick="switchModal('loginModal','signupModal');return false">Zarejestruj się</a></div>
+  </div>
+</div>
+<div class="mb" id="signupModal" onclick="if(event.target===this)closeModal('signupModal')">
+  <div class="modal">
+    <button class="m-close" onclick="closeModal('signupModal')">×</button>
+    <div class="m-title">Utwórz konto</div>
+    <p class="m-sub">Pełen dostęp za 50 zł / mies. Anuluj kiedy chcesz.</p>
+    <div class="frow">
+      <div class="fg"><label>Imię</label><input type="text" placeholder="Jan"/></div>
+      <div class="fg"><label>Nazwisko</label><input type="text" placeholder="Kowalski"/></div>
     </div>
-    <div class="form-group">
-      <label>Hasło</label>
-      <input type="password" placeholder="Twoje hasło"/>
-    </div>
-    <button class="btn-signup-submit" onclick="handleLogin(event)">Zaloguj się</button>
-    <p class="form-terms" style="margin-top:12px"><a href="#">Zapomniałem hasła</a></p>
-    <div class="form-divider">lub</div>
-    <div class="login-link">Nie masz konta? <a href="#" onclick="switchModal('loginModal','signupModal');return false">Zarejestruj się</a></div>
+    <div class="fg"><label>E-mail</label><input type="email" placeholder="jan@firma.pl"/></div>
+    <div class="fg"><label>Hasło</label><input type="password" placeholder="Min. 8 znaków"/></div>
+    <button class="m-submit" onclick="fakeAuth(this,'Tworzenie konta…','Konto gotowe! Otwieranie…')">Utwórz konto</button>
+    <div class="m-foot">Masz już konto? <a href="#" onclick="switchModal('signupModal','loginModal');return false">Zaloguj się</a></div>
   </div>
 </div>
 
-<!-- ═══ SIGNUP MODAL ═══ -->
-<div class="modal-backdrop" id="signupModal" onclick="closeMBg(event,'signupModal')">
-  <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
-    <div class="modal-title">Utwórz konto</div>
-    <p class="modal-sub">Pełen dostęp za 50 zł / mies. Anuluj kiedy chcesz.</p>
-    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="form-group"><label>Imię</label><input type="text" placeholder="Jan"/></div>
-      <div class="form-group"><label>Nazwisko</label><input type="text" placeholder="Kowalski"/></div>
-    </div>
-    <div class="form-group"><label>E-mail</label><input type="email" placeholder="jan@firma.pl"/></div>
-    <div class="form-group"><label>Hasło</label><input type="password" placeholder="Min. 8 znaków"/></div>
-    <button class="btn-signup-submit" onclick="handleSignup(event)">Utwórz konto bezpłatnie</button>
-    <p class="form-terms" style="margin-top:10px">Akceptujesz <a href="#">Regulamin</a> i <a href="#">Politykę prywatności</a>.</p>
-    <div class="form-divider">lub</div>
-    <div class="login-link">Masz już konto? <a href="#" onclick="switchModal('signupModal','loginModal');return false">Zaloguj się</a></div>
-  </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script>
-  /* ── Modals ── */
-  function openModal(which){
-    document.getElementById(which==='signup'?'signupModal':'loginModal').classList.add('open');
-    document.body.style.overflow='hidden';
-  }
-  function closeModal(id){
-    document.getElementById(id).classList.remove('open');
-    document.body.style.overflow='';
-  }
-  function closeMBg(e,id){if(e.target===e.currentTarget)closeModal(id);}
-  function switchModal(from,to){closeModal(from);setTimeout(()=>document.getElementById(to).classList.add('open'),150);}
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('loginModal');closeModal('signupModal');}});
+/* ════════ helpers ════════ */
+function openModal(which){
+  document.getElementById(which==='signup'?'signupModal':'loginModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+function switchModal(a,b){closeModal(a);setTimeout(()=>{document.getElementById(b).classList.add('open');document.body.style.overflow='hidden';},160);}
+function mmClose(){document.getElementById('mm').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('loginModal');closeModal('signupModal');mmClose();}});
+function fakeAuth(btn,working,done){
+  btn.textContent=working;btn.disabled=true;
+  setTimeout(()=>{btn.textContent=done;setTimeout(()=>location.href='app.html',850);},1100);
+}
 
-  /* ── Form handlers (UI only — no backend) ── */
-  function handleSignup(e){
-    e.preventDefault();
-    const btn=e.target;
-    btn.textContent='Tworzenie konta…';btn.disabled=true;
-    setTimeout(()=>{
-      btn.textContent='Konto gotowe! Otwieranie kalkulatora…';
-      setTimeout(()=>window.location.href='app.html',900);
-    },1200);
-  }
-  function handleLogin(e){
-    e.preventDefault();
-    const btn=e.target;
-    btn.textContent='Logowanie…';btn.disabled=true;
-    setTimeout(()=>{
-      btn.textContent='Zalogowano! Otwieranie…';
-      setTimeout(()=>window.location.href='app.html',800);
-    },1000);
-  }
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const hasGSAP = typeof gsap !== 'undefined';
+const hasTHREE = typeof THREE !== 'undefined';
+if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
-  /* ── Demo 3D canvas ── */
-  (function(){
-    const cv=document.getElementById('demoCanvas');
-    if(!cv)return;
-    const ctx=cv.getContext('2d');
+/* ════════ HERO three.js scene ════════ */
+(function(){
+  const cv=document.getElementById('heroCanvas');
+  if(!cv||!hasTHREE)return;
 
-    const PAL={W:1200,D:800,H:144};
-    const SCENE={
-      numPallets:1,totalH:1094,
-      placements:[
-        {x:0,  y:144,z:0,  w:600,h:300,d:400,color:'#e74c3c'},
-        {x:600,y:144,z:0,  w:600,h:300,d:400,color:'#e74c3c'},
-        {x:0,  y:144,z:400,w:600,h:300,d:400,color:'#e74c3c'},
-        {x:600,y:144,z:400,w:600,h:300,d:400,color:'#e74c3c'},
-        {x:0,  y:444,z:0,  w:600,h:300,d:400,color:'#e67e22'},
-        {x:600,y:444,z:0,  w:600,h:300,d:400,color:'#e67e22'},
-        {x:0,  y:444,z:400,w:600,h:300,d:400,color:'#e67e22'},
-        {x:600,y:444,z:400,w:600,h:300,d:400,color:'#e67e22'},
-        {x:0,  y:744,z:0,  w:600,h:350,d:400,color:'#27ae60'},
-        {x:600,y:744,z:0,  w:600,h:350,d:400,color:'#27ae60'},
-        {x:0,  y:744,z:400,w:600,h:350,d:400,color:'#27ae60'},
-        {x:600,y:744,z:400,w:600,h:350,d:400,color:'#27ae60'},
-      ]
-    };
+  const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  scene.fog=new THREE.Fog(0x070d1a,4200,9500);
+  const camera=new THREE.PerspectiveCamera(38,1,10,20000);
 
-    let theta=0.52,phi=0.45,zoom=1;
-    const DIST=3800,camTY=SCENE.totalH/2;
+  scene.add(new THREE.AmbientLight(0xbfd4ff,.75));
+  const sun=new THREE.DirectionalLight(0xffffff,1.5);
+  sun.position.set(1800,3200,1400);scene.add(sun);
+  const rim=new THREE.DirectionalLight(0x3b82f6,.7);
+  rim.position.set(-2000,800,-1600);scene.add(rim);
 
-    function proj(x,y,z,cx,cy,sc){
-      const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
-      const rx=cT*(x-600)-sT*(z-400);
-      const ry=-(y-camTY);
-      const rz=sT*(x-600)+cT*(z-400);
-      const fx=rx*cP+ry*sP;
-      const fy=-rx*sP+ry*cP;
-      const fz=rz;
-      const pz=DIST+fz;
-      return[cx+fx/pz*DIST*sc, cy-fy/pz*DIST*sc, fz];
+  // floor grid — subtle tech look
+  const grid=new THREE.GridHelper(14000,46,0x2e405f,0x16203a);
+  grid.position.y=0;scene.add(grid);
+
+  const group=new THREE.Group();scene.add(group);
+
+  // pallet base
+  function palletMesh(){
+    const g=new THREE.Group();
+    const wood=new THREE.MeshLambertMaterial({color:0xa07a42});
+    const wood2=new THREE.MeshLambertMaterial({color:0x8a6534});
+    for(let i=0;i<5;i++){
+      const m=new THREE.Mesh(new THREE.BoxGeometry(228,22,800),wood);
+      m.position.set(-486+i*243,133,0);g.add(m);
     }
-
-    function col(base,adj){
-      const r=parseInt(base.slice(1,3),16),g=parseInt(base.slice(3,5),16),b=parseInt(base.slice(5,7),16);
-      const f=1+adj;
-      const clamp=v=>Math.max(0,Math.min(255,Math.round(v*f)));
-      return`rgb(${clamp(r)},${clamp(g)},${clamp(b)})`;
-    }
-
-    function getBoxFaces(x,y,z,w,h,d,color,sc,cx,cy,isPal){
-      const pts=[[x,y,z],[x+w,y,z],[x+w,y+h,z],[x,y+h,z],[x,y,z+d],[x+w,y,z+d],[x+w,y+h,z+d],[x,y+h,z+d]];
-      const p=pts.map(([px,py,pz])=>proj(px,py,pz,cx,cy,sc));
-      const sT=Math.sin(theta),cT=Math.cos(theta),sP=Math.sin(phi),cP=Math.cos(phi);
-      const cdx=-sT*cP,cdy=-sP,cdz=-cT*cP;
-      const faces=[
-        {v:[p[7],p[6],p[2],p[3]],f:isPal?'#c8a870':col(color,.38),s:'rgba(0,0,0,.18)',n:[0,1,0]},
-        {v:[p[4],p[5],p[6],p[7]],f:isPal?'#b8965a':col(color,.16),s:'rgba(0,0,0,.18)',n:[0,0,1]},
-        {v:[p[4],p[7],p[3],p[0]],f:isPal?'#a08040':col(color,.06),s:'rgba(0,0,0,.18)',n:[-1,0,0]},
-        {v:[p[1],p[2],p[6],p[5]],f:isPal?'#a08040':col(color,-.14),s:'rgba(0,0,0,.18)',n:[1,0,0]},
-        {v:[p[3],p[2],p[1],p[0]],f:isPal?'#b8965a':col(color,-.26),s:'rgba(0,0,0,.18)',n:[0,0,-1]},
-        {v:[p[0],p[1],p[5],p[4]],f:isPal?'#906030':col(color,-.38),s:'rgba(0,0,0,.18)',n:[0,-1,0]},
-      ].filter(f=>f.n[0]*cdx+f.n[1]*cdy+f.n[2]*cdz>-0.1)
-       .map(face=>{const v=face.v;return{...face,depth:(v[0][2]+v[1][2]+v[2][2]+v[3][2])*.25};});
-      return faces;
-    }
-
-    function palletBoxes(){
-      const res=[];
-      const TH=22,BH=22,BW=145,BD=800,GW=40,PH=14;
-      const bx=[0,BW+GW,2*(BW+GW),1200-BW];
-      bx.forEach(bx=>res.push({x:bx,y:0,z:0,w:BW,h:BH,d:BD,color:'#c8a870'}));
-      const bz=[0,BD-BH];
-      bz.forEach(bz=>res.push({x:0,y:BH,z:bz,w:PAL.W,h:PH,d:BH,color:'#c8a870'}));
-      res.push({x:0,y:BH,z:(BD-BH)/2,w:PAL.W,h:PH,d:BH,color:'#c8a870'});
-      const blocks=[{x:0,bz:0},{x:PAL.W/2-GW/2,bz:0},{x:PAL.W-BW,bz:0},
-                    {x:0,bz:BD/2-BW/2},{x:PAL.W/2-GW/2,bz:BD/2-BW/2},{x:PAL.W-BW,bz:BD/2-BW/2},
-                    {x:0,bz:BD-BW},{x:PAL.W/2-GW/2,bz:BD-BW},{x:PAL.W-BW,bz:BD-BW}];
-      blocks.forEach(b=>res.push({x:b.x,y:BH+PH,z:b.bz,w:BW,h:TH,d:BW,color:'#b8965a'}));
-      res.push({x:0,y:BH+PH+TH,z:0,w:PAL.W,h:PH,d:BD,color:'#c8a870'});
-      return res;
-    }
-
-    function drawFace(v,fill,stroke){
-      ctx.beginPath();ctx.moveTo(v[0][0],v[0][1]);
-      for(let i=1;i<v.length;i++)ctx.lineTo(v[i][0],v[i][1]);
-      ctx.closePath();ctx.fillStyle=fill;ctx.fill();
-      ctx.strokeStyle=stroke;ctx.lineWidth=.5;ctx.stroke();
-    }
-
-    function draw(){
-      const W=cv.width,H=cv.height,cx=W/2,cy=H/2;
-      const maxDim=Math.max(PAL.W,PAL.D,SCENE.totalH+PAL.H);
-      const sc=(Math.min(W,H)*.6)/maxDim*zoom;
-
-      const g=ctx.createLinearGradient(0,0,0,H);
-      g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
-      ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-
-      const sP=Math.sin(phi);
-      const cameraAbove=sP<(camTY-PAL.H)/DIST;
-      const palFaces=[],pkgFaces=[];
-      palletBoxes().forEach(b=>palFaces.push(...getBoxFaces(b.x,b.y,b.z,b.w,b.h,b.d,b.color,sc,cx,cy,true)));
-      SCENE.placements.forEach(p=>pkgFaces.push(...getBoxFaces(p.x,p.y,p.z,p.w,p.h,p.d,p.color,sc,cx,cy,false)));
-      palFaces.sort((a,b)=>b.depth-a.depth);
-      pkgFaces.sort((a,b)=>b.depth-a.depth);
-      if(cameraAbove){
-        palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-        pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-      }else{
-        pkgFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-        palFaces.forEach(f=>drawFace(f.v,f.f,f.s));
-      }
-    }
-
-    function resize(){cv.width=cv.offsetWidth;cv.height=cv.offsetHeight;draw();}
-    window.addEventListener('resize',resize);
-    resize();
-
-    /* auto-rotate */
-    let raf;
-    function autoRotate(){theta+=0.004;draw();raf=requestAnimationFrame(autoRotate);}
-    raf=requestAnimationFrame(autoRotate);
-
-    /* drag */
-    let drag=null;
-    cv.addEventListener('mousedown',e=>{cancelAnimationFrame(raf);drag={x:e.clientX,y:e.clientY,t:theta,p:phi};});
-    window.addEventListener('mousemove',e=>{
-      if(!drag)return;
-      theta=drag.t+(e.clientX-drag.x)*0.005;
-      phi=Math.max(0.05,Math.min(1.4,drag.p-(e.clientY-drag.y)*0.005));
-      draw();
+    [[-486,0],[0,0],[486,0]].forEach(([x])=>{
+      [-350,0,350].forEach(z=>{
+        const b=new THREE.Mesh(new THREE.BoxGeometry(140,78,100),wood2);
+        b.position.set(x,83,z);g.add(b);
+      });
     });
-    window.addEventListener('mouseup',()=>{if(drag){drag=null;raf=requestAnimationFrame(autoRotate);}});
+    [-350,0,350].forEach(z=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,22,100),wood);
+      m.position.set(0,33,z);g.add(m);
+    });
+    return g;
+  }
+  group.add(palletMesh());
 
-    /* touch drag */
-    cv.addEventListener('touchstart',e=>{
-      if(e.touches.length===1){cancelAnimationFrame(raf);drag={x:e.touches[0].clientX,y:e.touches[0].clientY,t:theta,p:phi};}
-    },{passive:true});
-    cv.addEventListener('touchmove',e=>{
-      if(!drag||e.touches.length!==1)return;
-      theta=drag.t+(e.touches[0].clientX-drag.x)*0.005;
-      phi=Math.max(0.05,Math.min(1.4,drag.p-(e.touches[0].clientY-drag.y)*0.005));
-      draw();
-    },{passive:true});
-    cv.addEventListener('touchend',()=>{if(drag){drag=null;raf=requestAnimationFrame(autoRotate);}});
-  })();
+  // cartons — 2×2 footprint × 3 layers
+  const COLORS=[0xe74c3c,0xe67e22,0x27ae60,0x3b82f6,0x9b59b6,0x16a085];
+  const boxes=[];
+  const BW=590,BD=390,BH=300;
+  for(let layer=0;layer<3;layer++)
+    for(let iz=0;iz<2;iz++)
+      for(let ix=0;ix<2;ix++){
+        const mat=new THREE.MeshLambertMaterial({color:COLORS[layer*2+iz],transparent:true});
+        const m=new THREE.Mesh(new THREE.BoxGeometry(BW,BH,BD),mat);
+        const tx=-300+ix*600, ty=144+BH/2+layer*BH, tz=-200+iz*400;
+        m.position.set(tx,ty,tz);
+        m.userData.target={x:tx,y:ty,z:tz};
+        const edge=new THREE.LineSegments(
+          new THREE.EdgesGeometry(m.geometry),
+          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.22}));
+        m.add(edge);
+        group.add(m);boxes.push(m);
+      }
 
-  /* ── Scroll fade-in ── */
-  const obs=new IntersectionObserver(entries=>{
-    entries.forEach(el=>{if(el.isIntersecting)el.target.classList.add('visible');});
-  },{threshold:.1,rootMargin:'0px 0px -40px 0px'});
-  document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+  // container outline around the stack
+  const outline=new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(2352,2400,4000)),
+    new THREE.LineBasicMaterial({color:0x60a5fa,transparent:true,opacity:.16}));
+  outline.position.set(0,1200,0);group.add(outline);
 
-  /* ── Smooth scroll for nav links ── */
-  document.querySelectorAll('a[href^="#"]').forEach(a=>{
-    a.addEventListener('click',e=>{
-      const t=document.querySelector(a.getAttribute('href'));
-      if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
+  // floating decorative boxes
+  const floaters=[];
+  for(let i=0;i<8;i++){
+    const s=90+Math.random()*150;
+    const m=new THREE.Mesh(
+      new THREE.BoxGeometry(s,s,s),
+      new THREE.MeshLambertMaterial({color:COLORS[i%COLORS.length],transparent:true,opacity:.35}));
+    m.position.set((Math.random()-.5)*5200,500+Math.random()*1800,(Math.random()-.5)*4200);
+    m.rotation.set(Math.random(),Math.random(),Math.random());
+    m.userData.spin=.0015+Math.random()*.002;
+    m.userData.baseY=m.position.y;
+    m.userData.ph=Math.random()*Math.PI*2;
+    scene.add(m);floaters.push(m);
+  }
+
+  let theta=.62;
+  function placeCamera(){
+    // pull back on narrow (portrait) screens so the stack stays behind the text
+    const R=4600*Math.max(1,1+(1-Math.min(1,camera.aspect))*1.5),h=1750;
+    camera.position.set(Math.sin(theta)*R,h,Math.cos(theta)*R);
+    camera.lookAt(0,620,0);
+  }
+
+  function resize(){
+    const w=cv.clientWidth,h=cv.clientHeight;
+    if(!w||!h)return;
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h;camera.updateProjectionMatrix();
+  }
+  addEventListener('resize',resize);resize();
+
+  /* drop-in loop animation (GSAP) */
+  if(hasGSAP&&!reduceMotion){
+    const tl=gsap.timeline({repeat:-1,repeatDelay:2.2});
+    boxes.forEach((b,i)=>{
+      const t=b.userData.target;
+      tl.fromTo(b.position,{y:t.y+2400},{y:t.y,duration:.7,ease:'bounce.out'},i*.14);
+      tl.fromTo(b.material,{opacity:0},{opacity:1,duration:.25,ease:'power1.out'},i*.14);
+    });
+    tl.to({},{duration:2.5});
+    tl.to(boxes.map(b=>b.material),{opacity:0,duration:.5,stagger:.04,ease:'power1.in'});
+  }
+
+  let t0=performance.now();
+  function loop(now){
+    const dt=Math.min(50,now-t0);t0=now;
+    if(!reduceMotion)theta+=dt*.000115;
+    placeCamera();
+    floaters.forEach(f=>{
+      f.rotation.x+=f.userData.spin;f.rotation.y+=f.userData.spin*1.3;
+      f.position.y=f.userData.baseY+Math.sin(now*.0006+f.userData.ph)*60;
+    });
+    renderer.render(scene,camera);
+    requestAnimationFrame(loop);
+  }
+  placeCamera();
+  requestAnimationFrame(loop);
+
+  /* scroll parallax: camera pulls back & up while hero scrolls away */
+  if(hasGSAP&&typeof ScrollTrigger!=='undefined'&&!reduceMotion){
+    gsap.to(group.position,{y:-500,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
+    gsap.to(group.rotation,{y:.6,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
+  }
+})();
+
+/* ════════ SHOWCASE container scene ════════ */
+(function(){
+  const cv=document.getElementById('showCanvas');
+  if(!cv||!hasTHREE)return;
+  const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  // light blue gradient bg matching the app
+  const bg=document.createElement('canvas');bg.width=2;bg.height=256;
+  const bc=bg.getContext('2d'),gg=bc.createLinearGradient(0,0,0,256);
+  gg.addColorStop(0,'#dce8f2');gg.addColorStop(1,'#a8c2d6');
+  bc.fillStyle=gg;bc.fillRect(0,0,2,256);
+  scene.background=new THREE.CanvasTexture(bg);
+  const camera=new THREE.PerspectiveCamera(40,1,10,80000);
+
+  scene.add(new THREE.AmbientLight(0xffffff,.85));
+  const sun=new THREE.DirectionalLight(0xffffff,1.2);
+  sun.position.set(4000,9000,5000);scene.add(sun);
+
+  const VL=12032,VW=2352,VH=2698;
+  // floor
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(VW,VL),new THREE.MeshLambertMaterial({color:0x9a8250}));
+  floor.rotation.x=-Math.PI/2;floor.position.set(0,0,0);scene.add(floor);
+  // container outline
+  const out=new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(VW,VH,VL)),
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.55}));
+  out.position.set(0,VH/2,0);scene.add(out);
+
+  // pallets with stacks
+  const PCOL=[0x3b82f6,0x10b981,0xf59e0b,0x8b5cf6,0x06b6d4,0xf97316,0xec4899,0x84cc16];
+  const wood=new THREE.MeshLambertMaterial({color:0x9a6e38});
+  let zCur=-VL/2;
+  for(let row=0;row<9;row++){
+    const pd=row%3===0?1200:800,pw=row%3===0?800:1200;
+    for(const sx of [-VW/2+pw/2, VW/2-pw/2]){
+      const base=new THREE.Mesh(new THREE.BoxGeometry(pw-20,144,pd-20),wood);
+      base.position.set(sx,72,zCur+pd/2);scene.add(base);
+      const h=700+((row*7+sx)%5)*220;
+      const load=new THREE.Mesh(new THREE.BoxGeometry(pw-40,h,pd-40),
+        new THREE.MeshLambertMaterial({color:PCOL[(row*2+(sx>0?1:0))%PCOL.length]}));
+      load.position.set(sx,144+h/2,zCur+pd/2);scene.add(load);
+      const e=new THREE.LineSegments(new THREE.EdgesGeometry(load.geometry),
+        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.3}));
+      e.position.copy(load.position);scene.add(e);
+    }
+    zCur+=row%3===0?1200:800;
+    if(zCur>VL/2-1300)break;
+  }
+  // loose cartons filling the rest
+  const CC=[0xe74c3c,0xe67e22,0x27ae60];
+  for(let i=0;i<3;i++)for(let j=0;j<5;j++)for(let k=0;k<3;k++){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(380,300,380),
+      new THREE.MeshLambertMaterial({color:CC[(i+j+k)%3]}));
+    m.position.set(-VW/2+220+i*400,150+k*300,VL/2-260-j*400);
+    scene.add(m);
+  }
+
+  let th=.55,ph=.34,zoom=1,drag=null;
+  function place(){
+    const R=11500/zoom;
+    camera.position.set(Math.sin(th)*Math.cos(ph)*R,Math.sin(ph)*R+VH*.4,Math.cos(th)*Math.cos(ph)*R);
+    camera.lookAt(0,VH*.38,0);
+  }
+  function resize(){
+    const w=cv.clientWidth,h=cv.clientHeight;
+    if(!w||!h)return;
+    renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  }
+  addEventListener('resize',resize);resize();
+
+  let auto=true;
+  function loop(now){
+    if(auto&&!reduceMotion)th+=.0022;
+    place();renderer.render(scene,camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  cv.addEventListener('mousedown',e=>{auto=false;drag={x:e.clientX,y:e.clientY,t:th,p:ph};});
+  addEventListener('mousemove',e=>{
+    if(!drag)return;
+    th=drag.t+(e.clientX-drag.x)*.006;
+    ph=Math.max(.08,Math.min(1.2,drag.p+(e.clientY-drag.y)*.004));
+  });
+  addEventListener('mouseup',()=>{if(drag){drag=null;setTimeout(()=>auto=true,4000);}});
+  cv.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){auto=false;drag={x:e.touches[0].clientX,y:e.touches[0].clientY,t:th,p:ph};}
+  },{passive:true});
+  cv.addEventListener('touchmove',e=>{
+    if(!drag||e.touches.length!==1)return;
+    th=drag.t+(e.touches[0].clientX-drag.x)*.006;
+    ph=Math.max(.08,Math.min(1.2,drag.p+(e.touches[0].clientY-drag.y)*.004));
+  },{passive:true});
+  cv.addEventListener('touchend',()=>{if(drag){drag=null;setTimeout(()=>auto=true,4000);}});
+  cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.5,Math.min(3,zoom*(e.deltaY>0?.92:1.087)));},{passive:false});
+})();
+
+/* ════════ GSAP entrance + scroll animations ════════ */
+(function(){
+  if(!hasGSAP){document.querySelectorAll('.rv').forEach(el=>el.style.opacity=1);return;}
+  if(reduceMotion){gsap.set('.rv',{opacity:1});gsap.set('#nav',{y:0});return;}
+
+  // nav slide-in
+  gsap.to('#nav',{y:0,duration:.7,ease:'power3.out',delay:.15});
+
+  // hero entrance (set initial state immediately to avoid flash)
+  gsap.set('#heroTitle .word',{yPercent:110,opacity:0});
+  gsap.timeline({delay:.25})
+    .to('#heroBadge',{opacity:1,duration:.55,ease:'power2.out'})
+    .to('#heroTitle .word',{yPercent:0,opacity:1,duration:.75,stagger:.09,ease:'power3.out'},'-=.25')
+    .to('#heroSub',{opacity:1,duration:.6,ease:'power2.out'},'-=.35')
+    .to('#heroActions',{opacity:1,duration:.6,ease:'power2.out'},'-=.4')
+    .to('#heroHint',{opacity:1,duration:.6},'-=.45');
+
+  // generic reveal for sections (steps/feats have their own stagger below)
+  gsap.utils.toArray('.rv').forEach(el=>{
+    if(['heroBadge','heroSub','heroActions','heroHint'].includes(el.id))return;
+    if(el.classList.contains('step')||el.classList.contains('feat'))return;
+    gsap.fromTo(el,{opacity:0,y:36},{
+      opacity:1,y:0,duration:.8,ease:'power3.out',
+      scrollTrigger:{trigger:el,start:'top 88%',once:true}
     });
   });
+
+  // stat counters
+  document.querySelectorAll('[data-count]').forEach(el=>{
+    const target=+el.dataset.count;
+    const o={v:0};
+    gsap.to(o,{v:target,duration:1.6,ease:'power2.out',
+      scrollTrigger:{trigger:el,start:'top 90%',once:true},
+      onUpdate:()=>el.textContent=Math.round(o.v)});
+  });
+
+  // step cards stagger
+  gsap.fromTo('.step',{opacity:0,y:48},{
+    opacity:1,y:0,duration:.7,stagger:.14,ease:'power3.out',
+    scrollTrigger:{trigger:'.steps',start:'top 85%',once:true}
+  });
+  // feature cards stagger
+  gsap.fromTo('.feat',{opacity:0,y:40},{
+    opacity:1,y:0,duration:.6,stagger:.08,ease:'power3.out',
+    scrollTrigger:{trigger:'.feats',start:'top 85%',once:true}
+  });
+})();
+
+/* smooth anchor scroll */
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
+  });
+});
 </script>
 </body>
 </html>
