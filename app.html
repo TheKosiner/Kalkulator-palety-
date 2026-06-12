@@ -2077,7 +2077,7 @@ canvas.addEventListener('mousemove',e=>{
   }
   if(!drag)return;
   const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
-  if(rmb){camTheta-=dx*.007;camPhi=Math.max(-1.4,Math.min(1.3,camPhi-dy*.007));}
+  if(rmb){camTheta-=dx*.007;camPhi=Math.max(-1.4,Math.min(1.3,camPhi+dy*.007));}
   else{panX+=dx*1.8;panY+=dy*1.8;}
   if(lastRes)draw3D(lastRes);
 });
@@ -2120,11 +2120,11 @@ canvas.addEventListener('touchmove',e=>{
       if(da<3&&db>=3){
         // a anchored → b controls orbit
         camTheta-=(b.clientX-pb.x)*.007;
-        camPhi=Math.max(-1.4,Math.min(1.3,camPhi-(b.clientY-pb.y)*.007));
+        camPhi=Math.max(-1.4,Math.min(1.3,camPhi+(b.clientY-pb.y)*.007));
       } else if(db<3&&da>=3){
         // b anchored → a controls orbit
         camTheta-=(a.clientX-pa.x)*.007;
-        camPhi=Math.max(-1.4,Math.min(1.3,camPhi-(a.clientY-pa.y)*.007));
+        camPhi=Math.max(-1.4,Math.min(1.3,camPhi+(a.clientY-pa.y)*.007));
       } else {
         // both moving → zoom + pan
         const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
@@ -3018,7 +3018,7 @@ function _initVehicleCanvas(type){
   window.addEventListener('mousemove',e=>{
     if(!drag)return;
     const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
-    if(rmb){cam.theta-=dx*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi-dy*.007));}
+    if(rmb){cam.theta-=dx*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+dy*.007));}
     else{cam.panX+=dx*1.8;cam.panY+=dy*1.8;}
     drawVehicle3D(type);
   });
@@ -3043,8 +3043,8 @@ function _initVehicleCanvas(type){
       if(pa&&pb){
         const da=Math.hypot(a.clientX-pa.x,a.clientY-pa.y);
         const db=Math.hypot(b.clientX-pb.x,b.clientY-pb.y);
-        if(da<3&&db>=3){cam.theta-=(b.clientX-pb.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi-(b.clientY-pb.y)*.007));}
-        else if(db<3&&da>=3){cam.theta-=(a.clientX-pa.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi-(a.clientY-pa.y)*.007));}
+        if(da<3&&db>=3){cam.theta-=(b.clientX-pb.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+(b.clientY-pb.y)*.007));}
+        else if(db<3&&da>=3){cam.theta-=(a.clientX-pa.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+(a.clientY-pa.y)*.007));}
         else{
           const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
           const pmx=(pa.x+pb.x)/2,pmy=(pa.y+pb.y)/2;
