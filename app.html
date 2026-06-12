@@ -2569,7 +2569,7 @@ function arrangeVehicle(type){
     const allPP=pal.allPalletPlacements||[pal.placements];
     for(let s=0;s<qty;s++){
       for(let si=0;si<nPal;si++){
-        const tmpl=allPP[si]||allPP[0]||[];
+        const tmpl=[...(allPP[si]||allPP[0]||[])]; // copy — loadOnPal may push into tmpl; must not mutate savedPallets
         // Actual height of this specific board = max(pkg.y + pkg.h) across its packages
         const boardH=tmpl.reduce((m,p)=>Math.max(m,(p.y||0)+(p.h||0)),0)||pal.totalH;
         if(boardH>vs.H){leftover++;continue;}
