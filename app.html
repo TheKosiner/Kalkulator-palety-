@@ -542,6 +542,10 @@
             <span id="mColorHex" style="font-size:.82rem;color:#555;font-family:monospace">#3498db</span>
           </div>
         </div>
+        <div class="modal-row">
+          <label>Waga (kg, opcjonalnie)</label>
+          <input type="number" id="mWeight" min="0" max="99999" step="0.001" inputmode="decimal" placeholder="0 = nieznana"/>
+        </div>
       </div>
       <!-- right: 3-D preview + face selector -->
       <div class="modal-preview">
@@ -726,7 +730,7 @@ function buildPkgList() {
       <div class="pkg-dot" style="background:${p.color}"></div>
       <div class="pkg-info">
         <div class="pkg-name">${p.name}</div>
-        <div class="pkg-dim">${A}×${B}×${C} mm</div>
+        <div class="pkg-dim">${A}×${B}×${C} mm${p.weight>0?` · ${p.weight} kg`:''}</div>
       </div>
       <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
       ${!BUILTIN_IDS.has(p.id)?`<button class="pkg-del-btn" title="Usuń" tabindex="-1">🗑️</button>`:''}
@@ -839,7 +843,7 @@ function buildManPkgList() {
     item.dataset.id = p.id;
     item.innerHTML = `<div class="pkg-dot" style="background:${p.color}"></div>
       <div class="pkg-info"><div class="pkg-name">${p.name}</div>
-      <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm</div></div>`;
+      <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm${p.weight>0?` · ${p.weight} kg`:''}</div></div>`;
     item.addEventListener('click', () => {
       manSelPkg = p; manFaceIdx = 0; manFlipped = false;
       document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
@@ -1266,11 +1270,14 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
   const savedPlaced = _placed;
   _placed = [...initialPlaced]; // start from provided state (supports resuming a partial pallet)
 
-  // Large boxes first → stable base, lower overall pallet height
+  // Heavy/large boxes first → they go to lower layers (stable base, lower pallet height)
   const vol = p => p.dims.length===2
     ? Math.PI*(p.dims[0]/2)**2*p.dims[1]
     : p.dims[0]*p.dims[1]*p.dims[2];
-  const sorted = [...entries].sort((a, b) => vol(b.pkg) - vol(a.pkg));
+  const sorted = [...entries].sort((a, b) => {
+    const wDiff = (b.pkg.weight||0) - (a.pkg.weight||0);
+    return wDiff !== 0 ? wDiff : vol(b.pkg) - vol(a.pkg);
+  });
 
   // Pack sequentially: exhaust all boxes of each type before moving to smaller types.
   // This lets large boxes form a complete flat layer first; smaller types then fill
@@ -1365,7 +1372,8 @@ function openPkgModal(id) {
   const pkg = id ? PKGS.find(p=>p.id===id) : null;
 
   document.getElementById('modalTitle').textContent = isNew ? 'Nowy element' : 'Edytuj element';
-  document.getElementById('mName').value  = pkg?.name  || '';
+  document.getElementById('mName').value   = pkg?.name   || '';
+  document.getElementById('mWeight').value = pkg?.weight > 0 ? pkg.weight : '';
 
   const color = pkg?.color || '#3498db';
   document.getElementById('mColor').value    = color;
@@ -1424,14 +1432,15 @@ function modalSave() {
 
   const dims = type === 'cylinder' ? [A, B] : [A, B, C];
   const topFace = type === 'cylinder' ? 'auto' : _previewFaceMode;
+  const weight = Math.max(0, parseFloat(document.getElementById('mWeight').value) || 0);
 
   if (_modalEditId) {
     // Edit existing
     const pkg = PKGS.find(p=>p.id===_modalEditId);
-    if (pkg) { pkg.name=name; pkg.type=type; pkg.dims=dims; pkg.color=color; pkg.topFace=topFace; }
+    if (pkg) { pkg.name=name; pkg.type=type; pkg.dims=dims; pkg.color=color; pkg.topFace=topFace; pkg.weight=weight; }
   } else {
     // New custom package
-    PKGS.push({ id:'pkg_'+Date.now(), name, type, dims, color, topFace });
+    PKGS.push({ id:'pkg_'+Date.now(), name, type, dims, color, topFace, weight });
   }
   savePkgs();
   modalClose();
@@ -2564,7 +2573,9 @@ function arrangeVehicle(type){
         // Actual height of this specific board = max(pkg.y + pkg.h) across its packages
         const boardH=tmpl.reduce((m,p)=>Math.max(m,(p.y||0)+(p.h||0)),0)||pal.totalH;
         if(boardH>vs.H){leftover++;continue;}
-        unitPallets.push({w:pal.palW,d:pal.palD,totalH:boardH,color:pal.color,name:pal.name,palId:pal.id,tmpl});
+        // Pallet weight = sum of (pkgWeight × occurrences) from its package list
+        const boardW=tmpl.reduce((s,p)=>{const pkg=PKGS.find(q=>q.id===p.pkgId);return s+(pkg?.weight||0);},0);
+        unitPallets.push({w:pal.palW,d:pal.palD,totalH:boardH,weight:boardW,color:pal.color,name:pal.name,palId:pal.id,tmpl});
       }
     }
   }
@@ -2615,8 +2626,12 @@ function arrangeVehicle(type){
     }
   }
 
-  // Sort tallest-first so the heaviest pallets go deepest (rear of vehicle).
-  unitPallets.sort((a,b)=>b.totalH-a.totalH);
+  // Sort heaviest-first (floor/rear of vehicle), then tallest-first as tiebreaker.
+  // Falls back to height-only sort when no weights are set.
+  unitPallets.sort((a,b)=>{
+    const wDiff=(b.weight||0)-(a.weight||0);
+    return wDiff!==0?wDiff:b.totalH-a.totalH;
+  });
 
   // Pre-merge pallets into vertical stacks when "stack pallets" option is checked.
   const stackPallets=document.getElementById(`${p}StackPallets`)?.checked;
@@ -2629,7 +2644,9 @@ function arrangeVehicle(type){
     }
     const merged=[];
     for(const grp of groups.values()){
-      // already sorted tallest-first; pair tallest with shortest compatible partner
+      // Sort heaviest-first (heavier pallet always goes to the bottom of the stack)
+      grp.sort((a,b)=>{const wDiff=(b.weight||0)-(a.weight||0);return wDiff!==0?wDiff:b.totalH-a.totalH;});
+      // pair heaviest with lightest compatible partner
       const used=new Array(grp.length).fill(false);
       for(let i=0;i<grp.length;i++){
         if(used[i])continue;
