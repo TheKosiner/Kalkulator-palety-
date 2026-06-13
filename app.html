@@ -103,6 +103,14 @@
     .bap-btn-del{background:var(--red-dim);color:var(--red);border-color:rgba(248,113,113,.2)}
     .bap-btn-del:hover{background:var(--red);color:#fff}
 
+    /* ROTATION POPUP (ghost during manual add) */
+    #rotPopup{position:absolute;z-index:60;background:rgba(10,18,34,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:var(--rl);padding:9px 10px;box-shadow:0 8px 32px rgba(0,0,0,.6);min-width:172px;display:none}
+    .rp-title{font-size:.68rem;font-weight:700;color:var(--text-3);margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em}
+    #rpBtns{display:flex;flex-direction:column;gap:4px}
+    .rp-btn{padding:7px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:.72rem;cursor:pointer;color:var(--text);text-align:left;transition:all .15s;white-space:nowrap}
+    .rp-btn:hover{border-color:var(--border-2);background:rgba(255,255,255,.07)}
+    .rp-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
     /* LEGEND */
     #legend{position:absolute;bottom:12px;left:12px;background:rgba(10,18,34,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.07);border-radius:var(--rl);padding:10px 14px;font-size:.69rem;color:var(--text);display:none;max-width:220px}
     #legend .lr{display:flex;align-items:center;gap:8px;margin:3px 0}
@@ -298,8 +306,15 @@
     <div class="bap-row">
       <button class="bap-btn bap-btn-auto" onclick="bapAutoPlace()">⚡ Ustaw auto</button>
       <button class="bap-btn bap-btn-drag" id="bapDragBtn" onclick="bapStartDrag()">✋ Przesuń</button>
+    </div>
+    <div class="bap-row">
+      <button class="bap-btn" onclick="bapRotate()">⟳ Obróć</button>
       <button class="bap-btn bap-btn-del" onclick="bapRemove()">✕ Usuń</button>
     </div>
+  </div>
+  <div id="rotPopup">
+    <div class="rp-title">Obrót paczki</div>
+    <div id="rpBtns"></div>
   </div>
   <div id="camCtrls">
     <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
@@ -678,6 +693,7 @@ function toggleAddMode() {
   selectedBoxIdx = -1;
   isDragMode = false;
   hideBoxActionPanel();
+  hideRotPopup();
   if (lastRes) draw3D(lastRes);
 }
 
@@ -845,11 +861,13 @@ function manSurfAt(x,z,fw,fd) {
   return h;
 }
 
-function manSnapPos(wx, wz, fw, fd, exclIdx=-1) {
+function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
   const snap = document.getElementById('snapToEdges')?.checked ?? true;
   const G = 50;
   const clampX = v => Math.max(0, Math.min(PAL.W-fw, v));
   const clampZ = v => Math.max(0, Math.min(PAL.D-fd, v));
+  // cursor marks the CENTRE of the footprint → derive left/back edge
+  const wx = cx - fw/2, wz = cz - fd/2;
   let bx = clampX(Math.round(wx/G)*G);
   let bz = clampZ(Math.round(wz/G)*G);
   if (!snap) return {x:bx, z:bz};
@@ -2016,7 +2034,14 @@ canvas.addEventListener('mousemove',e=>{
   if(lastRes)draw3D(lastRes);
 });
 canvas.addEventListener('mouseup',e=>{
+  if(tapStart&&rmb){
+    // right-click without drag → rotation popup for the ghost while adding
+    const moved=Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y);
+    if(moved<6 && isAddMode && !manRemoveMode){ showRotPopup(e.clientX,e.clientY); }
+    drag=false; tapStart=null; return;
+  }
   if(tapStart&&!rmb){
+    hideRotPopup();
     const moved=Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y);
     if(moved<6){
       if(isAddMode){
@@ -2219,6 +2244,49 @@ window.bapStartDrag=function(){
     document.getElementById('manHint').style.display='none';
   }
 };
+
+// Rotate a placed box 90° around the vertical axis (swap footprint, keep centre)
+window.bapRotate=function(){
+  if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  const ccx=b.x+b.w/2, ccz=b.z+b.d/2;
+  [b.w,b.d]=[b.d,b.w];
+  const palOx=(b.palletIdx??0)*(PAL.W+PAL_GAP);
+  b.x=Math.max(palOx,Math.min(palOx+PAL.W-b.w,ccx-b.w/2));
+  b.z=Math.max(0,Math.min(PAL.D-b.d,ccz-b.d/2));
+  b.y=manSurfAtExcl(b.x,b.z,b.w,b.d,selectedBoxIdx);
+  refreshManual();
+  showBoxActionPanel(selectedBoxIdx);
+};
+
+// Rotation popup for the ghost box being placed (right-click in add mode)
+function showRotPopup(clientX,clientY){
+  const pop=document.getElementById('rotPopup');
+  const [A,B,C]=manSelPkg.dims;
+  const faces=[[A,B,C],[A,C,B],[B,C,A]];
+  let html='';
+  faces.forEach(([a,b,c],i)=>{
+    const act=i===manFaceIdx&&!manFlipped;
+    html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i},false)">${a}×${b} na górze (wys. ${c})</button>`;
+  });
+  faces.forEach(([a,b,c],i)=>{
+    if(a===b)return;
+    const act=i===manFaceIdx&&manFlipped;
+    html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i},true)">${b}×${a} na górze (wys. ${c}) ↔</button>`;
+  });
+  document.getElementById('rpBtns').innerHTML=html;
+  pop.style.display='block';
+  const rect=document.getElementById('view3d').getBoundingClientRect();
+  const x=clientX-rect.left, y=clientY-rect.top;
+  pop.style.left=Math.max(8,Math.min(x,rect.width-pop.offsetWidth-8))+'px';
+  pop.style.top=Math.max(8,Math.min(y,rect.height-pop.offsetHeight-8))+'px';
+}
+window.rotPick=(i,fl)=>{
+  manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns();
+  document.getElementById('rotPopup').style.display='none';
+  if(lastRes)draw3D(lastRes);
+};
+function hideRotPopup(){document.getElementById('rotPopup').style.display='none';}
 
 // projection — orbit centre is the geometric centre of the scene in all 3 axes
 let _sceneCenterX = PAL.W/2; // updated by draw3D for multi-pallet scenes
