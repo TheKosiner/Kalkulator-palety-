@@ -48,12 +48,12 @@
     .mobile-menu .mm-close{position:absolute;top:18px;right:24px;font-size:2rem;background:none;border:none;color:var(--text-2);cursor:pointer}
 
     /* ─── HERO ─── */
-    .hero{position:relative;min-height:160svh;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;padding:0 24px 90px}
+    .hero{position:relative;min-height:110svh;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;padding:0 24px 90px}
     #heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
     .hero-vignette{position:absolute;inset:0;pointer-events:none;background:
-      radial-gradient(ellipse 90% 65% at 50% 15%,rgba(59,130,246,.13) 0%,transparent 55%),
-      linear-gradient(to bottom,rgba(7,13,26,.4) 0%,rgba(7,13,26,0) 10%,rgba(7,13,26,0) 58%,rgba(7,13,26,.5) 78%,var(--bg) 100%)}
-    .hero-content{position:relative;z-index:2;text-align:center;max-width:880px;background:rgba(7,13,26,.52);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:44px 48px 40px}
+      radial-gradient(ellipse 90% 65% at 50% 25%,rgba(59,130,246,.14) 0%,transparent 55%),
+      linear-gradient(to bottom,rgba(7,13,26,.4) 0%,rgba(7,13,26,0) 10%,rgba(7,13,26,0) 42%,rgba(7,13,26,.6) 70%,var(--bg) 100%)}
+    .hero-content{position:relative;z-index:2;text-align:center;max-width:880px;background:rgba(7,13,26,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:40px 48px 36px}
     .hero-badge{display:inline-flex;align-items:center;gap:9px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.32);border-radius:24px;padding:7px 18px;font-size:.78rem;font-weight:600;color:var(--accent-h);margin-bottom:28px}
     .hero-badge i{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
     @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{opacity:.6;box-shadow:0 0 0 5px rgba(52,211,153,0)}}
@@ -201,8 +201,8 @@
     @media(max-width:580px){
       .feats{grid-template-columns:1fr}
       .section{padding:80px 20px}
-      .hero{min-height:130svh;padding:0 18px 60px}
-      .hero-content{padding:32px 22px 28px;border-radius:18px}
+      .hero{min-height:105svh;padding:0 18px 54px}
+      .hero-content{padding:28px 22px 24px;border-radius:18px}
       .btn-hero{width:100%;max-width:340px}
       .foot-top{grid-template-columns:1fr}
       .foot-bottom{flex-direction:column;text-align:center}
