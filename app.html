@@ -466,9 +466,13 @@
       <div id="manPkgList"></div>
       <div class="stitle">Orientacja</div>
       <div class="man-face-btns" id="manFaceBtns"></div>
-      <label class="opt-chk" style="margin:4px 0 8px">
+      <label class="opt-chk" style="margin:4px 0 4px">
         <input type="checkbox" id="snapToEdges" checked/>
         Wyrównuj do krawędzi paczek i palety
+      </label>
+      <label class="opt-chk" style="margin:4px 0 8px">
+        <input type="checkbox" id="allowOverhang"/>
+        Kartony mogą wystawać poza karton pod spodem
       </label>
       <div class="man-action-row">
         <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
@@ -870,21 +874,39 @@ function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
   const wx = cx - fw/2, wz = cz - fd/2;
   let bx = clampX(Math.round(wx/G)*G);
   let bz = clampZ(Math.round(wz/G)*G);
-  if (!snap) return {x:bx, z:bz};
 
-  // Magnetic snap: flush against each box's walls + edge alignment + pallet sides
-  const SNAP = 160;
-  const xC = [0, PAL.W-fw];
-  const zC = [0, PAL.D-fd];
-  manBoxes.forEach((b,i) => {
-    if (i===exclIdx) return;
-    xC.push(b.x-fw, b.x+b.w, b.x, b.x+b.w-fw); // flush-left, flush-right, align-left, align-right
-    zC.push(b.z-fd, b.z+b.d, b.z, b.z+b.d-fd); // flush-back, flush-front, align-back, align-front
-  });
-  let bestXd = SNAP;
-  for (const x of xC) { const c=clampX(x), d=Math.abs(c-wx); if (d<bestXd) { bestXd=d; bx=c; } }
-  let bestZd = SNAP;
-  for (const z of zC) { const c=clampZ(z), d=Math.abs(c-wz); if (d<bestZd) { bestZd=d; bz=c; } }
+  if (snap) {
+    // Magnetic snap: flush against each box's walls + edge alignment + pallet sides
+    const SNAP = 160;
+    const xC = [0, PAL.W-fw];
+    const zC = [0, PAL.D-fd];
+    manBoxes.forEach((b,i) => {
+      if (i===exclIdx) return;
+      xC.push(b.x-fw, b.x+b.w, b.x, b.x+b.w-fw); // flush-left, flush-right, align-left, align-right
+      zC.push(b.z-fd, b.z+b.d, b.z, b.z+b.d-fd); // flush-back, flush-front, align-back, align-front
+    });
+    let bestXd = SNAP;
+    for (const x of xC) { const c=clampX(x), d=Math.abs(c-wx); if (d<bestXd) { bestXd=d; bx=c; } }
+    let bestZd = SNAP;
+    for (const z of zC) { const c=clampZ(z), d=Math.abs(c-wz); if (d<bestZd) { bestZd=d; bz=c; } }
+  }
+
+  // Overhang constraint: if unchecked, keep ghost within the footprint of the box below
+  const allowOverhang = document.getElementById('allowOverhang')?.checked ?? false;
+  if (!allowOverhang) {
+    let support = null, supY = -Infinity;
+    manBoxes.forEach((b,i) => {
+      if (i===exclIdx) return;
+      if (cx > b.x && cx < b.x+b.w && cz > b.z && cz < b.z+b.d) {
+        if (b.y+b.h > supY) { supY = b.y+b.h; support = b; }
+      }
+    });
+    if (support) {
+      bx = Math.max(support.x, Math.min(support.x+support.w-fw, bx));
+      bz = Math.max(support.z, Math.min(support.z+support.d-fd, bz));
+    }
+  }
+
   return {x:bx, z:bz};
 }
 
@@ -944,7 +966,7 @@ function refreshManual() {
 // Inverse perspective projection — screen (sx,sy) → world (x,z) on plane y=y0
 function unprojectY(sx, sy, y0, W, H, sc) {
   const p   = camDist*sc, cx=W/2, cy=H/2;
-  const dx  = sx - cx - panX;
+  const dx  = -(sx - cx - panX);
   const dy  = -(sy - cy - panY);
   const Y   = y0 - camTargetY;
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
@@ -1995,17 +2017,7 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('mousemove',e=>{
   if(isAddMode && !drag){
     if(manRemoveMode){
-      const {W,H,sc}=manScreenSc(); const cx=W/2,cy=H/2;
-      const rect=canvas.getBoundingClientRect();
-      const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
-      let best=-1, bd=50;
-      for(let i=0;i<manBoxes.length;i++){
-        const b=manBoxes[i];
-        const [px,py]=proj(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2,cx,cy,sc);
-        const d=Math.hypot(px-sx,py-sy);
-        if(d<bd){bd=d;best=i;}
-      }
-      manHoverRemoveIdx=best;
+      manHoverRemoveIdx=raycastBox(e);
     } else {
       const w=manHoverToWorld(e);
       if(w){const {fw,fd}=manGetDims();const p=manSnapPos(w.x,w.z,fw,fd);manGhostX=p.x;manGhostZ=p.z;}
@@ -2042,7 +2054,7 @@ canvas.addEventListener('mouseup',e=>{
     if(moved<6){
       if(isAddMode){
         if(manRemoveMode){
-          const i=manPickBox(e);
+          const i=raycastBox(e);
           if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;selectedBoxIdx=-1;hideBoxActionPanel();refreshManual();}
         } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
       } else if(isDragMode && selectedBoxIdx>=0){
