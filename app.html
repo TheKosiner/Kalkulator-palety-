@@ -968,9 +968,7 @@ function manEventToWorld(e) {
   const rect=canvas.getBoundingClientRect();
   const cl=e.changedTouches?e.changedTouches[0]:e;
   const sx=cl.clientX-rect.left, sy=cl.clientY-rect.top;
-  const r=unprojectY(sx,sy,PAL.H,W,H,sc);
-  if(r)r.x=PAL.W-r.x; // invert left/right to match expected hand movement
-  return r;
+  return unprojectY(sx,sy,PAL.H,W,H,sc);
 }
 function manHoverToWorld(e) {
   const vw=document.getElementById('view3d');
@@ -979,9 +977,7 @@ function manHoverToWorld(e) {
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
   const rect=canvas.getBoundingClientRect();
   const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
-  const r=unprojectY(sx,sy,PAL.H,W,H,sc);
-  if(r)r.x=PAL.W-r.x; // invert left/right to match expected hand movement
-  return r;
+  return unprojectY(sx,sy,PAL.H,W,H,sc);
 }
 
 // Remove mode — tap on a placed box to delete it
@@ -2172,7 +2168,7 @@ function showBoxActionPanel(idx){
   const b=manBoxes[idx];
   const p=PKGS.find(q=>q.id===b.pkgId);
   document.getElementById('bapName').textContent=(p?.name||'Karton')+` — ${b.w}×${b.d}×${b.h} mm`;
-  document.getElementById('boxActionPanel').style.display='';
+  document.getElementById('boxActionPanel').style.display='block';
 }
 function hideBoxActionPanel(){
   document.getElementById('boxActionPanel').style.display='none';
