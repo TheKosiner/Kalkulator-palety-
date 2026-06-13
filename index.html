@@ -211,6 +211,9 @@
       .price{padding:32px 24px}
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 </head>
 <body>
 
@@ -321,7 +324,7 @@
   <div class="section-inner show-grid">
     <div class="rv" id="showText">
       <div class="tag">Załadunek pojazdów</div>
-      <h2 class="h2">Z palety prosto<br>do kontenera</h2>
+      <h2 class="h2">Z palety prosto<br>do naczepy</h2>
       <p class="sub">Zapisane palety stają się klockami, które algorytm rozmieszcza w przestrzeni ładunkowej — a Ty widzisz dokładnie, co i gdzie pojedzie.</p>
       <ul class="checks">
         <li><div class="chk">✓</div><div><strong>Dwupasmowe pakowanie kontenera</strong><span>Wąskie i szerokie orientacje palet w dwóch równoległych pasach minimalizują stratę szerokości.</span></div></li>
@@ -332,7 +335,7 @@
     <div class="show-visual rv" id="showVis">
       <div class="show-glow"></div>
       <div class="show-frame">
-        <div class="show-bar"><i></i><i></i><i></i><span>Kalkulator Palety 3D — Kontener 40′ HC</span></div>
+        <div class="show-bar"><i></i><i></i><i></i><span>Kalkulator Palety 3D — Naczepa Mega 13.6m</span></div>
         <canvas id="showCanvas"></canvas>
       </div>
     </div>
@@ -585,14 +588,14 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   }
 })();
 
-/* ════════ SHOWCASE container scene ════════ */
+/* ════════ SHOWCASE naczepa scene ════════ */
 (function(){
   const cv=document.getElementById('showCanvas');
   if(!cv||!hasTHREE)return;
   const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   const scene=new THREE.Scene();
-  // light blue gradient bg matching the app
+  // light blue gradient matching the app vehicle background
   const bg=document.createElement('canvas');bg.width=2;bg.height=256;
   const bc=bg.getContext('2d'),gg=bc.createLinearGradient(0,0,0,256);
   gg.addColorStop(0,'#dce8f2');gg.addColorStop(1,'#a8c2d6');
@@ -601,53 +604,87 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   const camera=new THREE.PerspectiveCamera(40,1,10,80000);
 
   scene.add(new THREE.AmbientLight(0xffffff,.85));
-  const sun=new THREE.DirectionalLight(0xffffff,1.2);
-  sun.position.set(4000,9000,5000);scene.add(sun);
+  const sun=new THREE.DirectionalLight(0xffffff,1.3);
+  sun.position.set(5000,10000,6000);scene.add(sun);
 
-  const VL=12032,VW=2352,VH=2698;
-  // floor
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(VW,VL),new THREE.MeshLambertMaterial({color:0x9a8250}));
-  floor.rotation.x=-Math.PI/2;floor.position.set(0,0,0);scene.add(floor);
-  // container outline
-  const out=new THREE.LineSegments(
+  // naczepa Mega 13.6m dimensions (mm)
+  const VL=13600,VW=2480,VH=3000;
+
+  // floor — tan/wood colour matching the app
+  const flr=new THREE.Mesh(new THREE.PlaneGeometry(VW,VL),new THREE.MeshLambertMaterial({color:0xc8b87a}));
+  flr.rotation.x=-Math.PI/2;scene.add(flr);
+
+  // naczepa frame outline (white wireframe like the app)
+  const outMesh=new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(VW,VH,VL)),
-    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.55}));
-  out.position.set(0,VH/2,0);scene.add(out);
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.45}));
+  outMesh.position.y=VH/2;scene.add(outMesh);
 
-  // pallets with stacks
-  const PCOL=[0x3b82f6,0x10b981,0xf59e0b,0x8b5cf6,0x06b6d4,0xf97316,0xec4899,0x84cc16];
-  const wood=new THREE.MeshLambertMaterial({color:0x9a6e38});
-  let zCur=-VL/2;
-  for(let row=0;row<9;row++){
-    const pd=row%3===0?1200:800,pw=row%3===0?800:1200;
-    for(const sx of [-VW/2+pw/2, VW/2-pw/2]){
-      const base=new THREE.Mesh(new THREE.BoxGeometry(pw-20,144,pd-20),wood);
-      base.position.set(sx,72,zCur+pd/2);scene.add(base);
-      const h=700+((row*7+sx)%5)*220;
-      const load=new THREE.Mesh(new THREE.BoxGeometry(pw-40,h,pd-40),
-        new THREE.MeshLambertMaterial({color:PCOL[(row*2+(sx>0?1:0))%PCOL.length]}));
-      load.position.set(sx,144+h/2,zCur+pd/2);scene.add(load);
-      const e=new THREE.LineSegments(new THREE.EdgesGeometry(load.geometry),
-        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.3}));
-      e.position.copy(load.position);scene.add(e);
+  // shared pallet board materials — exact colours from _vPalBoardBoxes
+  const pm1=new THREE.MeshLambertMaterial({color:0xc8a86a}); // top deck boards
+  const pm2=new THREE.MeshLambertMaterial({color:0xb8965a}); // cross-boards & stringers
+  const pm3=new THREE.MeshLambertMaterial({color:0x9a6e38}); // support blocks
+
+  const PAL_H=144; // pallet height (mm)
+
+  // addPallet mirrors _vPalBoardBoxes: ox/oz = min-x / min-z corner (world coords)
+  function addPallet(ox,oz,palW,palD){
+    const bw=Math.max(1,Math.floor(palW/6));
+    // 6 top deck boards
+    for(let i=0;i<6;i++){
+      const w=bw-2,m=new THREE.Mesh(new THREE.BoxGeometry(w,22,palD),pm1);
+      m.position.set(ox+i*bw+w/2,PAL_H-11,oz+palD/2);scene.add(m);
     }
-    zCur+=row%3===0?1200:800;
-    if(zCur>VL/2-1300)break;
-  }
-  // loose cartons filling the rest
-  const CC=[0xe74c3c,0xe67e22,0x27ae60];
-  for(let i=0;i<3;i++)for(let j=0;j<5;j++)for(let k=0;k<3;k++){
-    const m=new THREE.Mesh(new THREE.BoxGeometry(380,300,380),
-      new THREE.MeshLambertMaterial({color:CC[(i+j+k)%3]}));
-    m.position.set(-VW/2+220+i*400,150+k*300,VL/2-260-j*400);
-    scene.add(m);
+    // 3 bottom cross-boards
+    [0,palD/2-50,palD-100].forEach(dz=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(palW,20,100),pm2);
+      m.position.set(ox+palW/2,10,oz+dz+50);scene.add(m);
+    });
+    // 9 support blocks
+    [0,palW/2-50,palW-100].forEach(dx=>[0,palD/2-50,palD-100].forEach(dz=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(100,72,100),pm3);
+      m.position.set(ox+dx+50,56,oz+dz+50);scene.add(m);
+    }));
+    // 3 top stringers
+    [0,palD/2-40,palD-80].forEach(dz=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(palW,20,80),pm2);
+      m.position.set(ox+palW/2,102,oz+dz+40);scene.add(m);
+    });
   }
 
-  let th=.55,ph=.34,zoom=1,drag=null;
+  // EU pallet 1200×800: 2 columns centred in VW=2480 with 40 mm side gap
+  const PCOL=[0x3b82f6,0x10b981,0xf59e0b,0x8b5cf6,0x06b6d4,0xf97316,0xec4899,0x84cc16];
+  const PAL_W=1200,PAL_D=800,SG=(VW-2*PAL_W)/2; // SG=40mm
+
+  for(let row=0;row<12;row++){
+    const oz=-VL/2+row*PAL_D;
+    for(let col=0;col<2;col++){
+      const ox=-VW/2+SG+col*PAL_W;
+      addPallet(ox,oz,PAL_W,PAL_D);
+      // carton stack with varied heights, layered and edge-outlined
+      const stackH=500+((row*3+col*7+13)%5)*180;
+      const nLy=Math.max(1,Math.round(stackH/300));
+      const color=PCOL[(row*2+col)%PCOL.length];
+      const mat=new THREE.MeshLambertMaterial({color});
+      const eMat=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.22});
+      for(let ly=0;ly<nLy;ly++){
+        const ch=Math.min(300,stackH-ly*300);if(ch<20)break;
+        const geo=new THREE.BoxGeometry(PAL_W-60,ch,PAL_D-60);
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(ox+PAL_W/2,PAL_H+ly*300+ch/2,oz+PAL_D/2);scene.add(m);
+        const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo),eMat);
+        e.position.copy(m.position);scene.add(e);
+      }
+    }
+  }
+
+  // camera defaults matching vCam.naczepa in the app: theta=0.35, phi=−0.30
+  // (ph positive = camera above because of how place() uses Math.sin(ph))
+  let th=.35,ph=.30,zoom=1,drag=null;
   function place(){
-    const R=11500/zoom;
+    const R=16000/zoom;
     camera.position.set(Math.sin(th)*Math.cos(ph)*R,Math.sin(ph)*R+VH*.4,Math.cos(th)*Math.cos(ph)*R);
-    camera.lookAt(0,VH*.38,0);
+    camera.lookAt(0,VH*.35,0);
   }
   function resize(){
     const w=cv.clientWidth,h=cv.clientHeight;
@@ -657,8 +694,8 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   addEventListener('resize',resize);resize();
 
   let auto=true;
-  function loop(now){
-    if(auto&&!reduceMotion)th+=.0022;
+  function loop(){
+    if(auto&&!reduceMotion)th+=.0018;
     place();renderer.render(scene,camera);
     requestAnimationFrame(loop);
   }
@@ -679,7 +716,7 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
     th=drag.t+(e.touches[0].clientX-drag.x)*.006;
     ph=Math.max(.08,Math.min(1.2,drag.p+(e.touches[0].clientY-drag.y)*.004));
   },{passive:true});
-  cv.addEventListener('touchend',()=>{if(drag){drag=null;setTimeout(()=>auto=true,4000);}});
+  cv.addEventListener('touchend',()=>{if(drag){drag=null;setTimeout(()=>auto=true,4000);}},{passive:true});
   cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.5,Math.min(3,zoom*(e.deltaY>0?.92:1.087)));},{passive:false});
 })();
 
