@@ -48,16 +48,16 @@
     .mobile-menu .mm-close{position:absolute;top:18px;right:24px;font-size:2rem;background:none;border:none;color:var(--text-2);cursor:pointer}
 
     /* ─── HERO ─── */
-    .hero{position:relative;min-height:115svh;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;padding:118px 24px 60px}
+    .hero{position:relative;min-height:115svh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;overflow:hidden;padding:118px 24px 64px}
     #heroCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
     .hero-vignette{position:absolute;inset:0;pointer-events:none;background:
-      radial-gradient(ellipse 100% 36% at 50% 0%,rgba(7,13,26,.82) 0%,rgba(7,13,26,0) 100%),
-      linear-gradient(to bottom,rgba(7,13,26,0) 0%,rgba(7,13,26,0) 58%,rgba(7,13,26,.55) 78%,var(--bg) 100%)}
-    .hero-content{position:relative;z-index:2;text-align:center;max-width:880px}
+      radial-gradient(ellipse 100% 30% at 50% 0%,rgba(7,13,26,.85) 0%,rgba(7,13,26,0) 100%),
+      linear-gradient(to bottom,rgba(7,13,26,0) 0%,rgba(7,13,26,0) 52%,rgba(7,13,26,.62) 76%,var(--bg) 100%)}
+    .hero-top,.hero-bot{position:relative;z-index:2;text-align:center;max-width:880px;width:100%}
     .hero-badge{display:inline-flex;align-items:center;gap:9px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.32);border-radius:24px;padding:7px 18px;font-size:.78rem;font-weight:600;color:var(--accent-h);margin-bottom:28px;backdrop-filter:blur(6px)}
     .hero-badge i{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
     @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{opacity:.6;box-shadow:0 0 0 5px rgba(52,211,153,0)}}
-    .hero h1{font-size:clamp(2.3rem,6vw,4.4rem);font-weight:800;line-height:1.07;letter-spacing:-.035em;margin-bottom:clamp(130px,20svh,280px)}
+    .hero h1{font-size:clamp(2.3rem,6vw,4.4rem);font-weight:800;line-height:1.07;letter-spacing:-.035em;margin-bottom:0}
     .hero h1 .accent{background:linear-gradient(100deg,var(--accent-h),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
     .hero h1 .word{display:inline-block}
     .hero-sub{font-size:clamp(.98rem,2vw,1.18rem);color:var(--text-2);line-height:1.65;max-width:620px;margin:0 auto 40px}
@@ -201,8 +201,7 @@
     @media(max-width:580px){
       .feats{grid-template-columns:1fr}
       .section{padding:80px 20px}
-      .hero{min-height:108svh;padding:100px 18px 60px}
-      .hero h1{margin-bottom:70px}
+      .hero{min-height:108svh;padding:100px 18px 52px}
       .btn-hero{width:100%;max-width:340px}
       .foot-top{grid-template-columns:1fr}
       .foot-bottom{flex-direction:column;text-align:center}
@@ -248,12 +247,14 @@
 <header class="hero" id="top">
   <canvas id="heroCanvas"></canvas>
   <div class="hero-vignette"></div>
-  <div class="hero-content">
+  <div class="hero-top">
     <div class="hero-badge rv" id="heroBadge"><i></i>Wizualizacja 3D palet, naczep i kontenerów</div>
     <h1 id="heroTitle">
       <span class="word">Logistyka</span> <span class="word">załadunku</span><br>
       <span class="word accent">zaplanowana</span> <span class="word accent">w 3D</span>
     </h1>
+  </div>
+  <div class="hero-bot">
     <p class="hero-sub rv" id="heroSub">Algorytm optymalnego upakowania rozmieszcza kartony na paletach, a palety w naczepach i kontenerach — z uwzględnieniem wagi, piętrowania i luźnych paczek. Wynik widzisz natychmiast w interaktywnym 3D.</p>
     <div class="hero-actions rv" id="heroActions">
       <a href="app.html"><button class="btn-hero solid">Uruchom kalkulator →</button></a>
