@@ -488,31 +488,33 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
 
   const group=new THREE.Group();scene.add(group);
 
-  // pallet base — exact _vPalBoardBoxes geometry (Euro pallet 1200×800×144)
+  // Euro pallet — 5 deck planks with clear 50mm gaps, running full 1200mm width
   function palletMesh(){
     const g=new THREE.Group();
-    const m1=new THREE.MeshLambertMaterial({color:0xc8a86a}); // top deck boards
-    const m2=new THREE.MeshLambertMaterial({color:0xb8965a}); // bottom boards + top stringers
-    const m3=new THREE.MeshLambertMaterial({color:0x9a6e38}); // support blocks
-    // 6 top deck boards (y=122-144, full depth 800)
-    for(let i=0;i<6;i++){
-      const m=new THREE.Mesh(new THREE.BoxGeometry(198,22,800),m1);
-      m.position.set(-501+i*200,133,0);g.add(m);
-    }
-    // 3 bottom cross-boards (y=0-20, z at -350/0/350)
-    [-350,0,350].forEach(z=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,20,100),m2);
-      m.position.set(0,10,z);g.add(m);
+    const m1=new THREE.MeshLambertMaterial({color:0xc8a86a}); // deck planks
+    const m2=new THREE.MeshLambertMaterial({color:0xb8965a}); // stringers
+    const m3=new THREE.MeshLambertMaterial({color:0x9a6e38}); // blocks
+
+    // 5 deck planks: 1200mm long (x), 120mm wide (z), 50mm gaps — covers full 800mm depth
+    // z-centers: -340, -170, 0, +170, +340
+    [-340,-170,0,170,340].forEach(z=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,22,120),m1);
+      m.position.set(0,133,z);g.add(m);
     });
-    // 9 support blocks (y=20-92, x at -550/0/550, z at -350/0/350)
-    [-550,0,550].forEach(x=>[-350,0,350].forEach(z=>{
+    // 3 bottom stringers (running full 800mm depth, z-direction) at x=-500,0,+500
+    [-500,0,500].forEach(x=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(100,20,800),m2);
+      m.position.set(x,10,0);g.add(m);
+    });
+    // 9 support blocks 3×3
+    [-500,0,500].forEach(x=>[-340,0,340].forEach(z=>{
       const b=new THREE.Mesh(new THREE.BoxGeometry(100,72,100),m3);
       b.position.set(x,56,z);g.add(b);
     }));
-    // 3 top stringers (y=92-112, z at -360/0/360) — gap 112-122 = forklift entry
-    [-360,0,360].forEach(z=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,20,80),m2);
-      m.position.set(0,102,z);g.add(m);
+    // 3 top stringers (same z-direction, hidden under planks, connect blocks to deck)
+    [-500,0,500].forEach(x=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(100,20,800),m2);
+      m.position.set(x,102,0);g.add(m);
     });
     return g;
   }
