@@ -488,25 +488,30 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
 
   const group=new THREE.Group();scene.add(group);
 
-  // pallet base (same geometry as app _vPalBoardBoxes)
+  // pallet base — exact _vPalBoardBoxes geometry (Euro pallet 1200×800×144)
   function palletMesh(){
     const g=new THREE.Group();
-    const wood=new THREE.MeshLambertMaterial({color:0xc8a86a});
-    const wood2=new THREE.MeshLambertMaterial({color:0x9a6e38});
+    const m1=new THREE.MeshLambertMaterial({color:0xc8a86a}); // top deck boards
+    const m2=new THREE.MeshLambertMaterial({color:0xb8965a}); // bottom boards + top stringers
+    const m3=new THREE.MeshLambertMaterial({color:0x9a6e38}); // support blocks
+    // 6 top deck boards (y=122-144, full depth 800)
     for(let i=0;i<6;i++){
-      const m=new THREE.Mesh(new THREE.BoxGeometry(188,22,800),wood);
-      m.position.set(-500+i*200,133,0);g.add(m);
+      const m=new THREE.Mesh(new THREE.BoxGeometry(198,22,800),m1);
+      m.position.set(-501+i*200,133,0);g.add(m);
     }
+    // 3 bottom cross-boards (y=0-20, z at -350/0/350)
     [-350,0,350].forEach(z=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,20,100),wood2);
+      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,20,100),m2);
       m.position.set(0,10,z);g.add(m);
     });
-    [[-400,0],[0,0],[400,0]].forEach(([x])=>[-350,0,350].forEach(z=>{
-      const b=new THREE.Mesh(new THREE.BoxGeometry(100,72,100),wood2);
+    // 9 support blocks (y=20-92, x at -550/0/550, z at -350/0/350)
+    [-550,0,550].forEach(x=>[-350,0,350].forEach(z=>{
+      const b=new THREE.Mesh(new THREE.BoxGeometry(100,72,100),m3);
       b.position.set(x,56,z);g.add(b);
     }));
-    [-350,0,350].forEach(z=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,20,80),wood);
+    // 3 top stringers (y=92-112, z at -360/0/360) — gap 112-122 = forklift entry
+    [-360,0,360].forEach(z=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,20,80),m2);
       m.position.set(0,102,z);g.add(m);
     });
     return g;
