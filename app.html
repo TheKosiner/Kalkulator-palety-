@@ -845,29 +845,29 @@ function manSurfAt(x,z,fw,fd) {
   return h;
 }
 
-function manSnapPos(wx, wz, fw, fd) {
+function manSnapPos(wx, wz, fw, fd, exclIdx=-1) {
   const snap = document.getElementById('snapToEdges')?.checked ?? true;
   const G = 50;
-  if (!snap) {
-    return {
-      x: Math.max(0, Math.min(PAL.W-fw, Math.round(wx/G)*G)),
-      z: Math.max(0, Math.min(PAL.D-fd, Math.round(wz/G)*G))
-    };
-  }
-  // Candidate snap positions: pallet edges + all box edges
+  const clampX = v => Math.max(0, Math.min(PAL.W-fw, v));
+  const clampZ = v => Math.max(0, Math.min(PAL.D-fd, v));
+  let bx = clampX(Math.round(wx/G)*G);
+  let bz = clampZ(Math.round(wz/G)*G);
+  if (!snap) return {x:bx, z:bz};
+
+  // Magnetic snap: flush against each box's walls + edge alignment + pallet sides
+  const SNAP = 160;
   const xC = [0, PAL.W-fw];
   const zC = [0, PAL.D-fd];
-  for (const b of manBoxes) {
-    xC.push(b.x, b.x+b.w, b.x+b.w, b.x-fw);
-    zC.push(b.z, b.z+b.d, b.z+b.d-fd, b.z-fd);
-  }
-  const SNAP = 80;
-  const bx = xC.filter(x=>x>=0&&x<=PAL.W-fw).reduce((a,x)=>Math.abs(x-wx)<Math.abs(a-wx)?x:a, wx);
-  const bz = zC.filter(z=>z>=0&&z<=PAL.D-fd).reduce((a,z)=>Math.abs(z-wz)<Math.abs(a-wz)?z:a, wz);
-  return {
-    x: Math.abs(bx-wx)<SNAP ? bx : Math.max(0,Math.min(PAL.W-fw,Math.round(wx/G)*G)),
-    z: Math.abs(bz-wz)<SNAP ? bz : Math.max(0,Math.min(PAL.D-fd,Math.round(wz/G)*G))
-  };
+  manBoxes.forEach((b,i) => {
+    if (i===exclIdx) return;
+    xC.push(b.x-fw, b.x+b.w, b.x, b.x+b.w-fw); // flush-left, flush-right, align-left, align-right
+    zC.push(b.z-fd, b.z+b.d, b.z, b.z+b.d-fd); // flush-back, flush-front, align-back, align-front
+  });
+  let bestXd = SNAP;
+  for (const x of xC) { const c=clampX(x), d=Math.abs(c-wx); if (d<bestXd) { bestXd=d; bx=c; } }
+  let bestZd = SNAP;
+  for (const z of zC) { const c=clampZ(z), d=Math.abs(c-wz); if (d<bestZd) { bestZd=d; bz=c; } }
+  return {x:bx, z:bz};
 }
 
 function manPlace(wx,wz) {
@@ -950,7 +950,9 @@ function manEventToWorld(e) {
   const rect=canvas.getBoundingClientRect();
   const cl=e.changedTouches?e.changedTouches[0]:e;
   const sx=cl.clientX-rect.left, sy=cl.clientY-rect.top;
-  return unprojectY(sx,sy,PAL.H,W,H,sc);
+  const r=unprojectY(sx,sy,PAL.H,W,H,sc);
+  if(r)r.x=PAL.W-r.x; // invert left/right to match expected hand movement
+  return r;
 }
 function manHoverToWorld(e) {
   const vw=document.getElementById('view3d');
@@ -959,7 +961,9 @@ function manHoverToWorld(e) {
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
   const rect=canvas.getBoundingClientRect();
   const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
-  return unprojectY(sx,sy,PAL.H,W,H,sc);
+  const r=unprojectY(sx,sy,PAL.H,W,H,sc);
+  if(r)r.x=PAL.W-r.x; // invert left/right to match expected hand movement
+  return r;
 }
 
 // Remove mode — tap on a placed box to delete it
@@ -1964,7 +1968,7 @@ window.calculate=function(){
 const canvas=document.getElementById('canvas3d');
 const canvas2d=document.getElementById('canvas2d');
 const ctx=canvas2d.getContext('2d');
-let camTheta=0,camPhi=0.28,camDist=3800,camZoom=1,panX=0,panY=0;
+let camTheta=0.52,camPhi=0.45,camDist=3800,camZoom=1,panX=0,panY=0;
 let camTargetY=PAL.H/2; // vertical focal point; updated each draw
 
 // mouse
@@ -1999,9 +2003,8 @@ canvas.addEventListener('mousemove',e=>{
     const w=manHoverToWorld(e);
     if(w){
       const b=manBoxes[selectedBoxIdx];
-      const G=50;
-      b.x=Math.max(0,Math.min((b.palletIdx??0)*(PAL.W+PAL_GAP)+PAL.W-b.w,Math.round(w.x/G)*G));
-      b.z=Math.max(0,Math.min(PAL.D-b.d,Math.round(w.z/G)*G));
+      const p=manSnapPos(w.x,w.z,b.w,b.d,selectedBoxIdx);
+      b.x=p.x; b.z=p.z;
       if(lastRes)draw3D(buildManualRes());
     }
     return;
@@ -2477,18 +2480,13 @@ function buildLegend(res,mode){
 }
 
 // INIT
+// Show the empty Euro pallet right away so a box can be placed manually at once
 (function(){
   const vw=document.getElementById('view3d');
   const W=vw.clientWidth||window.innerWidth,H=vw.clientHeight||(window.innerHeight-50);
   canvas.width=W;canvas.height=H;
-  const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#dce8f2');g.addColorStop(1,'#a8c2d6');
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(15,30,58,.75)';
-  const fs=Math.max(13,Math.min(17,W/24));
-  ctx.font=`${fs}px Segoe UI`;ctx.textAlign='center';
-  ctx.fillText('Wybierz karton i naciśnij „Oblicz i wizualizuj"',W/2,H/2);
-  ctx.textAlign='start';
+  lastRes=buildManualRes();
+  draw3D(lastRes);
 })();
 
 window.addEventListener('resize',()=>{if(lastRes)draw3D(lastRes);});
