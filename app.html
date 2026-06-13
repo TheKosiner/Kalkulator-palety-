@@ -84,11 +84,24 @@
     .btn-calc:hover{background:var(--accent-h);box-shadow:0 2px 22px rgba(96,165,250,.38)}
     .btn-calc:active{transform:scale(.98);opacity:.9}
 
-    /* MODE TABS */
-    .mode-tabs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;padding:3px;gap:2px}
-    .mode-tab{flex:1;padding:7px 4px;text-align:center;font-size:.74rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-2);border:none;border-radius:6px;transition:background .15s,color .15s}
-    .mode-tab.active{background:var(--accent);color:#fff}
-    .mode-tab:hover:not(.active){background:var(--surface-2);color:var(--text)}
+    /* ADD MODE TOGGLE */
+    .btn-add-toggle{display:block;width:100%;margin-top:8px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);color:var(--text-2);font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;transition:border-color .15s,color .15s,background .15s}
+    .btn-add-toggle:hover{border-color:var(--accent);color:var(--accent-h);background:var(--accent-dim)}
+    .btn-add-toggle.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-h)}
+    #addPanel{border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-top:6px;background:var(--surface)}
+
+    /* BOX ACTION PANEL */
+    #boxActionPanel{position:absolute;bottom:58px;right:12px;background:rgba(10,18,34,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.11);border-radius:var(--rl);padding:10px 12px;z-index:50;min-width:196px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:none}
+    .bap-name{font-size:.68rem;font-weight:700;color:var(--text-3);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bap-row{display:flex;gap:5px;margin-bottom:5px}
+    .bap-row:last-child{margin-bottom:0}
+    .bap-btn{flex:1;padding:6px 4px;border:1px solid var(--border);border-radius:6px;font-size:.68rem;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);transition:all .15s;white-space:nowrap;text-align:center}
+    .bap-btn:hover{border-color:var(--border-2);background:rgba(255,255,255,.07)}
+    .bap-btn-auto{background:var(--accent-dim);color:var(--accent-h);border-color:rgba(59,130,246,.3)}
+    .bap-btn-auto:hover{background:rgba(59,130,246,.22)}
+    .bap-btn-drag.active{background:rgba(59,130,246,.35);border-color:var(--accent);color:#fff}
+    .bap-btn-del{background:var(--red-dim);color:var(--red);border-color:rgba(248,113,113,.2)}
+    .bap-btn-del:hover{background:var(--red);color:#fff}
 
     /* LEGEND */
     #legend{position:absolute;bottom:12px;left:12px;background:rgba(10,18,34,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.07);border-radius:var(--rl);padding:10px 14px;font-size:.69rem;color:var(--text);display:none;max-width:220px}
@@ -275,6 +288,19 @@
   <div class="ov" id="hintBar">Dotyk: obracaj · 2 palce: zoom</div>
   <div id="legend"></div>
   <div id="manHint">Dotknij palety aby postawić karton</div>
+  <div id="boxActionPanel">
+    <div class="bap-name" id="bapName">Karton</div>
+    <div class="bap-row">
+      <button class="bap-btn" onclick="bapPush('left')">← Do lewej</button>
+      <button class="bap-btn" onclick="bapPush('right')">Do prawej →</button>
+      <button class="bap-btn" onclick="bapPush('back')">↑ Do tyłu</button>
+    </div>
+    <div class="bap-row">
+      <button class="bap-btn bap-btn-auto" onclick="bapAutoPlace()">⚡ Ustaw auto</button>
+      <button class="bap-btn bap-btn-drag" id="bapDragBtn" onclick="bapStartDrag()">✋ Przesuń</button>
+      <button class="bap-btn bap-btn-del" onclick="bapRemove()">✕ Usuń</button>
+    </div>
+  </div>
   <div id="camCtrls">
     <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
     <button class="cam-btn" title="Oddal" onclick="camZoomOut()">−</button>
@@ -395,76 +421,49 @@
 
   <div id="drawerContent">
 
-    <!-- MODE TABS -->
-    <div class="stitle">Tryb</div>
-    <div class="mode-tabs">
-      <button class="mode-tab active" id="tabSingle" onclick="setMode('single')">Jeden typ</button>
-      <button class="mode-tab"        id="tabMixed"  onclick="setMode('mixed')">Mieszane</button>
-      <button class="mode-tab"        id="tabManual" onclick="setMode('manual')">Ręcznie</button>
-    </div>
+    <!-- PACKAGES -->
+    <div class="stitle">Kartony</div>
+    <div id="pkgList"></div>
+    <button class="btn-add-pkg" onclick="openPkgModal(null)">+ Dodaj nowy karton</button>
 
-    <!-- AUTO PACKAGES (single / mixed) -->
-    <div id="autoPanel">
-      <div class="stitle">Kartony</div>
-      <div id="pkgList"></div>
-      <button class="btn-add-pkg" onclick="openPkgModal(null)">+ Dodaj nowy karton</button>
-    </div>
-
-    <!-- MANUAL PANEL -->
-    <div id="manualPanel" style="display:none">
-      <div class="stitle">Karton do ułożenia</div>
-      <div id="manPkgList"></div>
-      <div class="stitle">Ściana na dole</div>
-      <div class="man-face-btns" id="manFaceBtns"></div>
-      <div class="stitle">Parametry</div>
-      <div class="ctrl-full">
-        <label class="lbl">Max. wysokość (mm)</label>
-        <input type="number" id="manMaxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
-      </div>
-      <div class="man-action-row">
-        <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
-        <button class="btn-man btn-clear" onclick="manClear()">🗑 Wyczyść</button>
-      </div>
-      <div class="man-action-row" style="margin-top:6px">
-        <button class="btn-man btn-fill"   onclick="manAutoFill()">⬛ Wypełnij</button>
-        <button class="btn-man btn-remove" id="btnRemove" onclick="manToggleRemove()">✕ Usuń</button>
-      </div>
-    </div>
-
-    <!-- PARAMS (auto modes) -->
-    <div id="autoParams">
-    <div class="stitle">Parametry</div>
-    <div class="ctrl-row" id="singleQtyRow">
-      <div>
-        <label class="lbl">Ilość paczek</label>
-        <input type="number" id="qty" value="20" min="1" max="999" inputmode="numeric"/>
-      </div>
+    <!-- PARAMS -->
+    <div class="stitle" style="margin-top:14px">Parametry</div>
+    <div class="ctrl-row">
       <div>
         <label class="lbl">Max. wysokość (mm)</label>
         <input type="number" id="maxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
       </div>
-    </div>
-    <div class="ctrl-full" id="mixedMaxHRow" style="display:none">
-      <label class="lbl">Max. wysokość palety (mm)</label>
-      <input type="number" id="maxHMixed" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
-    </div>
-    <div class="ctrl-full" id="globalOrientRow">
-      <label class="lbl">Bok zawsze na górze</label>
-      <select id="orient">
-        <option value="auto">Auto (najlepsze upakowanie)</option>
-      </select>
-    </div>
-    <div class="ctrl-full">
-      <label class="lbl">Margines bezpieczeństwa (mm / stronę)</label>
-      <input type="number" id="margin" value="0" min="0" max="200" step="5" inputmode="numeric"/>
+      <div>
+        <label class="lbl">Margines (mm / stronę)</label>
+        <input type="number" id="margin" value="0" min="0" max="200" step="5" inputmode="numeric"/>
+      </div>
     </div>
     <div class="ctrl-full">
       <label class="lbl">Maks. liczba palet (nadmiar na kolejne)</label>
       <input type="number" id="maxPallets" value="1" min="1" max="20" inputmode="numeric"/>
     </div>
-
     <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
-    </div><!-- /autoParams -->
+
+    <!-- MANUAL ADD PANEL -->
+    <button class="btn-add-toggle" id="btnAddMode" onclick="toggleAddMode()">➕ Dodaj kartony ręcznie</button>
+    <div id="addPanel" style="display:none">
+      <div class="stitle">Karton do dodania</div>
+      <div id="manPkgList"></div>
+      <div class="stitle">Orientacja</div>
+      <div class="man-face-btns" id="manFaceBtns"></div>
+      <label class="opt-chk" style="margin:4px 0 8px">
+        <input type="checkbox" id="snapToEdges" checked/>
+        Wyrównuj do krawędzi paczek i palety
+      </label>
+      <div class="man-action-row">
+        <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
+        <button class="btn-man btn-clear" onclick="manClear()">🗑 Wyczyść</button>
+      </div>
+      <div class="man-action-row" style="margin-top:6px">
+        <button class="btn-man btn-fill" onclick="manAutoFill()">⬛ Wypełnij</button>
+        <button class="btn-man btn-remove" id="btnRemove" onclick="manToggleRemove()">✕ Usuń</button>
+      </div>
+    </div>
 
     <!-- PALLET DIMENSIONS (all modes) -->
     <div id="palSection">
@@ -658,36 +657,28 @@ function updatePalPresetBtns(){
 // ═══════════════════════════════════════════════════════
 // MODE & DRAWER
 // ═══════════════════════════════════════════════════════
-let mode = 'single'; // 'single' | 'mixed' | 'manual'
+let isAddMode = false;
+let selectedBoxIdx = -1;
+let isDragMode = false;
 let drawerOpen = false;
 
-function setMode(m) {
-  mode = m;
-  ['Single','Mixed','Manual'].forEach(t =>
-    document.getElementById('tab'+t).classList.toggle('active', m===t.toLowerCase()));
-  const isMan = m==='manual';
-  document.getElementById('autoPanel').style.display   = isMan ? 'none' : '';
-  document.getElementById('autoParams').style.display  = isMan ? 'none' : '';
-  document.getElementById('manualPanel').style.display = isMan ? '' : 'none';
-  document.getElementById('manHint').style.display     = isMan ? 'block' : 'none';
-  document.getElementById('singleQtyRow').style.display   = m==='single' ? '' : 'none';
-  document.getElementById('mixedMaxHRow').style.display   = m==='mixed'  ? '' : 'none';
-  document.getElementById('sPerLayer').style.display      = m==='single' ? '' : 'none';
-  document.getElementById('globalOrientRow').style.display = m==='single' ? '' : 'none';
-  // Rebuild pkg list so qty/orient wrap visibility matches the new mode
-  buildPkgList();
-  if (m==='single') {
-    const pkg = PKGS.find(p=>selectedIds.has(p.id));
-    if (pkg) rebuildOrientSelect(pkg);
-  }
-  if (isMan) {
+function toggleAddMode() {
+  isAddMode = !isAddMode;
+  document.getElementById('btnAddMode').classList.toggle('active', isAddMode);
+  document.getElementById('addPanel').style.display = isAddMode ? '' : 'none';
+  if (isAddMode) {
     manRefreshFaceBtns();
-    const r = buildManualRes();
-    lastRes=r; lastMode='manual';
-    buildLegend(r,'manual');
-    updateManStats(r);
-    draw3D(r);
+    manRemoveMode = false;
+    document.getElementById('manHint').textContent = 'Dotknij palety aby postawić karton';
+    document.getElementById('manHint').style.display = 'block';
+  } else {
+    manGhostX = null;
+    document.getElementById('manHint').style.display = 'none';
   }
+  selectedBoxIdx = -1;
+  isDragMode = false;
+  hideBoxActionPanel();
+  if (lastRes) draw3D(lastRes);
 }
 
 function toggleDrawer() {
@@ -709,19 +700,17 @@ document.getElementById('handle').addEventListener('touchend',e=>{
 // ═══════════════════════════════════════════════════════
 let selectedIds = new Set([PKGS[0]?.id || '']);
 
-// Rebuild the auto-mode package list from scratch.
+// Rebuild the package list from scratch (always shows qty + face per selected package).
 function buildPkgList() {
   const list = document.getElementById('pkgList');
-  // Read values BEFORE clearing (inputs live inside #pkgList)
   const savedQtys  = new Map();
   const savedFaces = new Map();
-  document.querySelectorAll('.pkg-qty').forEach(el  => savedQtys.set(el.dataset.id,  el.value));
+  document.querySelectorAll('.pkg-qty').forEach(el  => savedQtys.set(el.dataset.id, el.value));
   document.querySelectorAll('.pkg-face-btn').forEach(el => savedFaces.set(el.dataset.id, el.dataset.face));
   list.innerHTML = '';
 
   PKGS.forEach(p => {
-    const isSel  = selectedIds.has(p.id);
-    const showMixed = mode==='mixed' && isSel;
+    const isSel = selectedIds.has(p.id);
     const [A,B,C] = p.dims;
     const item = document.createElement('div');
     item.className = 'pkg-item' + (isSel ? ' selected' : '');
@@ -734,15 +723,14 @@ function buildPkgList() {
       </div>
       <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
       ${!BUILTIN_IDS.has(p.id)?`<button class="pkg-del-btn" title="Usuń" tabindex="-1">🗑️</button>`:''}
-      <div class="pkg-orient-wrap" style="display:${showMixed?'flex':'none'}">
+      <div class="pkg-orient-wrap" style="display:${isSel?'flex':'none'}">
         <button class="pkg-face-btn" data-id="${p.id}" data-face="auto">↑ Auto</button>
       </div>
-      <div class="pkg-qty-wrap" style="display:${showMixed?'flex':'none'}">
+      <div class="pkg-qty-wrap" style="display:${isSel?'flex':'none'}">
         <label>szt.:</label>
         <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
       </div>`;
 
-    // restore saved values
     if (savedQtys.has(p.id)) item.querySelector('.pkg-qty').value = savedQtys.get(p.id);
     const faceBtn = item.querySelector('.pkg-face-btn');
     const savedFace = savedFaces.has(p.id) ? savedFaces.get(p.id) : (p.topFace||'auto');
@@ -764,55 +752,23 @@ function buildPkgList() {
     });
 
     item.addEventListener('click', () => {
-      if (mode === 'single') {
-        document.querySelectorAll('#pkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
-        selectedIds.clear();
-        item.classList.add('selected');
+      if (selectedIds.has(p.id) && selectedIds.size > 1) {
+        selectedIds.delete(p.id);
+        item.classList.remove('selected');
+        item.querySelector('.pkg-qty-wrap').style.display   = 'none';
+        item.querySelector('.pkg-orient-wrap').style.display = 'none';
+      } else if (!selectedIds.has(p.id)) {
         selectedIds.add(p.id);
-        rebuildOrientSelect(p);
-      } else {
-        if (selectedIds.has(p.id)) {
-          selectedIds.delete(p.id);
-          item.classList.remove('selected');
-          item.querySelector('.pkg-qty-wrap').style.display   = 'none';
-          item.querySelector('.pkg-orient-wrap').style.display = 'none';
-        } else {
-          selectedIds.add(p.id);
-          item.classList.add('selected');
-          item.querySelector('.pkg-qty-wrap').style.display   = 'flex';
-          item.querySelector('.pkg-orient-wrap').style.display = 'flex';
-        }
+        item.classList.add('selected');
+        item.querySelector('.pkg-qty-wrap').style.display   = 'flex';
+        item.querySelector('.pkg-orient-wrap').style.display = 'flex';
       }
     });
     list.appendChild(item);
   });
 }
 
-// Rebuild the #orient select for single mode to show top-face options of pkg.
-function rebuildOrientSelect(pkg) {
-  const sel = document.getElementById('orient');
-  const cur = sel.value;
-  const [A,B,C] = pkg.dims;
-  sel.innerHTML = `
-    <option value="auto">Auto (najlepsze upakowanie)</option>
-    <option value="0">${A}×${B} zawsze na górze (wys. ${C})</option>
-    <option value="1">${A}×${C} zawsze na górze (wys. ${B})</option>
-    <option value="2">${B}×${C} zawsze na górze (wys. ${A})</option>`;
-  sel.value = pkg.topFace || 'auto';
-}
-
-function enforeSingleSelect() {
-  const first = [...selectedIds][0];
-  selectedIds.clear();
-  if (first && PKGS.find(p=>p.id===first)) selectedIds.add(first);
-  buildPkgList();
-  const pkg = PKGS.find(p=>selectedIds.has(p.id));
-  if (pkg) rebuildOrientSelect(pkg);
-}
-
 buildPkgList();
-// Set initial orient options for the first package
-{ const p = PKGS.find(p=>selectedIds.has(p.id)); if(p) rebuildOrientSelect(p); }
 
 // Sync pallet dimension inputs to loaded PAL values
 document.getElementById('palW').value=PAL.W;
@@ -889,29 +845,49 @@ function manSurfAt(x,z,fw,fd) {
   return h;
 }
 
+function manSnapPos(wx, wz, fw, fd) {
+  const snap = document.getElementById('snapToEdges')?.checked ?? true;
+  const G = 50;
+  if (!snap) {
+    return {
+      x: Math.max(0, Math.min(PAL.W-fw, Math.round(wx/G)*G)),
+      z: Math.max(0, Math.min(PAL.D-fd, Math.round(wz/G)*G))
+    };
+  }
+  // Candidate snap positions: pallet edges + all box edges
+  const xC = [0, PAL.W-fw];
+  const zC = [0, PAL.D-fd];
+  for (const b of manBoxes) {
+    xC.push(b.x, b.x+b.w, b.x+b.w, b.x-fw);
+    zC.push(b.z, b.z+b.d, b.z+b.d-fd, b.z-fd);
+  }
+  const SNAP = 80;
+  const bx = xC.filter(x=>x>=0&&x<=PAL.W-fw).reduce((a,x)=>Math.abs(x-wx)<Math.abs(a-wx)?x:a, wx);
+  const bz = zC.filter(z=>z>=0&&z<=PAL.D-fd).reduce((a,z)=>Math.abs(z-wz)<Math.abs(a-wz)?z:a, wz);
+  return {
+    x: Math.abs(bx-wx)<SNAP ? bx : Math.max(0,Math.min(PAL.W-fw,Math.round(wx/G)*G)),
+    z: Math.abs(bz-wz)<SNAP ? bz : Math.max(0,Math.min(PAL.D-fd,Math.round(wz/G)*G))
+  };
+}
+
 function manPlace(wx,wz) {
   const {fw,fd,lh} = manGetDims();
-  const maxH = parseInt(document.getElementById('manMaxH').value)||1800;
-  const GRID = 50;
-  wx = Math.round(wx/GRID)*GRID;
-  wz = Math.round(wz/GRID)*GRID;
-  wx = Math.max(0, Math.min(PAL.W-fw, wx));
-  wz = Math.max(0, Math.min(PAL.D-fd, wz));
-  const wy = manSurfAt(wx,wz,fw,fd);
+  const maxH = parseInt(document.getElementById('maxH').value)||1800;
+  const {x,z} = manSnapPos(wx,wz,fw,fd);
+  const wy = manSurfAt(x,z,fw,fd);
   if (wy+lh > maxH) return;
-  manBoxes.push({x:wx,y:wy,z:wz,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color});
-  const r=buildManualRes(); lastRes=r; lastMode='manual';
-  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
+  manBoxes.push({x,y:wy,z,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color});
+  refreshManual();
 }
 window.manUndo = () => {
   manBoxes.pop();
-  const r=buildManualRes(); lastRes=r; lastMode='manual';
-  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
+  selectedBoxIdx=-1; hideBoxActionPanel();
+  refreshManual();
 };
 window.manClear = () => {
   manBoxes=[]; manGhostX=manGhostZ=null;
-  const r=buildManualRes(); lastRes=r; lastMode='manual';
-  buildLegend(r,'manual'); updateManStats(r); draw3D(r);
+  selectedBoxIdx=-1; hideBoxActionPanel();
+  refreshManual();
 };
 
 function buildManualRes() {
@@ -922,8 +898,9 @@ function buildManualRes() {
     if(!gm.has(b.pkgId)){const p=PKGS.find(q=>q.id===b.pkgId);gm.set(b.pkgId,{color:b.color,name:p?.name||b.pkgId,placed:0,qty:0});}
     gm.get(b.pkgId).placed++;
   });
+  const numPallets=pl.length>0?Math.max(...pl.map(p=>(p.palletIdx??0)))+1:1;
   return {placements:pl,totalH,count:pl.length,layers:new Set(pl.map(b=>b.y)).size,
-          groups:[...gm.entries()].map(([id,g])=>({pkgId:id,...g,layers:[]})),leftover:[]};
+          numPallets,groups:[...gm.entries()].map(([id,g])=>({pkgId:id,...g,layers:[]})),leftover:[]};
 }
 function updateManStats(r) {
   document.getElementById('statsBar').style.display='flex';
@@ -931,9 +908,19 @@ function updateManStats(r) {
   document.getElementById('rLayers').textContent=r.layers;
   document.getElementById('rHeight').textContent=r.totalH;
   document.getElementById('rLeft').textContent=0;
+  const np=r.numPallets||1;
+  document.getElementById('rPallets').textContent=np;
+  document.getElementById('sPallets').style.display=np>1?'':'none';
   document.getElementById('sPerLayer').style.display='none';
   document.getElementById('warnBar').style.display='none';
   document.getElementById('orientHintBar').style.display='none';
+}
+function refreshManual() {
+  const r=buildManualRes();
+  lastRes=r;
+  buildLegend(r,'auto');
+  updateManStats(r);
+  draw3D(r);
 }
 
 // Inverse perspective projection — screen (sx,sy) → world (x,z) on plane y=y0
@@ -1014,7 +1001,7 @@ function manPickBox(e) {
 // remaining space, using the same heightmap algorithm as the auto modes.
 window.manAutoFill = () => {
   const {fw,fd,lh} = manGetDims();
-  const maxH = parseInt(document.getElementById('manMaxH').value)||1800;
+  const maxH = parseInt(document.getElementById('maxH').value)||1800;
   // Temporarily point _placed at a copy of manBoxes so _findPos/_isFlat/_maxSurf work
   const savedPlaced = _placed;
   _placed = manBoxes.map(b=>({x:b.x,y:b.y,z:b.z,w:b.w,h:b.h,d:b.d}));
@@ -1028,10 +1015,7 @@ window.manAutoFill = () => {
     added++;
   }
   _placed = savedPlaced;
-  if (added>0) {
-    const r=buildManualRes(); lastRes=r; lastMode='manual';
-    buildLegend(r,'manual'); updateManStats(r); draw3D(r);
-  }
+  if (added>0) refreshManual();
 };
 
 // ═══════════════════════════════════════════════════════
@@ -1472,22 +1456,12 @@ function modalRestoreDefaults() {
 function _afterPkgsChanged() {
   buildPkgList();
   buildManPkgList();
-  // Make sure manSelPkg is still valid
   if (!PKGS.find(p=>p.id===manSelPkg?.id)) {
     manSelPkg = PKGS[0];
     manFaceIdx = 0; manFlipped = false;
   }
   manRefreshFaceBtns();
-  // Refresh orient select if in single mode
-  if (mode==='single') {
-    const pkg = PKGS.find(p=>selectedIds.has(p.id));
-    if (pkg) rebuildOrientSelect(pkg);
-  }
-  // Re-render if there's an active result
-  if (lastRes && lastMode==='manual') {
-    const r=buildManualRes(); lastRes=r;
-    buildLegend(r,'manual'); updateManStats(r); draw3D(r);
-  }
+  if (lastRes) { refreshManual(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1882,158 +1856,106 @@ function centrePlacements(placements) {
 // ═══════════════════════════════════════════════════════
 // CALCULATE
 // ═══════════════════════════════════════════════════════
-let lastRes=null, lastMode=null;
+let lastRes=null;
 
 window.calculate=function(){
-  const orientMode=document.getElementById('orient').value;
+  if(!selectedIds.size){alert('Zaznacz przynajmniej jeden karton!');return;}
   const margin=parseInt(document.getElementById('margin').value)||0;
   const maxPallets=Math.max(1,parseInt(document.getElementById('maxPallets').value)||1);
+  const maxH=parseInt(document.getElementById('maxH').value)||1800;
   let res, warns=[];
 
-  if(mode==='single'){
-    if(!selectedIds.size){alert('Zaznacz karton!');return;}
-    const pkgId=[...selectedIds][0];
-    const pkg=PKGS.find(p=>p.id===pkgId);
-    const qty=parseInt(document.getElementById('qty').value)||1;
-    const maxH=parseInt(document.getElementById('maxH').value)||1800;
+  const pkgOrientMap=new Map();
+  let initEntries=[]; let totalReq=0;
+  selectedIds.forEach(id=>{
+    const pkg=PKGS.find(p=>p.id===id);
+    if(!pkg)return;
+    const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
+    const faceEl=document.querySelector(`.pkg-face-btn[data-id="${id}"]`);
+    const qty=parseInt(qtyEl?.value)||0;
+    if(qty<=0)return;
+    pkgOrientMap.set(id,faceEl?.dataset?.face||'auto');
+    initEntries.push({pkg,qty}); totalReq+=qty;
+  });
+  if(!initEntries.length){alert('Podaj ilość kartonów!');return;}
 
-    // pack across multiple pallets: each pallet gets a fresh run until all boxes placed
-    const allPlacements=[];
-    const groupAccum=new Map();
-    let remQty=qty, numPallets=0;
-    for(let pi=0;pi<maxPallets&&remQty>0;pi++){
-      const r=packSingle(pkg,remQty,maxH,orientMode,margin);
-      if(!r||r.count===0) break;
-      const ox=pi*(PAL.W+PAL_GAP);
-      r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx:pi}));
-      remQty-=r.count; numPallets=pi+1;
-      res=r; // keep last for metadata (layers, perLayer, totalH)
+  const allPlacements=[];
+  const groupAccum=new Map();
+  const sortedEntries=[...initEntries].sort((a,b)=>{
+    const va=a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2];
+    const vb=b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2];
+    return vb-va;
+  });
+  let palletIdx=0, palletState=[];
+  const leftover=[];
+  res={count:0,layers:0,placements:[],totalH:PAL.H,groups:[],leftover:[],numPallets:1};
+
+  for(const entry of sortedEntries){
+    if(palletIdx>=maxPallets){leftover.push({pkg:entry.pkg,qty:entry.qty});continue;}
+    let remQty=entry.qty;
+    while(remQty>0&&palletIdx<maxPallets){
+      const r=packMixedOptimal([{pkg:entry.pkg,qty:remQty}],maxH,pkgOrientMap,margin,palletState);
+      if(r.count===0){
+        if(palletState.length===0)break;
+        palletIdx++; palletState=[];
+        continue;
+      }
+      const ox=palletIdx*(PAL.W+PAL_GAP);
+      r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx}));
       r.groups?.forEach(g=>{
-        if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
+        if(!groupAccum.has(g.pkgId))groupAccum.set(g.pkgId,{...g,placed:0});
         groupAccum.get(g.pkgId).placed+=g.placed;
       });
+      palletState=r.finalPlaced||[];
+      remQty-=r.count; res=r;
     }
-    if(!res||allPlacements.length===0) warns.push('Paczka nie mieści się w podanej wysokości!');
-    else if(remQty>0 && numPallets>=maxPallets){
-      // re-run without limit to find the exact number of pallets needed
-      let testRem=qty, needed=0;
-      while(testRem>0&&needed<99){
-        const tr=packSingle(pkg,testRem,maxH,orientMode,margin);
-        if(!tr||tr.count===0) break;
-        testRem-=tr.count; needed++;
-      }
-      warns.push(testRem===0
-        ?`Zostało ${remQty} paczek – potrzeba łącznie ${needed} palet, aby zmieścić wszystkie ${qty}.`
-        :`Zostało ${remQty} paczek – zwiększ liczbę palet.`);
-    }
-    res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
-         groups:[...groupAccum.values()]};
-    document.getElementById('rTotal').textContent=res.count;
-    document.getElementById('rLayers').textContent=res.layers||0;
-    document.getElementById('rHeight').textContent=res.totalH||'—';
-    document.getElementById('rPerLayer').textContent=res.perLayer||0;
-    document.getElementById('sPerLayer').style.display='';
-    document.getElementById('rLeft').textContent=remQty;
-
-  } else {
-    if(!selectedIds.size){alert('Zaznacz przynajmniej jeden karton!');return;}
-    const maxH=parseInt(document.getElementById('maxHMixed').value)||1800;
-    const pkgOrientMap=new Map();
-    let initEntries=[]; let totalReq=0;
-    selectedIds.forEach(id=>{
-      const pkg=PKGS.find(p=>p.id===id);
-      const qtyEl=document.querySelector(`.pkg-qty[data-id="${id}"]`);
-      const faceEl=document.querySelector(`.pkg-face-btn[data-id="${id}"]`);
-      const qty=parseInt(qtyEl?.value)||0;
-      if(qty<=0) return;
-      pkgOrientMap.set(id, faceEl?.dataset?.face||'auto');
-      initEntries.push({pkg,qty}); totalReq+=qty;
-    });
-
-    const allPlacements=[];
-    const groupAccum=new Map();
-    // Sort largest types first: each type fills complete pallets before smaller
-    // types start. Smaller types share remaining space on the last pallet.
-    const sortedEntries=[...initEntries].sort((a,b)=>{
-      const va=a.pkg.dims[0]*a.pkg.dims[1]*a.pkg.dims[2];
-      const vb=b.pkg.dims[0]*b.pkg.dims[1]*b.pkg.dims[2];
-      return vb-va;
-    });
-    let palletIdx=0, palletState=[];
-    const leftover=[];
-    res={count:0,layers:0,placements:[],totalH:PAL.H,groups:[],leftover:[],numPallets:1};
-
-    for (const entry of sortedEntries) {
-      if (palletIdx>=maxPallets){leftover.push({pkg:entry.pkg,qty:entry.qty});continue;}
-      let remQty=entry.qty;
-      while (remQty>0 && palletIdx<maxPallets) {
-        const r=packMixedOptimal([{pkg:entry.pkg,qty:remQty}],maxH,pkgOrientMap,margin,palletState);
-        if (r.count===0) {
-          // Nothing fits on current pallet — start a fresh one
-          if (palletState.length===0) break; // can't fit even on an empty pallet
-          palletIdx++; palletState=[];
-          continue;
-        }
-        const ox=palletIdx*(PAL.W+PAL_GAP);
-        r.placements.forEach(p=>allPlacements.push({...p,x:p.x+ox,palletIdx}));
-        r.groups?.forEach(g=>{
-          if(!groupAccum.has(g.pkgId)) groupAccum.set(g.pkgId,{...g,placed:0});
-          groupAccum.get(g.pkgId).placed+=g.placed;
-        });
-        palletState=r.finalPlaced||[];
-        remQty-=r.count;
-        res=r;
-      }
-      if (remQty>0) leftover.push({pkg:entry.pkg,qty:remQty});
-    }
-    const numPallets=allPlacements.length>0
-      ? Math.max(...allPlacements.map(p=>p.palletIdx))+1 : 1;
-    const totalLeft=leftover.reduce((s,l)=>s+l.qty,0);
-    res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
-         groups:[...groupAccum.values()],leftover};
-    document.getElementById('rTotal').textContent=res.count;
-    document.getElementById('rLayers').textContent=res.layers||0;
-    document.getElementById('rHeight').textContent=res.totalH||'—';
-    document.getElementById('sPerLayer').style.display='none';
-    document.getElementById('rLeft').textContent=totalLeft;
-    if(leftover.length&&numPallets>=maxPallets){
-      const avgPerPallet=res.count>0?res.count/numPallets:0;
-      const extra=avgPerPallet>0?Math.ceil(totalLeft/avgPerPallet):null;
-      const suggested=extra?numPallets+extra:null;
-      const detail=leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', ');
-      warns.push(suggested
-        ?`Nie zmieściło się (${detail}) – potrzeba łącznie ok. ${suggested} palet.`
-        :`Nie zmieściło się (${detail}) – zwiększ liczbę palet.`);
-    }
+    if(remQty>0)leftover.push({pkg:entry.pkg,qty:remQty});
   }
 
-  // pallets counter in stats bar
-  const numP=res?.numPallets||1;
-  document.getElementById('rPallets').textContent=numP;
-  document.getElementById('sPallets').style.display=numP>1?'':'none';
+  const numPallets=allPlacements.length>0?Math.max(...allPlacements.map(p=>p.palletIdx))+1:1;
+  const totalLeft=leftover.reduce((s,l)=>s+l.qty,0);
+  res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
+       groups:[...groupAccum.values()],leftover};
 
-  const sb=document.getElementById('statsBar');
-  sb.style.display='flex';
+  document.getElementById('rTotal').textContent=res.count;
+  document.getElementById('rLayers').textContent=res.layers||0;
+  document.getElementById('rHeight').textContent=res.totalH||'—';
+  document.getElementById('sPerLayer').style.display='none';
+  document.getElementById('rLeft').textContent=totalLeft;
+  document.getElementById('rPallets').textContent=numPallets;
+  document.getElementById('sPallets').style.display=numPallets>1?'':'none';
+  document.getElementById('statsBar').style.display='flex';
   document.getElementById('sSave').style.display='';
-  document.getElementById('savePalBtn').textContent=numP>1?`💾 Zapisz zestaw ${numP} palet`:'💾 Zapisz paletę';
+  document.getElementById('savePalBtn').textContent=numPallets>1?`💾 Zapisz zestaw ${numPallets} palet`:'💾 Zapisz paletę';
+
+  if(leftover.length&&numPallets>=maxPallets){
+    const avgPerPallet=res.count>0?res.count/numPallets:0;
+    const extra=avgPerPallet>0?Math.ceil(totalLeft/avgPerPallet):null;
+    const suggested=extra?numPallets+extra:null;
+    const detail=leftover.map(l=>`${l.pkg.name} ×${l.qty}`).join(', ');
+    warns.push(suggested
+      ?`Nie zmieściło się (${detail}) – potrzeba łącznie ok. ${suggested} palet.`
+      :`Nie zmieściło się (${detail}) – zwiększ liczbę palet.`);
+  }
   const wb=document.getElementById('warnBar');
-  if(warns.length){ wb.textContent=warns.join(' | '); wb.style.display='block'; }
+  if(warns.length){wb.textContent=warns.join(' | ');wb.style.display='block';}
   else wb.style.display='none';
 
-  // Orientation hints: warn if a different orientation of a placed type could
-  // free up vertical space for a leftover type
-  const curMaxH = mode==='single'
-    ? (parseInt(document.getElementById('maxH').value)||1800)
-    : (parseInt(document.getElementById('maxHMixed').value)||1800);
-  const ohints = buildOrientationHints(res, curMaxH, margin);
-  const ohb = document.getElementById('orientHintBar');
-  ohb.textContent = ohints.join(' · ');
-  ohb.style.display = ohints.length ? '' : 'none';
+  const ohints=buildOrientationHints(res,maxH,margin);
+  const ohb=document.getElementById('orientHintBar');
+  ohb.textContent=ohints.join(' · ');
+  ohb.style.display=ohints.length?'':'none';
 
-  lastRes=res; lastMode=mode;
-  buildLegend(res,mode);
-  if(window.innerWidth<760&&drawerOpen) toggleDrawer();
-  draw3D(res);
+  // Load result into mutable manBoxes for interactive editing
+  manBoxes=res.placements.map(p=>({...p}));
+  selectedBoxIdx=-1; isDragMode=false;
+  hideBoxActionPanel();
+  manGhostX=null;
+
+  lastRes=buildManualRes();
+  buildLegend(lastRes,'auto');
+  if(window.innerWidth<760&&drawerOpen)toggleDrawer();
+  draw3D(lastRes);
 };
 
 // ═══════════════════════════════════════════════════════
@@ -2053,7 +1975,7 @@ canvas.addEventListener('mousedown',e=>{
 });
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('mousemove',e=>{
-  if(mode==='manual' && !drag){
+  if(isAddMode && !drag){
     if(manRemoveMode){
       const {W,H,sc}=manScreenSc(); const cx=W/2,cy=H/2;
       const rect=canvas.getBoundingClientRect();
@@ -2068,12 +1990,21 @@ canvas.addEventListener('mousemove',e=>{
       manHoverRemoveIdx=best;
     } else {
       const w=manHoverToWorld(e);
-      if(w){const {fw,fd}=manGetDims();const G=50;
-        manGhostX=Math.max(0,Math.min(PAL.W-fw,Math.round(w.x/G)*G));
-        manGhostZ=Math.max(0,Math.min(PAL.D-fd,Math.round(w.z/G)*G));
-      } else { manGhostX=null; }
+      if(w){const {fw,fd}=manGetDims();const p=manSnapPos(w.x,w.z,fw,fd);manGhostX=p.x;manGhostZ=p.z;}
+      else{manGhostX=null;}
     }
     if(lastRes)draw3D(lastRes); return;
+  }
+  if(isDragMode && drag && selectedBoxIdx>=0 && !rmb){
+    const w=manHoverToWorld(e);
+    if(w){
+      const b=manBoxes[selectedBoxIdx];
+      const G=50;
+      b.x=Math.max(0,Math.min((b.palletIdx??0)*(PAL.W+PAL_GAP)+PAL.W-b.w,Math.round(w.x/G)*G));
+      b.z=Math.max(0,Math.min(PAL.D-b.d,Math.round(w.z/G)*G));
+      if(lastRes)draw3D(buildManualRes());
+    }
+    return;
   }
   if(!drag)return;
   const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
@@ -2082,18 +2013,35 @@ canvas.addEventListener('mousemove',e=>{
   if(lastRes)draw3D(lastRes);
 });
 canvas.addEventListener('mouseup',e=>{
-  if(mode==='manual' && tapStart && !rmb){
+  if(tapStart&&!rmb){
     const moved=Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y);
     if(moved<6){
-      if(manRemoveMode){
-        const i=manPickBox(e);
-        if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;const r=buildManualRes();lastRes=r;lastMode='manual';buildLegend(r,'manual');updateManStats(r);draw3D(r);}
-      } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
+      if(isAddMode){
+        if(manRemoveMode){
+          const i=manPickBox(e);
+          if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;selectedBoxIdx=-1;hideBoxActionPanel();refreshManual();}
+        } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
+      } else if(isDragMode && selectedBoxIdx>=0){
+        // drop: snap y to proper surface
+        const b=manBoxes[selectedBoxIdx];
+        const wy=manSurfAtExcl(b.x,b.z,b.w,b.d,selectedBoxIdx);
+        b.y=wy; isDragMode=false;
+        document.getElementById('bapDragBtn').classList.remove('active');
+        document.getElementById('manHint').style.display='none';
+        refreshManual(); showBoxActionPanel(selectedBoxIdx);
+      } else {
+        const i=raycastBox(e);
+        if(i>=0){selectedBoxIdx=i;showBoxActionPanel(i);if(lastRes)draw3D(lastRes);}
+        else{selectedBoxIdx=-1;hideBoxActionPanel();if(lastRes)draw3D(lastRes);}
+      }
     }
   }
   drag=false; tapStart=null;
 });
-canvas.addEventListener('mouseleave',()=>{drag=false; if(mode==='manual'){manGhostX=null;if(lastRes)draw3D(lastRes);}});
+canvas.addEventListener('mouseleave',()=>{
+  drag=false;
+  if(isAddMode){manGhostX=null;if(lastRes)draw3D(lastRes);}
+});
 canvas.addEventListener('wheel',e=>{camZoom=Math.max(0.15,Math.min(5,camZoom*(e.deltaY>0?0.92:1.087)));if(lastRes)draw3D(lastRes);},{passive:true});
 
 // touch
@@ -2146,20 +2094,128 @@ canvas.addEventListener('touchmove',e=>{
   if(lastRes)draw3D(lastRes);
 },{passive:false});
 canvas.addEventListener('touchend',e=>{
-  if(mode==='manual' && e.touches.length===0 && tTapStart){
+  if(e.touches.length===0 && tTapStart){
     const t=e.changedTouches[0];
     const moved=Math.hypot(t.clientX-tTapStart.x,t.clientY-tTapStart.y);
     if(moved<12){
-      if(manRemoveMode){
-        const i=manPickBox(e);
-        if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;const r=buildManualRes();lastRes=r;lastMode='manual';buildLegend(r,'manual');updateManStats(r);draw3D(r);}
-      } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
+      if(isAddMode){
+        if(manRemoveMode){
+          const i=manPickBox(e);
+          if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;selectedBoxIdx=-1;hideBoxActionPanel();refreshManual();}
+        } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
+      } else {
+        const i=raycastBox(e);
+        if(i>=0){selectedBoxIdx=i;showBoxActionPanel(i);if(lastRes)draw3D(lastRes);}
+        else{selectedBoxIdx=-1;hideBoxActionPanel();if(lastRes)draw3D(lastRes);}
+      }
     }
   }
   Array.from(e.changedTouches).forEach(t=>delete tpts[t.identifier]);
   if(e.touches.length<2)pinch0=null;
   if(e.touches.length===0)tTapStart=null;
 },{passive:true});
+
+// ── Box selection helpers ──────────────────────────────────────────────────
+function raycastBox(e) {
+  if(!t3||!_t3BoxMeshes.length)return -1;
+  const rect=canvas.getBoundingClientRect();
+  const cl=e.changedTouches?e.changedTouches[0]:e;
+  const x=((cl.clientX-rect.left)/rect.width)*2-1;
+  const y=-((cl.clientY-rect.top)/rect.height)*2+1;
+  const rc=new THREE.Raycaster();
+  rc.setFromCamera({x,y},t3.camera);
+  const hits=rc.intersectObjects(_t3BoxMeshes,false);
+  if(!hits.length)return -1;
+  return hits[0].object.userData.boxIdx??-1;
+}
+
+function manSurfAtExcl(x,z,fw,fd,excl){
+  let h=PAL.H;
+  for(let i=0;i<manBoxes.length;i++){
+    if(i===excl)continue;
+    const b=manBoxes[i];
+    if(b.x<x+fw&&b.x+b.w>x&&b.z<z+fd&&b.z+b.d>z)h=Math.max(h,b.y+b.h);
+  }
+  return h;
+}
+
+function showBoxActionPanel(idx){
+  if(idx<0||idx>=manBoxes.length)return;
+  const b=manBoxes[idx];
+  const p=PKGS.find(q=>q.id===b.pkgId);
+  document.getElementById('bapName').textContent=(p?.name||'Karton')+` — ${b.w}×${b.d}×${b.h} mm`;
+  document.getElementById('boxActionPanel').style.display='';
+}
+function hideBoxActionPanel(){
+  document.getElementById('boxActionPanel').style.display='none';
+  isDragMode=false;
+  const d=document.getElementById('bapDragBtn');if(d)d.classList.remove('active');
+}
+
+window.bapPush=function(dir){
+  if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  const others=manBoxes.filter((_,i)=>i!==selectedBoxIdx);
+  const palOx=(b.palletIdx??0)*(PAL.W+PAL_GAP);
+  if(dir==='left'){
+    let nx=palOx;
+    for(const o of others)
+      if(b.z<o.z+o.d&&b.z+b.d>o.z&&b.y<o.y+o.h&&b.y+b.h>o.y&&o.x+o.w<=b.x+0.1)
+        nx=Math.max(nx,o.x+o.w);
+    b.x=nx;
+  } else if(dir==='right'){
+    let nx=palOx+PAL.W-b.w;
+    for(const o of others)
+      if(b.z<o.z+o.d&&b.z+b.d>o.z&&b.y<o.y+o.h&&b.y+b.h>o.y&&o.x>=b.x-0.1)
+        nx=Math.min(nx,o.x-b.w);
+    b.x=Math.max(palOx,nx);
+  } else if(dir==='back'){
+    let nz=0;
+    for(const o of others)
+      if(b.x<o.x+o.w&&b.x+b.w>o.x&&b.y<o.y+o.h&&b.y+b.h>o.y&&o.z+o.d<=b.z+0.1)
+        nz=Math.max(nz,o.z+o.d);
+    b.z=nz;
+  }
+  refreshManual();
+  showBoxActionPanel(selectedBoxIdx);
+};
+
+window.bapAutoPlace=function(){
+  if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  const maxH=parseInt(document.getElementById('maxH').value)||1800;
+  manBoxes.splice(selectedBoxIdx,1);
+  selectedBoxIdx=-1;
+  const savedPlaced=_placed;
+  _placed=manBoxes.map(o=>({x:o.x,y:o.y,z:o.z,w:o.w,h:o.h,d:o.d}));
+  const pos=_findPos(b.w,b.d,b.h,maxH);
+  _placed=savedPlaced;
+  if(pos){
+    manBoxes.push({...b,x:pos.x,y:pos.y,z:pos.z});
+    selectedBoxIdx=manBoxes.length-1;
+  }
+  refreshManual();
+  if(selectedBoxIdx>=0)showBoxActionPanel(selectedBoxIdx);
+};
+
+window.bapRemove=function(){
+  if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  manBoxes.splice(selectedBoxIdx,1);
+  selectedBoxIdx=-1;
+  hideBoxActionPanel();
+  refreshManual();
+};
+
+window.bapStartDrag=function(){
+  isDragMode=!isDragMode;
+  document.getElementById('bapDragBtn').classList.toggle('active',isDragMode);
+  if(isDragMode){
+    document.getElementById('manHint').textContent='Przeciągnij karton w nowe miejsce · kliknij aby upuścić';
+    document.getElementById('manHint').style.display='block';
+  } else {
+    document.getElementById('manHint').style.display='none';
+  }
+};
 
 // projection — orbit centre is the geometric centre of the scene in all 3 axes
 let _sceneCenterX = PAL.W/2; // updated by draw3D for multi-pallet scenes
@@ -2178,6 +2234,7 @@ function proj(x,y,z,cx,cy,sc){
 // ── Three.js renderer ──────────────────────────────────────────────────────
 let t3=null;
 let _lastStaticRes=null;
+let _t3BoxMeshes=[]; // mesh → box index in manBoxes
 
 function initThreeJS(){
   const r=new THREE.WebGLRenderer({canvas,antialias:true});
@@ -2336,17 +2393,18 @@ function draw3D(res){
   // rebuild static scene only when result changes (not on every camera drag)
   if(res!==_lastStaticRes){
     t3.staticObjects.forEach(o=>t3.scene.remove(o));
-    t3.staticObjects=[];
+    t3.staticObjects=[];_t3BoxMeshes=[];
     for(let i=0;i<numPallets;i++)
       for(const b of palletBoxes(i*(PAL.W+PAL_GAP))){
         const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
         t3.scene.add(m);t3.staticObjects.push(m);
       }
-    res.placements.forEach(p=>{
+    res.placements.forEach((p,i)=>{
       const m=p.shape==='cylinder'
         ?makeCylinder3D(p.x,p.y,p.z,p.w,p.h,p.color)
         :makeBox3D(p.x,p.y,p.z,p.w,p.h,p.d,p.color);
-      t3.scene.add(m);t3.staticObjects.push(m);
+      m.userData.boxIdx=i;
+      t3.scene.add(m);t3.staticObjects.push(m);_t3BoxMeshes.push(m);
     });
     // 3D height labels — lie flat on floor in front of each pallet
     for(let i=0;i<numPallets;i++){
@@ -2359,10 +2417,24 @@ function draw3D(res){
     _lastStaticRes=res;
   }
 
-  // dynamic overlay: ghost/hover (at most 1 box, rebuilt each frame)
+  // dynamic overlay: selection highlight + ghost
   t3.dynObjects.forEach(o=>t3.scene.remove(o));
   t3.dynObjects=[];
-  if(mode==='manual'){
+  // selected box glow
+  if(selectedBoxIdx>=0&&selectedBoxIdx<manBoxes.length){
+    const sb=manBoxes[selectedBoxIdx];
+    const hi=6;
+    const hm=new THREE.Mesh(
+      new THREE.BoxGeometry(sb.w+hi*2,sb.h+hi*2,sb.d+hi*2),
+      new THREE.MeshBasicMaterial({color:0x3b82f6,transparent:true,opacity:0.18,depthTest:true,depthWrite:false,side:THREE.BackSide}));
+    hm.position.set(sb.x+sb.w/2,sb.y+sb.h/2,sb.z+sb.d/2);
+    t3.scene.add(hm);t3.dynObjects.push(hm);
+    const em=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(sb.w+hi*2,sb.h+hi*2,sb.d+hi*2)),
+      new THREE.LineBasicMaterial({color:0x60a5fa,transparent:true,opacity:0.9}));
+    em.position.copy(hm.position);
+    t3.scene.add(em);t3.dynObjects.push(em);
+  }
+  if(isAddMode){
     let dm=null;
     if(manRemoveMode&&manHoverRemoveIdx>=0&&manHoverRemoveIdx<manBoxes.length){
       const b=manBoxes[manHoverRemoveIdx];
