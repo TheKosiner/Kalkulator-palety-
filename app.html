@@ -68,6 +68,8 @@
     .pkg-qty-wrap label{font-size:.63rem;color:var(--text-2);white-space:nowrap;margin:0}
     .pkg-qty{width:56px;padding:5px 7px;background:var(--bg);border:1px solid var(--border-2);border-radius:6px;font-size:.84rem;text-align:center;outline:none;color:var(--text)}
     .pkg-qty:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+    .btn-add-one{padding:4px 9px;background:var(--accent-dim);border:1px solid rgba(59,130,246,.35);border-radius:6px;color:var(--accent-h);font-size:.88rem;font-weight:700;cursor:pointer;flex-shrink:0;line-height:1;transition:background .15s}
+    .btn-add-one:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 
     /* CONTROLS */
     .ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -705,6 +707,24 @@ function toggleAddMode() {
   if (lastRes) draw3D(lastRes);
 }
 
+// Activate add-mode for a specific package (triggered by "+" button in pkg list)
+function quickAddBox(pkgId) {
+  const pkg = PKGS.find(p=>p.id===pkgId);
+  if (!pkg) return;
+  manSelPkg = pkg; manFaceIdx = 0; manFlipped = false;
+  manRefreshFaceBtns();
+  isAddMode = true; manRemoveMode = false;
+  document.getElementById('btnAddMode').classList.add('active');
+  document.getElementById('addPanel').style.display = '';
+  document.getElementById('manHint').textContent = `Kliknij na paletę aby dodać: ${pkg.name}`;
+  document.getElementById('manHint').style.display = 'block';
+  selectedBoxIdx = -1; isDragMode = false;
+  hideBoxActionPanel(); hideRotPopup();
+  // Sync selection in the manual package list inside addPanel
+  document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.toggle('selected', i.dataset.id===pkgId));
+  if (lastRes) draw3D(lastRes);
+}
+
 function toggleDrawer() {
   drawerOpen = !drawerOpen;
   document.getElementById('drawer').classList.toggle('open', drawerOpen);
@@ -753,6 +773,7 @@ function buildPkgList() {
       <div class="pkg-qty-wrap" style="display:${isSel?'flex':'none'}">
         <label>szt.:</label>
         <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
+        <button class="btn-add-one" data-id="${p.id}" title="Dodaj jeden karton ręcznie na paletę">+</button>
       </div>`;
 
     if (savedQtys.has(p.id)) item.querySelector('.pkg-qty').value = savedQtys.get(p.id);
@@ -761,6 +782,7 @@ function buildPkgList() {
     _applyFaceBtnLabel(faceBtn, p.dims, savedFace);
 
     item.querySelector('.pkg-qty')?.addEventListener('click', e=>e.stopPropagation());
+    item.querySelector('.btn-add-one')?.addEventListener('click', e=>{ e.stopPropagation(); quickAddBox(p.id); });
     faceBtn?.addEventListener('click', e=>{ e.stopPropagation(); openFacePicker(p.id); });
     item.querySelector('.pkg-edit-btn')?.addEventListener('click', e=>{
       e.stopPropagation(); openPkgModal(p.id);
@@ -923,6 +945,9 @@ function manPlace(wx,wz) {
   const wy = manSurfAt(x,z,fw,fd);
   if (wy+lh > maxH) return;
   manBoxes.push({x,y:wy,z,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color});
+  // Bump the qty input so Oblicz re-run includes this manual addition
+  const qtyEl = document.querySelector(`.pkg-qty[data-id="${manSelPkg.id}"]`);
+  if (qtyEl) qtyEl.value = (parseInt(qtyEl.value)||0) + 1;
   refreshManual();
 }
 window.manUndo = () => {
