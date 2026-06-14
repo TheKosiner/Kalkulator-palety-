@@ -711,6 +711,16 @@ function toggleAddMode() {
 function quickAddBox(pkgId) {
   const pkg = PKGS.find(p=>p.id===pkgId);
   if (!pkg) return;
+  // Toggle off if already in add mode for this exact package
+  if (isAddMode && manSelPkg?.id === pkgId) {
+    isAddMode = false;
+    manGhostX = null;
+    document.getElementById('btnAddMode').classList.remove('active');
+    document.getElementById('addPanel').style.display = 'none';
+    document.getElementById('manHint').style.display = 'none';
+    if (lastRes) draw3D(lastRes);
+    return;
+  }
   manSelPkg = pkg; manFaceIdx = 0; manFlipped = false;
   manRefreshFaceBtns();
   isAddMode = true; manRemoveMode = false;
@@ -895,17 +905,24 @@ function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
   const snapBox = document.getElementById('snapToBoxEdges')?.checked ?? true;
   const snapPallet = document.getElementById('snapToPalletEdges')?.checked ?? true;
   const G = 50;
-  const clampX = v => Math.max(0, Math.min(PAL.W-fw, v));
-  const clampZ = v => Math.max(0, Math.min(PAL.D-fd, v));
+  // Determine which pallet the cursor is over
+  const numPallets = lastRes?.numPallets || 1;
+  let palOx = 0;
+  for (let i = 0; i < numPallets; i++) {
+    const ox = i * (PAL.W + PAL_GAP);
+    if (cx >= ox - PAL_GAP/2 && cx < ox + PAL.W + PAL_GAP/2) { palOx = ox; break; }
+  }
+  const clampX = v => Math.max(palOx, Math.min(palOx + PAL.W - fw, v));
+  const clampZ = v => Math.max(0, Math.min(PAL.D - fd, v));
   // cursor marks the CENTRE of the footprint → derive left/back edge
   const wx = cx - fw/2, wz = cz - fd/2;
-  let bx = clampX(Math.round(wx/G)*G);
-  let bz = clampZ(Math.round(wz/G)*G);
+  let bx = clampX(Math.round((wx - palOx) / G) * G + palOx);
+  let bz = clampZ(Math.round(wz / G) * G);
 
   if (snapBox || snapPallet) {
     const SNAP = 160;
     const xC = [], zC = [];
-    if (snapPallet) { xC.push(0, PAL.W-fw); zC.push(0, PAL.D-fd); }
+    if (snapPallet) { xC.push(palOx, palOx + PAL.W - fw); zC.push(0, PAL.D - fd); }
     if (snapBox) {
       manBoxes.forEach((b,i) => {
         if (i===exclIdx) return;
@@ -944,7 +961,14 @@ function manPlace(wx,wz) {
   const {x,z} = manSnapPos(wx,wz,fw,fd);
   const wy = manSurfAt(x,z,fw,fd);
   if (wy+lh > maxH) return;
-  manBoxes.push({x,y:wy,z,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color});
+  // Determine which pallet this box lands on from its world X
+  const numPallets = lastRes?.numPallets || 1;
+  let palletIdx = 0;
+  for (let i = 0; i < numPallets; i++) {
+    const ox = i * (PAL.W + PAL_GAP);
+    if (x >= ox && x < ox + PAL.W) { palletIdx = i; break; }
+  }
+  manBoxes.push({x,y:wy,z,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color,palletIdx});
   // Bump the qty input so Oblicz re-run includes this manual addition
   const qtyEl = document.querySelector(`.pkg-qty[data-id="${manSelPkg.id}"]`);
   if (qtyEl) qtyEl.value = (parseInt(qtyEl.value)||0) + 1;
@@ -2053,10 +2077,14 @@ canvas.addEventListener('mousemove',e=>{
       const {fw,fd,lh}=manGetDims();
       const w0=manHoverToWorld(e);
       if(w0){
-        // Two-pass: refine y-level to ghost vertical center for visual alignment
-        const surf=manSurfAt(w0.x-fw/2,w0.z-fd/2,fw,fd);
-        const w=manHoverToWorld(e,surf+lh/2)||w0;
-        const p=manSnapPos(w.x,w.z,fw,fd);manGhostX=p.x;manGhostZ=p.z;
+        // Snap at floor level first to find which box we're hovering over
+        const p0=manSnapPos(w0.x,w0.z,fw,fd);
+        const surf=manSurfAt(p0.x,p0.z,fw,fd);
+        if(surf>PAL.H){
+          // Refine cursor projection to ghost vertical center for correct stacking
+          const w=manHoverToWorld(e,surf+lh/2)||w0;
+          const p=manSnapPos(w.x,w.z,fw,fd);manGhostX=p.x;manGhostZ=p.z;
+        }else{manGhostX=p0.x;manGhostZ=p0.z;}
       }else{manGhostX=null;}
     }
     if(lastRes)draw3D(lastRes); return;
@@ -2065,8 +2093,9 @@ canvas.addEventListener('mousemove',e=>{
     const b=manBoxes[selectedBoxIdx];
     const w0=manHoverToWorld(e);
     if(w0){
-      const surf=manSurfAtExcl(w0.x-b.w/2,w0.z-b.d/2,b.w,b.d,selectedBoxIdx);
-      const w=manHoverToWorld(e,surf+b.h/2)||w0;
+      const p0=manSnapPos(w0.x,w0.z,b.w,b.d,selectedBoxIdx);
+      const surf=manSurfAtExcl(p0.x,p0.z,b.w,b.d,selectedBoxIdx);
+      const w=surf>PAL.H ? manHoverToWorld(e,surf+b.h/2)||w0 : w0;
       const p=manSnapPos(w.x,w.z,b.w,b.d,selectedBoxIdx);
       b.x=p.x; b.z=p.z;
       if(lastRes)draw3D(buildManualRes());
