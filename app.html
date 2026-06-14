@@ -92,6 +92,13 @@
     .btn-add-toggle.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent-h)}
     #addPanel{border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-top:6px;background:var(--surface)}
 
+    /* ADD MODE OVERLAY — orientation panel shown in 3D view when add mode active */
+    #addModeOverlay{position:absolute;bottom:58px;left:12px;background:rgba(10,18,34,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.11);border-radius:var(--rl);padding:10px 12px;z-index:50;min-width:186px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:none}
+    .amo-title{font-size:.62rem;font-weight:700;color:var(--text-3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+    .amo-btns{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+    .amo-rotate{width:100%;padding:7px 10px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;color:var(--accent-h);text-align:center;transition:all .15s}
+    .amo-rotate:hover{background:rgba(59,130,246,.32);color:#fff}
+
     /* BOX ACTION PANEL */
     #boxActionPanel{position:absolute;bottom:58px;right:12px;background:rgba(10,18,34,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.11);border-radius:var(--rl);padding:10px 12px;z-index:50;min-width:196px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:none}
     .bap-name{font-size:.68rem;font-weight:700;color:var(--text-3);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -315,8 +322,13 @@
     </div>
   </div>
   <div id="rotPopup">
-    <div class="rp-title">Obrót paczki</div>
+    <div class="rp-title">Orientacja</div>
     <div id="rpBtns"></div>
+  </div>
+  <div id="addModeOverlay">
+    <div class="amo-title" id="amoTitle">Karton</div>
+    <div class="amo-btns" id="amoBtns"></div>
+    <button class="amo-rotate" onclick="ghostRotate()">⟳ Obróć 90°</button>
   </div>
   <div id="camCtrls">
     <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
@@ -704,6 +716,7 @@ function toggleAddMode() {
   isDragMode = false;
   hideBoxActionPanel();
   hideRotPopup();
+  updateAddModeOverlay();
   if (lastRes) draw3D(lastRes);
 }
 
@@ -718,6 +731,7 @@ function quickAddBox(pkgId) {
     document.getElementById('btnAddMode').classList.remove('active');
     document.getElementById('addPanel').style.display = 'none';
     document.getElementById('manHint').style.display = 'none';
+    updateAddModeOverlay();
     if (lastRes) draw3D(lastRes);
     return;
   }
@@ -732,6 +746,7 @@ function quickAddBox(pkgId) {
   hideBoxActionPanel(); hideRotPopup();
   // Sync selection in the manual package list inside addPanel
   document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.toggle('selected', i.dataset.id===pkgId));
+  updateAddModeOverlay();
   if (lastRes) draw3D(lastRes);
 }
 
@@ -884,7 +899,7 @@ function manRefreshFaceBtns() {
 }
 
 buildManPkgList();
-window.manSetFace = (i,fl) => { manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns(); if(lastRes)draw3D(lastRes); };
+window.manSetFace = (i,fl) => { manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns(); updateAddModeOverlay(); if(lastRes)draw3D(lastRes); };
 
 function manGetDims() {
   const [A,B,C] = manSelPkg.dims;
@@ -2344,6 +2359,7 @@ function showRotPopup(clientX,clientY){
     const act=i===manFaceIdx;
     html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i})">${a}×${b} (wys. ${c})</button>`;
   });
+  html+=`<button class="rp-btn" style="margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-weight:700;color:var(--accent-h)" onclick="ghostRotate()">⟳ Obróć 90°</button>`;
   document.getElementById('rpBtns').innerHTML=html;
   pop.style.display='block';
   const rect=document.getElementById('view3d').getBoundingClientRect();
@@ -2354,9 +2370,34 @@ function showRotPopup(clientX,clientY){
 window.rotPick=(i)=>{
   manFaceIdx=i; manFlipped=false; manRefreshFaceBtns();
   document.getElementById('rotPopup').style.display='none';
+  updateAddModeOverlay();
+  if(lastRes)draw3D(lastRes);
+};
+window.ghostRotate=()=>{
+  manFlipped=!manFlipped;
+  manRefreshFaceBtns();
+  document.getElementById('rotPopup').style.display='none';
+  updateAddModeOverlay();
   if(lastRes)draw3D(lastRes);
 };
 function hideRotPopup(){document.getElementById('rotPopup').style.display='none';}
+
+function updateAddModeOverlay(){
+  const ov=document.getElementById('addModeOverlay');
+  if(!isAddMode||manRemoveMode||!manSelPkg){ov.style.display='none';return;}
+  ov.style.display='block';
+  document.getElementById('amoTitle').textContent=manSelPkg.name;
+  const [A,B,C]=manSelPkg.dims;
+  const faces=[[A,B,C],[A,C,B],[B,C,A]];
+  let html='';
+  faces.forEach(([a,b,c],i)=>{
+    const act=i===manFaceIdx;
+    // Show actual footprint dimensions including current flip on active face
+    const w=(act&&manFlipped)?b:a, d=(act&&manFlipped)?a:b;
+    html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i})">${w}×${d} (wys. ${c})</button>`;
+  });
+  document.getElementById('amoBtns').innerHTML=html;
+}
 
 // projection — orbit centre is the geometric centre of the scene in all 3 axes
 let _sceneCenterX = PAL.W/2; // updated by draw3D for multi-pallet scenes
