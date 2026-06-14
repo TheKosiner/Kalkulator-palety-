@@ -466,9 +466,13 @@
       <div id="manPkgList"></div>
       <div class="stitle">Orientacja</div>
       <div class="man-face-btns" id="manFaceBtns"></div>
-      <label class="opt-chk" style="margin:4px 0 4px">
-        <input type="checkbox" id="snapToEdges" checked/>
-        Wyrównuj do krawędzi paczek i palety
+      <label class="opt-chk" style="margin:4px 0 2px">
+        <input type="checkbox" id="snapToBoxEdges" checked/>
+        Wyrównuj do krawędzi paczek
+      </label>
+      <label class="opt-chk" style="margin:2px 0 8px">
+        <input type="checkbox" id="snapToPalletEdges" checked/>
+        Wyrównuj do krawędzi palety
       </label>
       <label class="opt-chk" style="margin:4px 0 8px">
         <input type="checkbox" id="allowOverhang"/>
@@ -866,7 +870,8 @@ function manSurfAt(x,z,fw,fd) {
 }
 
 function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
-  const snap = document.getElementById('snapToEdges')?.checked ?? true;
+  const snapBox = document.getElementById('snapToBoxEdges')?.checked ?? true;
+  const snapPallet = document.getElementById('snapToPalletEdges')?.checked ?? true;
   const G = 50;
   const clampX = v => Math.max(0, Math.min(PAL.W-fw, v));
   const clampZ = v => Math.max(0, Math.min(PAL.D-fd, v));
@@ -875,16 +880,17 @@ function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
   let bx = clampX(Math.round(wx/G)*G);
   let bz = clampZ(Math.round(wz/G)*G);
 
-  if (snap) {
-    // Magnetic snap: flush against each box's walls + edge alignment + pallet sides
+  if (snapBox || snapPallet) {
     const SNAP = 160;
-    const xC = [0, PAL.W-fw];
-    const zC = [0, PAL.D-fd];
-    manBoxes.forEach((b,i) => {
-      if (i===exclIdx) return;
-      xC.push(b.x-fw, b.x+b.w, b.x, b.x+b.w-fw); // flush-left, flush-right, align-left, align-right
-      zC.push(b.z-fd, b.z+b.d, b.z, b.z+b.d-fd); // flush-back, flush-front, align-back, align-front
-    });
+    const xC = [], zC = [];
+    if (snapPallet) { xC.push(0, PAL.W-fw); zC.push(0, PAL.D-fd); }
+    if (snapBox) {
+      manBoxes.forEach((b,i) => {
+        if (i===exclIdx) return;
+        xC.push(b.x-fw, b.x+b.w, b.x, b.x+b.w-fw);
+        zC.push(b.z-fd, b.z+b.d, b.z, b.z+b.d-fd);
+      });
+    }
     let bestXd = SNAP;
     for (const x of xC) { const c=clampX(x), d=Math.abs(c-wx); if (d<bestXd) { bestXd=d; bx=c; } }
     let bestZd = SNAP;
@@ -992,14 +998,14 @@ function manEventToWorld(e) {
   const sx=cl.clientX-rect.left, sy=cl.clientY-rect.top;
   return unprojectY(sx,sy,PAL.H,W,H,sc);
 }
-function manHoverToWorld(e) {
+function manHoverToWorld(e, yLevel) {
   const vw=document.getElementById('view3d');
   const W=vw.clientWidth, H=vw.clientHeight;
   const totalH=lastRes?.totalH||PAL.H+200;
   const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
   const rect=canvas.getBoundingClientRect();
   const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
-  return unprojectY(sx,sy,PAL.H,W,H,sc);
+  return unprojectY(sx,sy,yLevel??PAL.H,W,H,sc);
 }
 
 // Remove mode — tap on a placed box to delete it
@@ -2019,16 +2025,23 @@ canvas.addEventListener('mousemove',e=>{
     if(manRemoveMode){
       manHoverRemoveIdx=raycastBox(e);
     } else {
-      const w=manHoverToWorld(e);
-      if(w){const {fw,fd}=manGetDims();const p=manSnapPos(w.x,w.z,fw,fd);manGhostX=p.x;manGhostZ=p.z;}
-      else{manGhostX=null;}
+      const {fw,fd,lh}=manGetDims();
+      const w0=manHoverToWorld(e);
+      if(w0){
+        // Two-pass: refine y-level to ghost vertical center for visual alignment
+        const surf=manSurfAt(w0.x-fw/2,w0.z-fd/2,fw,fd);
+        const w=manHoverToWorld(e,surf+lh/2)||w0;
+        const p=manSnapPos(w.x,w.z,fw,fd);manGhostX=p.x;manGhostZ=p.z;
+      }else{manGhostX=null;}
     }
     if(lastRes)draw3D(lastRes); return;
   }
   if(isDragMode && drag && selectedBoxIdx>=0 && !rmb){
-    const w=manHoverToWorld(e);
-    if(w){
-      const b=manBoxes[selectedBoxIdx];
+    const b=manBoxes[selectedBoxIdx];
+    const w0=manHoverToWorld(e);
+    if(w0){
+      const surf=manSurfAtExcl(w0.x-b.w/2,w0.z-b.d/2,b.w,b.d,selectedBoxIdx);
+      const w=manHoverToWorld(e,surf+b.h/2)||w0;
       const p=manSnapPos(w.x,w.z,b.w,b.d,selectedBoxIdx);
       b.x=p.x; b.z=p.z;
       if(lastRes)draw3D(buildManualRes());
@@ -2274,13 +2287,8 @@ function showRotPopup(clientX,clientY){
   const faces=[[A,B,C],[A,C,B],[B,C,A]];
   let html='';
   faces.forEach(([a,b,c],i)=>{
-    const act=i===manFaceIdx&&!manFlipped;
-    html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i},false)">${a}×${b} na górze (wys. ${c})</button>`;
-  });
-  faces.forEach(([a,b,c],i)=>{
-    if(a===b)return;
-    const act=i===manFaceIdx&&manFlipped;
-    html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i},true)">${b}×${a} na górze (wys. ${c}) ↔</button>`;
+    const act=i===manFaceIdx;
+    html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i})">${a}×${b} (wys. ${c})</button>`;
   });
   document.getElementById('rpBtns').innerHTML=html;
   pop.style.display='block';
@@ -2289,8 +2297,8 @@ function showRotPopup(clientX,clientY){
   pop.style.left=Math.max(8,Math.min(x,rect.width-pop.offsetWidth-8))+'px';
   pop.style.top=Math.max(8,Math.min(y,rect.height-pop.offsetHeight-8))+'px';
 }
-window.rotPick=(i,fl)=>{
-  manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns();
+window.rotPick=(i)=>{
+  manFaceIdx=i; manFlipped=false; manRefreshFaceBtns();
   document.getElementById('rotPopup').style.display='none';
   if(lastRes)draw3D(lastRes);
 };
