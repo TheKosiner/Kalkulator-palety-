@@ -2692,7 +2692,6 @@ function makeHeightLabel3D(palLabel,palH,x,z,labelW){
   const mesh=new THREE.Mesh(geo,mat);
   // Vertical sign facing outward (toward camera at -Z)
   mesh.rotation.y=Math.PI;  // normal faces -Z (outward from pallet)
-  mesh.scale.x=-1;          // un-mirror horizontal text
   mesh.position.set(x, palH/2, z);
   return mesh;
 }
