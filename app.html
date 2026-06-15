@@ -2143,7 +2143,7 @@ window.calculate=function(){
 const canvas=document.getElementById('canvas3d');
 const canvas2d=document.getElementById('canvas2d');
 const ctx=canvas2d.getContext('2d');
-let camTheta=0.52,camPhi=0.45,camDist=3800,camZoom=1,panX=0,panY=0;
+let camTheta=0.52,camPhi=-0.75,camDist=3800,camZoom=1,panX=0,panY=0;
 let camTargetY=PAL.H/2; // vertical focal point; updated each draw
 
 // mouse
@@ -2757,7 +2757,7 @@ function draw3D(res){
       const ox=i*(PAL.W+PAL_GAP);
       const palH=res.placements.filter(p=>(p.palletIdx??0)===i).reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
       const palLabel=numPallets>1?`P${i+1}`:'';
-      const lm=makeHeightLabel3D(palLabel,palH,ox+PAL.W/2,PAL.D+110);
+      const lm=makeHeightLabel3D(palLabel,palH,ox+PAL.W/2,-110);
       t3.scene.add(lm);t3.staticObjects.push(lm);
     }
     _lastStaticRes=res;
@@ -2835,7 +2835,7 @@ function buildLegend(res,mode){
 window.addEventListener('resize',()=>{if(lastRes)draw3D(lastRes);});
 
 // Camera control buttons
-const CAM_DEF={theta:0.52,phi:0.45};
+const CAM_DEF={theta:0.52,phi:-0.75};
 function camZoomIn(){camZoom=Math.min(5,camZoom*1.25);if(lastRes)draw3D(lastRes);}
 function camZoomOut(){camZoom=Math.max(0.15,camZoom*0.8);if(lastRes)draw3D(lastRes);}
 function camRotL(){camTheta-=0.18;if(lastRes)draw3D(lastRes);}
