@@ -2128,25 +2128,33 @@ canvas.addEventListener('mousemove',e=>{
       manHoverRemoveIdx=raycastBox(e);
     } else {
       const {fw,fd,lh}=manGetDims();
-      // Raycast to find which placed box the cursor is over → determines surface height
-      let surfY=PAL.H, supportBox=null;
-      const hbi=raycastBox(e);
-      if(hbi>=0&&lastRes&&hbi<lastRes.placements.length){
-        supportBox=lastRes.placements[hbi];
-        surfY=(supportBox.y??0)+supportBox.h;
-      }
-      // Project cursor at ghost vertical centre for correct XZ centering
-      const w=manHoverToWorld(e,surfY+lh/2)||manHoverToWorld(e,PAL.H);
-      if(w){
-        const p=manSnapPos(w.x,w.z,fw,fd);
-        let gx=p.x, gz=p.z;
-        // Overhang constraint: when stacking on a specific box, clamp to its footprint
-        const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
-        if(!allowOverhang&&supportBox&&surfY>PAL.H){
-          gx=Math.max(supportBox.x,Math.min(supportBox.x+supportBox.w-fw,gx));
-          gz=Math.max(supportBox.z,Math.min(supportBox.z+supportBox.d-fd,gz));
+      // Prefer ground layer — only stack if ground position is occupied
+      const wg=manHoverToWorld(e,PAL.H+lh/2);
+      if(wg){
+        const pg=manSnapPos(wg.x,wg.z,fw,fd);
+        const groundFree=!manBoxes.some(b=>b.x<pg.x+fw&&b.x+b.w>pg.x&&b.z<pg.z+fd&&b.z+b.d>pg.z);
+        if(groundFree){
+          manGhostX=pg.x;manGhostZ=pg.z;manGhostY=PAL.H;
+        } else {
+          // Ground occupied — stack on top of whatever is under cursor
+          let surfY=PAL.H, supportBox=null;
+          const hbi=raycastBox(e);
+          if(hbi>=0&&lastRes&&hbi<lastRes.placements.length){
+            supportBox=lastRes.placements[hbi];
+            surfY=(supportBox.y??0)+supportBox.h;
+          } else {
+            surfY=manSurfAt(pg.x,pg.z,fw,fd);
+          }
+          const w=manHoverToWorld(e,surfY+lh/2)||wg;
+          const p=manSnapPos(w.x,w.z,fw,fd);
+          let gx=p.x, gz=p.z;
+          const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
+          if(!allowOverhang&&supportBox&&surfY>PAL.H){
+            gx=Math.max(supportBox.x,Math.min(supportBox.x+supportBox.w-fw,gx));
+            gz=Math.max(supportBox.z,Math.min(supportBox.z+supportBox.d-fd,gz));
+          }
+          manGhostX=gx;manGhostZ=gz;manGhostY=surfY;
         }
-        manGhostX=gx;manGhostZ=gz;manGhostY=surfY;
       }else{manGhostX=null;}
     }
     if(lastRes)draw3D(lastRes); return;
@@ -2446,7 +2454,9 @@ window.moveGhost=function(dx,dz){
   }
   let nx=Math.max(palOx,Math.min(palOx+PAL.W-fw,manGhostX+dx));
   let nz=Math.max(0,Math.min(PAL.D-fd,manGhostZ+dz));
-  const newSurf=manSurfAt(nx,nz,fw,fd);
+  // Prefer ground layer — only stack if new position is occupied at ground level
+  const groundFree=!manBoxes.some(b=>b.x<nx+fw&&b.x+b.w>nx&&b.z<nz+fd&&b.z+b.d>nz);
+  const newSurf=groundFree ? PAL.H : manSurfAt(nx,nz,fw,fd);
   const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
   if(!allowOverhang&&newSurf>PAL.H){
     // Each corner must be over at least one supporting box — allows spanning two boxes
