@@ -855,8 +855,9 @@ let manBoxes  = [];          // placed boxes {x,y,z,w,h,d,pkgId,color}
 let manSelPkg = PKGS[0];     // box type selected for placement
 let manFaceIdx = 0;          // 0‥2  which face is on the floor
 let manFlipped = false;      // 90° footprint rotation
-let manGhostX  = null;       // world-x of ghost preview
+let manGhostX  = null;       // world-x of ghost preview (top-left corner)
 let manGhostZ  = null;
+let manGhostY  = PAL.H;     // surface height ghost sits on
 
 // Build the manual-mode package selector list (rebuilds when PKGS changes).
 function buildManPkgList() {
@@ -973,20 +974,23 @@ function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
 function manPlace(wx,wz) {
   const {fw,fd,lh} = manGetDims();
   const maxH = parseInt(document.getElementById('maxH').value)||1800;
-  const {x,z} = manSnapPos(wx,wz,fw,fd);
-  const wy = manSurfAt(x,z,fw,fd);
-  if (wy+lh > maxH) return;
-  // Determine which pallet this box lands on from its world X
-  const numPallets = lastRes?.numPallets || 1;
-  let palletIdx = 0;
-  for (let i = 0; i < numPallets; i++) {
-    const ox = i * (PAL.W + PAL_GAP);
-    if (x >= ox && x < ox + PAL.W) { palletIdx = i; break; }
+  // Use stored ghost position when available (hover already computed correct snap + surface)
+  let bx,bz,wy;
+  if(manGhostX!==null){
+    bx=manGhostX; bz=manGhostZ; wy=manGhostY;
+  } else {
+    const s=manSnapPos(wx,wz,fw,fd); bx=s.x; bz=s.z; wy=manSurfAt(bx,bz,fw,fd);
   }
-  manBoxes.push({x,y:wy,z,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color,palletIdx});
-  // Bump the qty input so Oblicz re-run includes this manual addition
-  const qtyEl = document.querySelector(`.pkg-qty[data-id="${manSelPkg.id}"]`);
-  if (qtyEl) qtyEl.value = (parseInt(qtyEl.value)||0) + 1;
+  if(wy+lh>maxH) return;
+  const numPallets=lastRes?.numPallets||1;
+  let palletIdx=0;
+  for(let i=0;i<numPallets;i++){
+    const ox=i*(PAL.W+PAL_GAP);
+    if(bx>=ox&&bx<ox+PAL.W){palletIdx=i;break;}
+  }
+  manBoxes.push({x:bx,y:wy,z:bz,w:fw,h:lh,d:fd,pkgId:manSelPkg.id,color:manSelPkg.color,palletIdx});
+  const qtyEl=document.querySelector(`.pkg-qty[data-id="${manSelPkg.id}"]`);
+  if(qtyEl)qtyEl.value=(parseInt(qtyEl.value)||0)+1;
   refreshManual();
 }
 window.manUndo = () => {
@@ -1034,39 +1038,50 @@ function refreshManual() {
 }
 
 // Inverse perspective projection — screen (sx,sy) → world (x,z) on plane y=y0
+// Mirrors the Three.js camera setup in draw3D exactly (pan baked into camera,
+// not added to screen coords like the legacy 2D proj() function).
 function unprojectY(sx, sy, y0, W, H, sc) {
-  const p   = camDist*sc, cx=W/2, cy=H/2;
-  const dx  = -(sx - cx - panX);
-  const dy  = -(sy - cy - panY);
-  const Y   = y0 - camTargetY;
-  const sT=Math.sin(camTheta),cT=Math.cos(camTheta);
-  const sP=Math.sin(camPhi),  cP=Math.cos(camPhi);
+  const p  = camDist*sc;
+  const sT = Math.sin(camTheta), cT = Math.cos(camTheta);
+  const sP = Math.sin(camPhi),   cP = Math.cos(camPhi);
+  const pw = 1/sc;
+  // Recompute pan-adjusted look target (identical to draw3D)
+  const lookX = _sceneCenterX + (-cT)*panX*pw + (-sP*sT)*panY*pw;
+  const lookY = camTargetY    +   cP*panY*pw;
+  const lookZ = PAL.D/2       +   sT*panX*pw + (-sP*cT)*panY*pw;
+  // Screen offset from centre — no panX/panY here: Three.js bakes pan
+  // into the camera position, it does NOT shift the NDC output.
+  const dx = -(sx - W/2);
+  const dy = -(sy - H/2);
+  const Y  = y0 - lookY;
   if(Math.abs(sP)<0.01) return null;
   const denom = 1 + dy*cP/(p*sP);
   if(Math.abs(denom)<1e-4) return null;
-  const pz  = (Y/sP + camDist) / denom;
-  const fy  = dy*pz/p;
-  const Rz  = (Y*cP - fy)/sP;
-  const Rx  = dx*pz/p;
-  return { x: Rx*cT + Rz*sT + PAL.W/2,
-           z:-Rx*sT + Rz*cT + PAL.D/2 };
+  const pz = (Y/sP + camDist) / denom;
+  const fy = dy*pz/p;
+  const Rz = (Y*cP - fy)/sP;
+  const Rx = dx*pz/p;
+  return { x: Rx*cT + Rz*sT + lookX,
+           z:-Rx*sT + Rz*cT + lookZ };
 }
 
-function manEventToWorld(e) {
+function _manSc() {
   const vw=document.getElementById('view3d');
   const W=vw.clientWidth, H=vw.clientHeight;
+  const np=lastRes?.numPallets||1;
+  const sceneW=np*PAL.W+(np-1)*PAL_GAP;
   const totalH=lastRes?.totalH||PAL.H+200;
-  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
+  return {W,H,sc:(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(sceneW,PAL.D,totalH)*camZoom};
+}
+function manEventToWorld(e) {
+  const {W,H,sc}=_manSc();
   const rect=canvas.getBoundingClientRect();
   const cl=e.changedTouches?e.changedTouches[0]:e;
   const sx=cl.clientX-rect.left, sy=cl.clientY-rect.top;
   return unprojectY(sx,sy,PAL.H,W,H,sc);
 }
 function manHoverToWorld(e, yLevel) {
-  const vw=document.getElementById('view3d');
-  const W=vw.clientWidth, H=vw.clientHeight;
-  const totalH=lastRes?.totalH||PAL.H+200;
-  const sc=(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH);
+  const {W,H,sc}=_manSc();
   const rect=canvas.getBoundingClientRect();
   const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
   return unprojectY(sx,sy,yLevel??PAL.H,W,H,sc);
@@ -1085,12 +1100,7 @@ window.manToggleRemove = () => {
   if (lastRes) draw3D(lastRes);
 };
 
-function manScreenSc() {
-  const vw = document.getElementById('view3d');
-  const W = vw.clientWidth, H = vw.clientHeight;
-  const totalH = lastRes?.totalH || PAL.H+200;
-  return { W, H, sc:(Math.min(W,H)*(window.innerWidth<760?.75:.7))/Math.max(PAL.W,PAL.D,totalH) };
-}
+function manScreenSc() { return _manSc(); }
 function manPickBox(e) {
   const {W,H,sc} = manScreenSc();
   const cx=W/2, cy=H/2;
@@ -2060,7 +2070,7 @@ window.calculate=function(){
   manBoxes=res.placements.map(p=>({...p}));
   selectedBoxIdx=-1; isDragMode=false;
   hideBoxActionPanel();
-  manGhostX=null;
+  manGhostX=null;manGhostY=PAL.H;
 
   lastRes=buildManualRes();
   buildLegend(lastRes,'auto');
@@ -2090,16 +2100,18 @@ canvas.addEventListener('mousemove',e=>{
       manHoverRemoveIdx=raycastBox(e);
     } else {
       const {fw,fd,lh}=manGetDims();
-      const w0=manHoverToWorld(e);
-      if(w0){
-        // Snap at floor level first to find which box we're hovering over
-        const p0=manSnapPos(w0.x,w0.z,fw,fd);
-        const surf=manSurfAt(p0.x,p0.z,fw,fd);
-        if(surf>PAL.H){
-          // Refine cursor projection to ghost vertical center for correct stacking
-          const w=manHoverToWorld(e,surf+lh/2)||w0;
-          const p=manSnapPos(w.x,w.z,fw,fd);manGhostX=p.x;manGhostZ=p.z;
-        }else{manGhostX=p0.x;manGhostZ=p0.z;}
+      // Raycast to find which placed box the cursor is over → determines surface height
+      let surfY=PAL.H;
+      const hbi=raycastBox(e);
+      if(hbi>=0&&lastRes&&hbi<lastRes.placements.length){
+        const bp=lastRes.placements[hbi];
+        surfY=(bp.y??0)+bp.h;
+      }
+      // Project cursor at ghost vertical centre for correct XZ centering
+      const w=manHoverToWorld(e,surfY+lh/2)||manHoverToWorld(e,PAL.H);
+      if(w){
+        const p=manSnapPos(w.x,w.z,fw,fd);
+        manGhostX=p.x;manGhostZ=p.z;manGhostY=surfY;
       }else{manGhostX=null;}
     }
     if(lastRes)draw3D(lastRes); return;
@@ -2158,7 +2170,7 @@ canvas.addEventListener('mouseup',e=>{
 });
 canvas.addEventListener('mouseleave',()=>{
   drag=false;
-  if(isAddMode){manGhostX=null;if(lastRes)draw3D(lastRes);}
+  if(isAddMode){manGhostX=null;manGhostY=PAL.H;if(lastRes)draw3D(lastRes);}
 });
 canvas.addEventListener('wheel',e=>{camZoom=Math.max(0.15,Math.min(5,camZoom*(e.deltaY>0?0.92:1.087)));if(lastRes)draw3D(lastRes);},{passive:true});
 
@@ -2623,7 +2635,7 @@ function draw3D(res){
       dm=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,'#e74c3c',0.55);
     }else if(!manRemoveMode&&manGhostX!==null){
       const{fw,fd,lh}=manGetDims();
-      dm=makeBox3D(manGhostX,manSurfAt(manGhostX,manGhostZ,fw,fd),manGhostZ,fw,lh,fd,manSelPkg.color,0.38);
+      dm=makeBox3D(manGhostX,manGhostY,manGhostZ,fw,lh,fd,manSelPkg.color,0.38);
     }
     if(dm){t3.scene.add(dm);t3.dynObjects.push(dm);}
   }
