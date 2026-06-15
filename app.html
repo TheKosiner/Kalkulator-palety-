@@ -499,13 +499,8 @@
     </div>
     <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
 
-    <!-- MANUAL ADD PANEL -->
-    <button class="btn-add-toggle" id="btnAddMode" onclick="toggleAddMode()">➕ Dodaj kartony ręcznie</button>
-    <div id="addPanel" style="display:none">
-      <div class="stitle">Karton do dodania</div>
-      <div id="manPkgList"></div>
-      <div class="stitle">Orientacja</div>
-      <div class="man-face-btns" id="manFaceBtns"></div>
+    <!-- MANUAL ADD ACTION BUTTONS (shown when in add mode) -->
+    <div id="manActionBar" style="display:none;margin-top:8px;display:none">
       <div class="man-action-row">
         <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
         <button class="btn-man btn-clear" onclick="manClear()">🗑 Wyczyść</button>
@@ -715,10 +710,8 @@ let drawerOpen = false;
 
 function toggleAddMode() {
   isAddMode = !isAddMode;
-  document.getElementById('btnAddMode').classList.toggle('active', isAddMode);
-  document.getElementById('addPanel').style.display = isAddMode ? '' : 'none';
+  document.getElementById('manActionBar').style.display = isAddMode ? '' : 'none';
   if (isAddMode) {
-    manRefreshFaceBtns();
     manRemoveMode = false;
     document.getElementById('manHint').textContent = 'Dotknij palety aby postawić karton';
     document.getElementById('manHint').style.display = 'block';
@@ -743,25 +736,20 @@ function quickAddBox(pkgId) {
   if (isAddMode && manSelPkg?.id === pkgId) {
     isAddMode = false;
     manGhostX = null;
-    document.getElementById('btnAddMode').classList.remove('active');
-    document.getElementById('addPanel').style.display = 'none';
+    document.getElementById('manActionBar').style.display = 'none';
     document.getElementById('manHint').style.display = 'none';
     updateAddModeOverlay();
     if (lastRes) draw3D(lastRes);
     return;
   }
   manSelPkg = pkg; manFaceIdx = 0; manFlipped = false;
-  manRefreshFaceBtns();
   isAddMode = true; manRemoveMode = false;
-  document.getElementById('btnAddMode').classList.add('active');
-  document.getElementById('addPanel').style.display = '';
+  document.getElementById('manActionBar').style.display = '';
   document.getElementById('manHint').textContent = `Kliknij na paletę aby dodać: ${pkg.name}`;
   document.getElementById('manHint').style.display = 'block';
   selectedBoxIdx = -1; isDragMode = false;
   hideBoxActionPanel(); hideRotPopup();
   _initMobileGhost();
-  // Sync selection in the manual package list inside addPanel
-  document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.toggle('selected', i.dataset.id===pkgId));
   updateAddModeOverlay();
   if (lastRes) draw3D(lastRes);
 }
@@ -814,7 +802,7 @@ function buildPkgList() {
       <div class="pkg-qty-wrap" style="display:${isSel?'flex':'none'}">
         <label>szt.:</label>
         <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
-        <button class="btn-add-one" data-id="${p.id}" title="Dodaj jeden karton ręcznie na paletę">+</button>
+        <button class="btn-add-one" data-id="${p.id}" title="Dodaj karton ręcznie na paletę">+ Dodaj ręcznie</button>
       </div>`;
 
     if (savedQtys.has(p.id)) item.querySelector('.pkg-qty').value = savedQtys.get(p.id);
@@ -878,6 +866,7 @@ let manGhostY  = PAL.H;     // surface height ghost sits on
 // Build the manual-mode package selector list (rebuilds when PKGS changes).
 function buildManPkgList() {
   const list = document.getElementById('manPkgList');
+  if (!list) return;
   list.innerHTML = '';
   // If current manSelPkg was removed, fall back to first available
   if (!PKGS.find(p=>p.id===manSelPkg?.id)) manSelPkg = PKGS[0];
@@ -902,6 +891,7 @@ function manRefreshFaceBtns() {
   const [A,B,C] = manSelPkg.dims;
   const faces = [[A,B,C],[A,C,B],[B,C,A]];
   const btns = document.getElementById('manFaceBtns');
+  if (!btns) return;
   let html = '';
   faces.forEach(([a,b,c], i) => {
     const act = i===manFaceIdx && !manFlipped;
