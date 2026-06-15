@@ -2695,6 +2695,8 @@ function makeHeightLabel3D(palLabel,palH,x,z,labelW){
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide});
   const mesh=new THREE.Mesh(geo,mat);
   mesh.rotation.x=-Math.PI/2;
+  mesh.rotation.y=Math.PI;  // flip so text faces outward (away from pallet)
+  mesh.scale.x=-1;          // un-mirror horizontal so text reads left→right
   mesh.position.set(x,2,z);
   return mesh;
 }
