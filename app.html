@@ -996,13 +996,16 @@ function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
     }
   }
 
-  // Overhang constraint: keep ghost within footprint of supporting box below
+  // Overhang constraint: keep ghost within footprint of supporting box below.
+  // Use ghost footprint (bx,bz), not cursor: adjacent floor-level boxes don't
+  // overlap in XZ, so this only triggers when genuinely stacking on top.
   const allowOverhang = document.getElementById('allowOverhang')?.checked ?? false;
   if (!allowOverhang) {
     let support = null, supY = -Infinity;
     manBoxes.forEach((b, i) => {
       if (i === exclIdx) return;
-      if (cx > b.x && cx < b.x+b.w && cz > b.z && cz < b.z+b.d) {
+      // 1 mm inset avoids matching boxes that are merely touching edges
+      if (bx < b.x+b.w-1 && bx+fw > b.x+1 && bz < b.z+b.d-1 && bz+fd > b.z+1) {
         if (b.y+b.h > supY) { supY = b.y+b.h; support = b; }
       }
     });
