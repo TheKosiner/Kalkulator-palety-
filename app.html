@@ -996,25 +996,6 @@ function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
     }
   }
 
-  // Overhang constraint: keep ghost within footprint of supporting box below.
-  // Use ghost footprint (bx,bz), not cursor: adjacent floor-level boxes don't
-  // overlap in XZ, so this only triggers when genuinely stacking on top.
-  const allowOverhang = document.getElementById('allowOverhang')?.checked ?? false;
-  if (!allowOverhang) {
-    let support = null, supY = -Infinity;
-    manBoxes.forEach((b, i) => {
-      if (i === exclIdx) return;
-      // 1 mm inset avoids matching boxes that are merely touching edges
-      if (bx < b.x+b.w-1 && bx+fw > b.x+1 && bz < b.z+b.d-1 && bz+fd > b.z+1) {
-        if (b.y+b.h > supY) { supY = b.y+b.h; support = b; }
-      }
-    });
-    if (support) {
-      bx = Math.max(support.x, Math.min(support.x+support.w-fw, bx));
-      bz = Math.max(support.z, Math.min(support.z+support.d-fd, bz));
-    }
-  }
-
   return {x:bx, z:bz};
 }
 
@@ -2148,17 +2129,24 @@ canvas.addEventListener('mousemove',e=>{
     } else {
       const {fw,fd,lh}=manGetDims();
       // Raycast to find which placed box the cursor is over → determines surface height
-      let surfY=PAL.H;
+      let surfY=PAL.H, supportBox=null;
       const hbi=raycastBox(e);
       if(hbi>=0&&lastRes&&hbi<lastRes.placements.length){
-        const bp=lastRes.placements[hbi];
-        surfY=(bp.y??0)+bp.h;
+        supportBox=lastRes.placements[hbi];
+        surfY=(supportBox.y??0)+supportBox.h;
       }
       // Project cursor at ghost vertical centre for correct XZ centering
       const w=manHoverToWorld(e,surfY+lh/2)||manHoverToWorld(e,PAL.H);
       if(w){
         const p=manSnapPos(w.x,w.z,fw,fd);
-        manGhostX=p.x;manGhostZ=p.z;manGhostY=surfY;
+        let gx=p.x, gz=p.z;
+        // Overhang constraint: when stacking on a specific box, clamp to its footprint
+        const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
+        if(!allowOverhang&&supportBox&&surfY>PAL.H){
+          gx=Math.max(supportBox.x,Math.min(supportBox.x+supportBox.w-fw,gx));
+          gz=Math.max(supportBox.z,Math.min(supportBox.z+supportBox.d-fd,gz));
+        }
+        manGhostX=gx;manGhostZ=gz;manGhostY=surfY;
       }else{manGhostX=null;}
     }
     if(lastRes)draw3D(lastRes); return;
@@ -2456,9 +2444,19 @@ window.moveGhost=function(dx,dz){
     const ox=i*(PAL.W+PAL_GAP);
     if(manGhostX>=ox&&manGhostX<ox+PAL.W){palOx=ox;break;}
   }
-  const nx=Math.max(palOx,Math.min(palOx+PAL.W-fw,manGhostX+dx));
-  const nz=Math.max(0,Math.min(PAL.D-fd,manGhostZ+dz));
-  manGhostX=nx;manGhostZ=nz;manGhostY=manSurfAt(nx,nz,fw,fd);
+  let nx=Math.max(palOx,Math.min(palOx+PAL.W-fw,manGhostX+dx));
+  let nz=Math.max(0,Math.min(PAL.D-fd,manGhostZ+dz));
+  const newSurf=manSurfAt(nx,nz,fw,fd);
+  // Overhang constraint for D-pad: find which box the ghost will sit on and clamp
+  const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
+  if(!allowOverhang&&newSurf>PAL.H){
+    let sup=null,supY=-Infinity;
+    manBoxes.forEach(b=>{
+      if(nx<b.x+b.w&&nx+fw>b.x&&nz<b.z+b.d&&nz+fd>b.z&&b.y+b.h>supY){supY=b.y+b.h;sup=b;}
+    });
+    if(sup){nx=Math.max(sup.x,Math.min(sup.x+sup.w-fw,nx));nz=Math.max(sup.z,Math.min(sup.z+sup.d-fd,nz));}
+  }
+  manGhostX=nx;manGhostZ=nz;manGhostY=newSurf;
   if(lastRes)draw3D(lastRes);
 };
 function _fixGhostForNewDims(oldFw,oldFd){
