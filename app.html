@@ -2704,7 +2704,7 @@ function makeHeightLabel3D(palLabel,palH,x,z,labelW){
 // Returns box specs for one pallet at X-offset ox (used in unified depth sort)
 function palletBoxes(ox){
   const {W,D,H}=PAL, b=[];
-  for(let i=0;i<6;i++) b.push({x:ox+i*200,y:H-22,z:0,w:120,h:22,d:D,color:'#c8a86a'});
+  for(let i=0;i<7;i++) b.push({x:ox+Math.round(i*(W-120)/6),y:H-22,z:0,w:120,h:22,d:D,color:'#c8a86a'});
   [0,D/2-50,D-100].forEach(bz=>b.push({x:ox,y:0,z:bz,w:W,h:20,d:100,color:'#b8965a'}));
   [0,W/2-50,W-100].forEach(bx=>[0,D/2-50,D-100].forEach(bz=>
     b.push({x:ox+bx,y:20,z:bz,w:100,h:72,d:100,color:'#9a6e38'})));
