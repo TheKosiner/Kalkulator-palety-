@@ -284,6 +284,8 @@
       .vsidebar-content{flex:1;overflow-y:auto;max-height:none;padding:16px 16px 28px}
       .vpane-canvas{left:360px!important;bottom:0!important}
     }
+    #toast-msg{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:10px 22px;border-radius:24px;font-size:.88rem;font-weight:600;pointer-events:none;opacity:0;transition:opacity .22s,transform .22s;z-index:9999;white-space:nowrap}
+    #toast-msg.show{opacity:1;transform:translateX(-50%) translateY(0)}
   </style>
 </head>
 <body>
@@ -1041,6 +1043,12 @@ function manPlace(wx,wz) {
     );
     if(!ok) return;
   }
+  const overlaps=manBoxes.some(b=>
+    bx<b.x+b.w-0.5&&bx+fw>b.x+0.5&&
+    wy<b.y+b.h-0.5&&wy+lh>b.y+0.5&&
+    bz<b.z+b.d-0.5&&bz+fd>b.z+0.5
+  );
+  if(overlaps){showToast('Karton nachodzi na inny karton!');return;}
   const numPallets=lastRes?.numPallets||1;
   let palletIdx=0;
   for(let i=0;i<numPallets;i++){
@@ -3483,6 +3491,17 @@ window.addEventListener('resize',()=>{
 buildVehicleSavedLists();
 _initVehicleCanvas('naczepa');
 _initVehicleCanvas('kontener');
+</script>
+<div id="toast-msg"></div>
+<script>
+let _toastTimer=null;
+function showToast(msg){
+  const el=document.getElementById('toast-msg');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
 </script>
 </body>
 </html>
