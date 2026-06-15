@@ -934,6 +934,27 @@ function manSurfAt(x,z,fw,fd) {
     if(b.x<x+fw&&b.x+b.w>x&&b.z<z+fd&&b.z+b.d>z) h=Math.max(h,b.y+b.h);
   return h;
 }
+// Check all 4 corners of ghost at (gx,gz) are supported by boxes at surfY
+function _stackAllOk(gx,gz,fw,fd,surfY){
+  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
+  return [[gx,gz],[gx+fw,gz],[gx,gz+fd],[gx+fw,gz+fd]].every(
+    ([px,pz])=>sup.some(b=>px>=b.x&&px<=b.x+b.w&&pz>=b.z&&pz<=b.z+b.d)
+  );
+}
+// Candidate X positions from box edges at surfY, clamped to pallet
+function _stackXCandidates(fw,surfY,palOx){
+  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
+  const xs=new Set([palOx, palOx+PAL.W-fw]);
+  for(const b of sup){xs.add(b.x); xs.add(b.x+b.w-fw);}
+  return [...xs].map(x=>Math.max(palOx,Math.min(palOx+PAL.W-fw,x)));
+}
+// Candidate Z positions from box edges at surfY, clamped to pallet
+function _stackZCandidates(fd,surfY){
+  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
+  const zs=new Set([0, PAL.D-fd]);
+  for(const b of sup){zs.add(b.z); zs.add(b.z+b.d-fd);}
+  return [...zs].map(z=>Math.max(0,Math.min(PAL.D-fd,z)));
+}
 
 function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
   const snapBox    = document.getElementById('snapToBoxEdges')?.checked ?? true;
@@ -2158,9 +2179,21 @@ canvas.addEventListener('mousemove',e=>{
           const p=manSnapPos(w.x,w.z,fw,fd);
           let gx=p.x, gz=p.z;
           const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
-          if(!allowOverhang&&supportBox&&surfY>PAL.H){
-            gx=Math.max(supportBox.x,Math.min(supportBox.x+supportBox.w-fw,gx));
-            gz=Math.max(supportBox.z,Math.min(supportBox.z+supportBox.d-fd,gz));
+          if(!allowOverhang&&surfY>PAL.H&&!_stackAllOk(gx,gz,fw,fd,surfY)){
+            // Snap to nearest fully-supported position aligned to box edges
+            const numP=lastRes?.numPallets||1;
+            let palOx2=0;
+            for(let i=0;i<numP;i++){const ox=i*(PAL.W+PAL_GAP);if(gx>=ox-PAL_GAP/2&&gx<ox+PAL.W+PAL_GAP/2){palOx2=ox;break;}}
+            const xs=_stackXCandidates(fw,surfY,palOx2);
+            const zs=_stackZCandidates(fd,surfY);
+            let best=null,bestD=Infinity;
+            for(const cx of xs) for(const cz of zs){
+              if(_stackAllOk(cx,cz,fw,fd,surfY)){
+                const d=Math.hypot(cx-gx,cz-gz);
+                if(d<bestD){bestD=d;best={x:cx,z:cz};}
+              }
+            }
+            if(best){gx=best.x;gz=best.z;}
           }
           manGhostX=gx;manGhostZ=gz;manGhostY=surfY;
         }
@@ -2461,12 +2494,34 @@ window.moveGhost=function(dx,dz){
     const ox=i*(PAL.W+PAL_GAP);
     if(manGhostX>=ox&&manGhostX<ox+PAL.W){palOx=ox;break;}
   }
+  const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
+  // When stacking with overhang disabled, jump between edge-aligned supported positions
+  if(!allowOverhang && manGhostY>PAL.H){
+    const surfY=manGhostY;
+    const xs=new Set(_stackXCandidates(fw,surfY,palOx));
+    const zs=new Set(_stackZCandidates(fd,surfY));
+    for(let x=palOx;x<=palOx+PAL.W-fw+1;x+=50) xs.add(Math.round(x));
+    for(let z=0;z<=PAL.D-fd+1;z+=50) zs.add(Math.round(z));
+    let best=null,bestD=Infinity;
+    for(const cx of xs) for(const cz of zs){
+      if(dx>0 && cx<=manGhostX+0.5) continue;
+      if(dx<0 && cx>=manGhostX-0.5) continue;
+      if(dz>0 && cz<=manGhostZ+0.5) continue;
+      if(dz<0 && cz>=manGhostZ-0.5) continue;
+      if(!_stackAllOk(cx,cz,fw,fd,surfY)) continue;
+      const d=(dx!==0) ? Math.abs(cx-manGhostX)*1000+Math.abs(cz-manGhostZ)
+                       : Math.abs(cz-manGhostZ)*1000+Math.abs(cx-manGhostX);
+      if(d<bestD){bestD=d;best={x:cx,z:cz};}
+    }
+    if(best){manGhostX=best.x;manGhostZ=best.z;}
+    if(lastRes)draw3D(lastRes);
+    return;
+  }
   let nx=Math.max(palOx,Math.min(palOx+PAL.W-fw,manGhostX+dx));
   let nz=Math.max(0,Math.min(PAL.D-fd,manGhostZ+dz));
   // Prefer ground layer — only stack if new position is occupied at ground level
   const groundFree=!manBoxes.some(b=>b.x<nx+fw&&b.x+b.w>nx&&b.z<nz+fd&&b.z+b.d>nz);
   const newSurf=groundFree ? PAL.H : manSurfAt(nx,nz,fw,fd);
-  // Overhang constraint is enforced at placement time (manPlace), not during navigation
   manGhostX=nx;manGhostZ=nz;manGhostY=newSurf;
   if(lastRes)draw3D(lastRes);
 };
