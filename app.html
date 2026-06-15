@@ -98,6 +98,9 @@
     .amo-btns{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
     .amo-rotate{width:100%;padding:7px 10px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);border-radius:6px;font-size:.72rem;font-weight:700;cursor:pointer;color:var(--accent-h);text-align:center;transition:all .15s}
     .amo-rotate:hover{background:rgba(59,130,246,.32);color:#fff}
+    .amo-opts{display:flex;flex-direction:column;gap:4px;margin-top:7px;border-top:1px solid rgba(255,255,255,.1);padding-top:7px}
+    .amo-chk{display:flex;align-items:center;gap:6px;font-size:.67rem;color:var(--text-2);cursor:pointer;user-select:none}
+    .amo-chk input{accent-color:var(--accent-h);width:13px;height:13px;cursor:pointer;flex-shrink:0}
     .amo-dpad{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px}
     .amo-dpad-row{display:flex;gap:4px;align-items:center}
     .amo-dpad-btn{width:40px;height:40px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -339,6 +342,11 @@
     <div class="amo-title" id="amoTitle">Karton</div>
     <div class="amo-btns" id="amoBtns"></div>
     <button class="amo-rotate" onclick="ghostRotate()">⟳ Obróć 90°</button>
+    <div class="amo-opts">
+      <label class="amo-chk"><input type="checkbox" id="snapToBoxEdges" checked/> Przyciągaj do paczek</label>
+      <label class="amo-chk"><input type="checkbox" id="snapToPalletEdges" checked/> Przyciągaj do palety</label>
+      <label class="amo-chk"><input type="checkbox" id="allowOverhang"/> Może wystawać poza spód</label>
+    </div>
     <div class="amo-dpad">
       <div class="amo-dpad-row"><button class="amo-dpad-btn" onclick="moveGhost(0,-50)">▲</button></div>
       <div class="amo-dpad-row">
@@ -500,18 +508,6 @@
       <div id="manPkgList"></div>
       <div class="stitle">Orientacja</div>
       <div class="man-face-btns" id="manFaceBtns"></div>
-      <label class="opt-chk" style="margin:4px 0 2px">
-        <input type="checkbox" id="snapToBoxEdges" checked/>
-        Wyrównuj do krawędzi paczek
-      </label>
-      <label class="opt-chk" style="margin:2px 0 8px">
-        <input type="checkbox" id="snapToPalletEdges" checked/>
-        Wyrównuj do krawędzi palety
-      </label>
-      <label class="opt-chk" style="margin:4px 0 8px">
-        <input type="checkbox" id="allowOverhang"/>
-        Kartony mogą wystawać poza karton pod spodem
-      </label>
       <div class="man-action-row">
         <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
         <button class="btn-man btn-clear" onclick="manClear()">🗑 Wyczyść</button>
