@@ -2447,14 +2447,14 @@ window.moveGhost=function(dx,dz){
   let nx=Math.max(palOx,Math.min(palOx+PAL.W-fw,manGhostX+dx));
   let nz=Math.max(0,Math.min(PAL.D-fd,manGhostZ+dz));
   const newSurf=manSurfAt(nx,nz,fw,fd);
-  // Overhang constraint for D-pad: find which box the ghost will sit on and clamp
   const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
   if(!allowOverhang&&newSurf>PAL.H){
-    let sup=null,supY=-Infinity;
-    manBoxes.forEach(b=>{
-      if(nx<b.x+b.w&&nx+fw>b.x&&nz<b.z+b.d&&nz+fd>b.z&&b.y+b.h>supY){supY=b.y+b.h;sup=b;}
-    });
-    if(sup){nx=Math.max(sup.x,Math.min(sup.x+sup.w-fw,nx));nz=Math.max(sup.z,Math.min(sup.z+sup.d-fd,nz));}
+    // Each corner must be over at least one supporting box — allows spanning two boxes
+    const corners=[[nx,nz],[nx+fw,nz],[nx,nz+fd],[nx+fw,nz+fd]];
+    const supported=([px,pz])=>manBoxes.some(b=>
+      Math.abs(b.y+b.h-newSurf)<1&&px>=b.x&&px<=b.x+b.w&&pz>=b.z&&pz<=b.z+b.d
+    );
+    if(!corners.every(supported)){nx=manGhostX;nz=manGhostZ;}
   }
   manGhostX=nx;manGhostZ=nz;manGhostY=newSurf;
   if(lastRes)draw3D(lastRes);
