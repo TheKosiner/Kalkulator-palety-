@@ -1010,6 +1010,15 @@ function manPlace(wx,wz) {
     const s=manSnapPos(wx,wz,fw,fd); bx=s.x; bz=s.z; wy=manSurfAt(bx,bz,fw,fd);
   }
   if(wy+lh>maxH) return;
+  // Overhang constraint: when stacking, all 4 corners must be over a supporting box
+  const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
+  if(!allowOverhang&&wy>PAL.H){
+    const supBoxes=manBoxes.filter(b=>Math.abs(b.y+b.h-wy)<1);
+    const ok=[[bx,bz],[bx+fw,bz],[bx,bz+fd],[bx+fw,bz+fd]].every(
+      ([px,pz])=>supBoxes.some(b=>px>=b.x&&px<=b.x+b.w&&pz>=b.z&&pz<=b.z+b.d)
+    );
+    if(!ok) return;
+  }
   const numPallets=lastRes?.numPallets||1;
   let palletIdx=0;
   for(let i=0;i<numPallets;i++){
@@ -2457,29 +2466,7 @@ window.moveGhost=function(dx,dz){
   // Prefer ground layer — only stack if new position is occupied at ground level
   const groundFree=!manBoxes.some(b=>b.x<nx+fw&&b.x+b.w>nx&&b.z<nz+fd&&b.z+b.d>nz);
   const newSurf=groundFree ? PAL.H : manSurfAt(nx,nz,fw,fd);
-  const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
-  if(!allowOverhang&&newSurf>PAL.H){
-    const supBoxes=manBoxes.filter(b=>Math.abs(b.y+b.h-newSurf)<1);
-    const allOk=(x,z)=>[[x,z],[x+fw,z],[x,z+fd],[x+fw,z+fd]].every(
-      ([px,pz])=>supBoxes.some(b=>px>=b.x&&px<=b.x+b.w&&pz>=b.z&&pz<=b.z+b.d)
-    );
-    if(!allOk(nx,nz)){
-      // Clamp to the furthest valid edge rather than blocking entirely
-      if(dx!==0&&dz===0){
-        const edgeX=(pz,right)=>supBoxes.filter(b=>pz>=b.z&&pz<=b.z+b.d)
-          .reduce((m,b)=>right?Math.max(m,b.x+b.w):Math.min(m,b.x), right?-Infinity:Infinity);
-        if(dx>0) nx=Math.min(nx, Math.min(edgeX(nz,true), edgeX(nz+fd,true))-fw);
-        else     nx=Math.max(nx, Math.max(edgeX(nz,false),edgeX(nz+fd,false)));
-      } else if(dz!==0&&dx===0){
-        const edgeZ=(px,fwd)=>supBoxes.filter(b=>px>=b.x&&px<=b.x+b.w)
-          .reduce((m,b)=>fwd?Math.max(m,b.z+b.d):Math.min(m,b.z), fwd?-Infinity:Infinity);
-        if(dz>0) nz=Math.min(nz, Math.min(edgeZ(nx,true), edgeZ(nx+fw,true))-fd);
-        else     nz=Math.max(nz, Math.max(edgeZ(nx,false),edgeZ(nx+fw,false)));
-      }
-      // Final safety: if still not valid (e.g. diagonal or no support found), revert
-      if(!allOk(nx,nz)){nx=manGhostX;nz=manGhostZ;}
-    }
-  }
+  // Overhang constraint is enforced at placement time (manPlace), not during navigation
   manGhostX=nx;manGhostZ=nz;manGhostY=newSurf;
   if(lastRes)draw3D(lastRes);
 };
