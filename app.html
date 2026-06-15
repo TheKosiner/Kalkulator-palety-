@@ -2421,14 +2421,10 @@ window.bapRemove=function(){
 };
 
 window.bapStartDrag=function(){
-  isDragMode=!isDragMode;
-  document.getElementById('bapDragBtn').classList.toggle('active',isDragMode);
-  if(isDragMode){
-    document.getElementById('manHint').textContent='Przeciągnij karton w nowe miejsce · kliknij aby upuścić';
-    document.getElementById('manHint').style.display='block';
-  } else {
-    document.getElementById('manHint').style.display='none';
-  }
+  if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  hideBoxActionPanel();
+  quickAddBox(b.pkgId);
 };
 
 // Rotate a placed box 90° around the vertical axis (swap footprint, keep centre)
@@ -2694,10 +2690,10 @@ function makeHeightLabel3D(palLabel,palH,x,z,labelW){
   const geo=new THREE.PlaneGeometry(lw,lw*(ch/cw));
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide});
   const mesh=new THREE.Mesh(geo,mat);
-  mesh.rotation.x=-Math.PI/2;
-  mesh.rotation.y=Math.PI;  // flip so text faces outward (away from pallet)
-  mesh.scale.x=-1;          // un-mirror horizontal so text reads left→right
-  mesh.position.set(x,2,z);
+  // Vertical sign facing outward (toward camera at -Z)
+  mesh.rotation.y=Math.PI;  // normal faces -Z (outward from pallet)
+  mesh.scale.x=-1;          // un-mirror horizontal text
+  mesh.position.set(x, palH/2, z);
   return mesh;
 }
 
