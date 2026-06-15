@@ -940,10 +940,10 @@ function manSurfAt(x,z,fw,fd) {
 }
 
 function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
-  const snapBox = document.getElementById('snapToBoxEdges')?.checked ?? true;
+  const snapBox    = document.getElementById('snapToBoxEdges')?.checked ?? true;
   const snapPallet = document.getElementById('snapToPalletEdges')?.checked ?? true;
   const G = 50;
-  // Determine which pallet the cursor is over
+  // Which pallet is the cursor over?
   const numPallets = lastRes?.numPallets || 1;
   let palOx = 0;
   for (let i = 0; i < numPallets; i++) {
@@ -952,34 +952,60 @@ function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
   }
   const clampX = v => Math.max(palOx, Math.min(palOx + PAL.W - fw, v));
   const clampZ = v => Math.max(0, Math.min(PAL.D - fd, v));
-  // cursor marks the CENTRE of the footprint → derive left/back edge
+  // cursor is CENTRE of footprint → top-left corner
   const wx = cx - fw/2, wz = cz - fd/2;
+  // Grid baseline (fallback when nothing is close enough to snap to)
   let bx = clampX(Math.round((wx - palOx) / G) * G + palOx);
   let bz = clampZ(Math.round(wz / G) * G);
 
   if (snapBox || snapPallet) {
-    const SNAP = 160;
-    const xC = [], zC = [];
-    if (snapPallet) { xC.push(palOx, palOx + PAL.W - fw); zC.push(0, PAL.D - fd); }
+    // Build (bx, bz) candidate pairs; pick the one with smallest combined distance.
+    // This ensures the ghost snaps to the NEAREST BOX as a unit (not X to one box,
+    // Z to a different box independently).
+    const BOX_SNAP = 350; // mm — generous radius for box-face attraction
+    const PAL_SNAP = 200; // mm — pallet edge attraction
+    let bestDist = Infinity;
+    const tryCandidate = (cx2, cz2, limit) => {
+      const cx2c = clampX(cx2), cz2c = clampZ(cz2);
+      const d = Math.hypot(cx2c - wx, cz2c - wz);
+      if (d < bestDist && d < limit) { bestDist = d; bx = cx2c; bz = cz2c; }
+    };
+
     if (snapBox) {
-      manBoxes.forEach((b,i) => {
-        if (i===exclIdx) return;
-        xC.push(b.x-fw, b.x+b.w, b.x, b.x+b.w-fw);
-        zC.push(b.z-fd, b.z+b.d, b.z, b.z+b.d-fd);
+      manBoxes.forEach((b, i) => {
+        if (i === exclIdx) return;
+        // Clamp perpendicular coordinate so the ghost stays in range of this box's face.
+        // E.g. touching the right face keeps Z within the box's Z extent.
+        const zAligned = clampZ(Math.max(b.z, Math.min(b.z + b.d - fd, wz)));
+        const xAligned = clampX(Math.max(b.x, Math.min(b.x + b.w - fw, wx)));
+        // 4 touching positions (ghost flush against a face)
+        tryCandidate(b.x - fw,     zAligned,  BOX_SNAP); // left of box
+        tryCandidate(b.x + b.w,    zAligned,  BOX_SNAP); // right of box
+        tryCandidate(xAligned,     b.z - fd,  BOX_SNAP); // behind box
+        tryCandidate(xAligned,     b.z + b.d, BOX_SNAP); // in front of box
+        // 4 edge-aligned positions (share an edge, useful for same-layer stacking)
+        tryCandidate(b.x,          zAligned,  BOX_SNAP);
+        tryCandidate(b.x + b.w - fw, zAligned, BOX_SNAP);
+        tryCandidate(xAligned,     b.z,       BOX_SNAP);
+        tryCandidate(xAligned,     b.z + b.d - fd, BOX_SNAP);
       });
     }
-    let bestXd = SNAP;
-    for (const x of xC) { const c=clampX(x), d=Math.abs(c-wx); if (d<bestXd) { bestXd=d; bx=c; } }
-    let bestZd = SNAP;
-    for (const z of zC) { const c=clampZ(z), d=Math.abs(c-wz); if (d<bestZd) { bestZd=d; bz=c; } }
+
+    if (snapPallet) {
+      // Pallet edges — only one axis is fixed, other follows cursor
+      tryCandidate(palOx,              clampZ(wz), PAL_SNAP);
+      tryCandidate(palOx + PAL.W - fw, clampZ(wz), PAL_SNAP);
+      tryCandidate(clampX(wx),         0,           PAL_SNAP);
+      tryCandidate(clampX(wx),         PAL.D - fd,  PAL_SNAP);
+    }
   }
 
-  // Overhang constraint: if unchecked, keep ghost within the footprint of the box below
+  // Overhang constraint: keep ghost within footprint of supporting box below
   const allowOverhang = document.getElementById('allowOverhang')?.checked ?? false;
   if (!allowOverhang) {
     let support = null, supY = -Infinity;
-    manBoxes.forEach((b,i) => {
-      if (i===exclIdx) return;
+    manBoxes.forEach((b, i) => {
+      if (i === exclIdx) return;
       if (cx > b.x && cx < b.x+b.w && cz > b.z && cz < b.z+b.d) {
         if (b.y+b.h > supY) { supY = b.y+b.h; support = b; }
       }
