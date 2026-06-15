@@ -924,39 +924,32 @@ function manSurfAt(x,z,fw,fd) {
     if(b.x<x+fw&&b.x+b.w>x&&b.z<z+fd&&b.z+b.d>z) h=Math.max(h,b.y+b.h);
   return h;
 }
-// Check all 4 corners of ghost at (gx,gz) are supported by boxes at surfY
+// Returns bounding box of all same-level supporting boxes at surfY, or null if none
+function _supBounds(surfY){
+  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
+  if(!sup.length) return null;
+  return {
+    minX:Math.min(...sup.map(b=>b.x)),
+    maxX:Math.max(...sup.map(b=>b.x+b.w)),
+    minZ:Math.min(...sup.map(b=>b.z)),
+    maxZ:Math.max(...sup.map(b=>b.z+b.d))
+  };
+}
+// Ghost fits inside the combined bounding box of all same-level supporting boxes
 function _stackAllOk(gx,gz,fw,fd,surfY){
-  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
-  return [[gx,gz],[gx+fw,gz],[gx,gz+fd],[gx+fw,gz+fd]].every(
-    ([px,pz])=>sup.some(b=>px>=b.x&&px<=b.x+b.w&&pz>=b.z&&pz<=b.z+b.d)
-  );
+  const r=_supBounds(surfY);
+  if(!r) return false;
+  return gx>=r.minX-0.5&&gx+fw<=r.maxX+0.5&&gz>=r.minZ-0.5&&gz+fd<=r.maxZ+0.5;
 }
-// Candidate X positions from box edges at surfY, clamped to pallet
-function _stackXCandidates(fw,surfY,palOx){
-  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
-  const xs=new Set([palOx, palOx+PAL.W-fw]);
-  for(const b of sup){xs.add(b.x); xs.add(b.x+b.w-fw);}
-  return [...xs].map(x=>Math.max(palOx,Math.min(palOx+PAL.W-fw,x)));
-}
-// Candidate Z positions from box edges at surfY, clamped to pallet
-function _stackZCandidates(fd,surfY){
-  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
-  const zs=new Set([0, PAL.D-fd]);
-  for(const b of sup){zs.add(b.z); zs.add(b.z+b.d-fd);}
-  return [...zs].map(z=>Math.max(0,Math.min(PAL.D-fd,z)));
-}
-// Snap (gx,gz) to the nearest box-edge-aligned position that is fully supported
-// at surfY (no overhang). Returns null only if nothing can support the footprint.
-function _snapToSupport(gx,gz,fw,fd,surfY,palOx){
-  const xs=_stackXCandidates(fw,surfY,palOx);
-  const zs=_stackZCandidates(fd,surfY);
-  let best=null,bestD=Infinity;
-  for(const cx of xs) for(const cz of zs){
-    if(!_stackAllOk(cx,cz,fw,fd,surfY)) continue;
-    const d=Math.hypot(cx-gx,cz-gz);
-    if(d<bestD){bestD=d;best={x:cx,z:cz};}
-  }
-  return best;
+// Clamp (gx,gz) to the nearest valid position inside the support bounding box.
+// Returns null if the ghost is too large to fit.
+function _snapToSupport(gx,gz,fw,fd,surfY){
+  const r=_supBounds(surfY);
+  if(!r||fw>r.maxX-r.minX+0.5||fd>r.maxZ-r.minZ+0.5) return null;
+  return {
+    x:Math.max(r.minX,Math.min(r.maxX-fw,gx)),
+    z:Math.max(r.minZ,Math.min(r.maxZ-fd,gz))
+  };
 }
 
 function manSnapPos(cx, cz, fw, fd, exclIdx=-1) {
@@ -1034,14 +1027,10 @@ function manPlace(wx,wz) {
     const s=manSnapPos(wx,wz,fw,fd); bx=s.x; bz=s.z; wy=manSurfAt(bx,bz,fw,fd);
   }
   if(wy+lh>maxH) return;
-  // Overhang constraint: when stacking, all 4 corners must be over a supporting box
+  // Overhang constraint: when stacking, ghost must fit within combined bounding box of boxes below
   const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
   if(!allowOverhang&&wy>PAL.H){
-    const supBoxes=manBoxes.filter(b=>Math.abs(b.y+b.h-wy)<1);
-    const ok=[[bx,bz],[bx+fw,bz],[bx,bz+fd],[bx+fw,bz+fd]].every(
-      ([px,pz])=>supBoxes.some(b=>px>=b.x&&px<=b.x+b.w&&pz>=b.z&&pz<=b.z+b.d)
-    );
-    if(!ok) return;
+    if(!_stackAllOk(bx,bz,fw,fd,wy)) return;
   }
   const overlaps=manBoxes.some(b=>
     bx<b.x+b.w-0.5&&bx+fw>b.x+0.5&&
@@ -2189,11 +2178,7 @@ canvas.addEventListener('mousemove',e=>{
           let gx=p.x, gz=p.z;
           const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
           if(!allowOverhang&&surfY>PAL.H){
-            // Always align flush to the edges of the boxes below — no overhang
-            const numP=lastRes?.numPallets||1;
-            let palOx2=0;
-            for(let i=0;i<numP;i++){const ox=i*(PAL.W+PAL_GAP);if(gx>=ox-PAL_GAP/2&&gx<ox+PAL.W+PAL_GAP/2){palOx2=ox;break;}}
-            const snapped=_snapToSupport(gx,gz,fw,fd,surfY,palOx2);
+            const snapped=_snapToSupport(gx,gz,fw,fd,surfY);
             if(snapped){gx=snapped.x;gz=snapped.z;}
           }
           manGhostX=gx;manGhostZ=gz;manGhostY=surfY;
@@ -2492,33 +2477,24 @@ window.moveGhost=function(dx,dz){
     if(manGhostX>=ox&&manGhostX<ox+PAL.W){palOx=ox;break;}
   }
   const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
-  // When stacking with overhang disabled, jump between edge-aligned supported positions
+  // When stacking with overhang disabled, move freely within the combined bounding box of
+  // same-level supporting boxes (allows spanning multiple boxes).
   if(!allowOverhang && manGhostY>PAL.H){
-    const surfY=manGhostY;
-    const xs=_stackXCandidates(fw,surfY,palOx);
-    const zs=_stackZCandidates(fd,surfY);
-    let best=null,bestD=Infinity;
-    for(const cx of xs) for(const cz of zs){
-      if(dx>0 && cx<=manGhostX+0.5) continue;
-      if(dx<0 && cx>=manGhostX-0.5) continue;
-      if(dz>0 && cz<=manGhostZ+0.5) continue;
-      if(dz<0 && cz>=manGhostZ-0.5) continue;
-      if(!_stackAllOk(cx,cz,fw,fd,surfY)) continue;
-      const d=(dx!==0) ? Math.abs(cx-manGhostX)*1000+Math.abs(cz-manGhostZ)
-                       : Math.abs(cz-manGhostZ)*1000+Math.abs(cx-manGhostX);
-      if(d<bestD){bestD=d;best={x:cx,z:cz};}
+    const r=_supBounds(manGhostY);
+    if(r){
+      const nx2=Math.max(r.minX,Math.min(r.maxX-fw,manGhostX+dx));
+      const nz2=Math.max(r.minZ,Math.min(r.maxZ-fd,manGhostZ+dz));
+      manGhostX=nx2;manGhostZ=nz2;if(lastRes)draw3D(lastRes);return;
     }
-    if(best){manGhostX=best.x;manGhostZ=best.z;if(lastRes)draw3D(lastRes);return;}
-    // No aligned spot in this direction — fall through to free move (allows leaving the stack)
   }
   let nx=Math.max(palOx,Math.min(palOx+PAL.W-fw,manGhostX+dx));
   let nz=Math.max(0,Math.min(PAL.D-fd,manGhostZ+dz));
   // Prefer ground layer — only stack if new position is occupied at ground level
   const groundFree=!manBoxes.some(b=>b.x<nx+fw&&b.x+b.w>nx&&b.z<nz+fd&&b.z+b.d>nz);
   const newSurf=groundFree ? PAL.H : manSurfAt(nx,nz,fw,fd);
-  // When the move lands on a stack, auto-align flush to the boxes below
+  // When the move lands on a stack, clamp to the support bounding box
   if(!allowOverhang && newSurf>PAL.H){
-    const snapped=_snapToSupport(nx,nz,fw,fd,newSurf,palOx);
+    const snapped=_snapToSupport(nx,nz,fw,fd,newSurf);
     if(snapped){nx=snapped.x;nz=snapped.z;}
   }
   manGhostX=nx;manGhostZ=nz;manGhostY=newSurf;
