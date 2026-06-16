@@ -639,6 +639,7 @@ function loadPkgsFromStorage() {
 }
 let PKGS = loadPkgsFromStorage();
 const PAL = { W:1200, D:800, H:144 };
+const PAL_GAP = 200; // gap between pallets in mm
 try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s?.H>0){PAL.W=+_s.W;PAL.D=+_s.D;PAL.H=+_s.H;}}catch(e){}
 
 // ─── SAVED PALLETS ───
@@ -736,10 +737,11 @@ function quickAddBox(pkgId) {
   if (!pkg) return;
   // Toggle off if already in add mode for this exact package
   if (isAddMode && manSelPkg?.id === pkgId) {
-    isAddMode = false;
+    isAddMode = false; manRemoveMode = false;
     manGhostX = null;
     document.getElementById('manActionBar').style.display = 'none';
     document.getElementById('manHint').style.display = 'none';
+    document.getElementById('btnRemove')?.classList.remove('active');
     updateAddModeOverlay();
     if (lastRes) draw3D(lastRes);
     return;
@@ -804,7 +806,7 @@ function buildPkgList() {
       <div class="pkg-qty-wrap" style="display:${isSel?'flex':'none'}">
         <label>szt.:</label>
         <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
-        <button class="btn-add-one" data-id="${p.id}" title="Dodaj karton ręcznie na paletę">+ Dodaj ręcznie</button>
+        ${p.type!=='cylinder'?`<button class="btn-add-one" data-id="${p.id}" title="Dodaj karton ręcznie na paletę">+ Dodaj ręcznie</button>`:''}
       </div>`;
 
     if (savedQtys.has(p.id)) item.querySelector('.pkg-qty').value = savedQtys.get(p.id);
@@ -911,10 +913,13 @@ buildManPkgList();
 window.manSetFace = (i,fl) => { const{fw:ofw,fd:ofd}=manGetDims(); manFaceIdx=i; manFlipped=fl; manRefreshFaceBtns(); updateAddModeOverlay(); _fixGhostForNewDims(ofw,ofd); if(lastRes)draw3D(lastRes); };
 
 function manGetDims() {
-  const [A,B,C] = manSelPkg.dims;
-  const faces = [[A,B,C],[A,C,B],[B,C,A]];
-  let [fw,fd,lh] = faces[manFaceIdx];
-  if (manFlipped) [fw,fd] = [fd,fw];
+  if(!manSelPkg) return {fw:200,fd:200,lh:200};
+  const dims=manSelPkg.dims;
+  if(dims.length===2){const [D,H]=dims;return {fw:D,fd:D,lh:H};} // cylinder: upright only
+  const [A,B,C]=dims;
+  const faces=[[A,B,C],[A,C,B],[B,C,A]];
+  let [fw,fd,lh]=faces[manFaceIdx]??faces[0];
+  if(manFlipped)[fw,fd]=[fd,fw];
   return {fw,fd,lh};
 }
 
@@ -924,27 +929,36 @@ function manSurfAt(x,z,fw,fd) {
     if(b.x<x+fw&&b.x+b.w>x&&b.z<z+fd&&b.z+b.d>z) h=Math.max(h,b.y+b.h);
   return h;
 }
-// Returns bounding box of all same-level supporting boxes at surfY, or null if none
-function _supBounds(surfY){
-  const sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
+// Returns bounding box of same-level supporting boxes at surfY that are on the same
+// pallet as (gx, gx+fw). Passing gx=null skips the pallet filter (for manPlace).
+function _supBounds(surfY, gx, fw){
+  let sup=manBoxes.filter(b=>Math.abs(b.y+b.h-surfY)<1);
+  if(gx!=null){
+    // restrict to boxes whose x-range is on the same pallet (no cross-pallet mixing)
+    const palLeft=gx-PAL.W, palRight=gx+fw+PAL.W;
+    sup=sup.filter(b=>b.x+b.w>palLeft&&b.x<palRight);
+  }
   if(!sup.length) return null;
   return {
+    sup,
     minX:Math.min(...sup.map(b=>b.x)),
     maxX:Math.max(...sup.map(b=>b.x+b.w)),
     minZ:Math.min(...sup.map(b=>b.z)),
     maxZ:Math.max(...sup.map(b=>b.z+b.d))
   };
 }
-// Ghost fits inside the combined bounding box of all same-level supporting boxes
+// Ghost fits inside the combined bounding box of same-level supporting boxes
+// AND at least one supporting box actually overlaps the ghost footprint.
 function _stackAllOk(gx,gz,fw,fd,surfY){
-  const r=_supBounds(surfY);
+  const r=_supBounds(surfY,gx,fw);
   if(!r) return false;
-  return gx>=r.minX-0.5&&gx+fw<=r.maxX+0.5&&gz>=r.minZ-0.5&&gz+fd<=r.maxZ+0.5;
+  if(gx<r.minX-0.5||gx+fw>r.maxX+0.5||gz<r.minZ-0.5||gz+fd>r.maxZ+0.5) return false;
+  return r.sup.some(b=>b.x<gx+fw-0.5&&b.x+b.w>gx+0.5&&b.z<gz+fd-0.5&&b.z+b.d>gz+0.5);
 }
 // Clamp (gx,gz) to the nearest valid position inside the support bounding box.
 // Returns null if the ghost is too large to fit.
 function _snapToSupport(gx,gz,fw,fd,surfY){
-  const r=_supBounds(surfY);
+  const r=_supBounds(surfY,gx,fw);
   if(!r||fw>r.maxX-r.minX+0.5||fd>r.maxZ-r.minZ+0.5) return null;
   return {
     x:Math.max(r.minX,Math.min(r.maxX-fw,gx)),
@@ -1139,7 +1153,8 @@ function manEventToWorld(e) {
 function manHoverToWorld(e, yLevel) {
   const {W,H,sc}=_manSc();
   const rect=canvas.getBoundingClientRect();
-  const sx=e.clientX-rect.left, sy=e.clientY-rect.top;
+  const cl=e.changedTouches?e.changedTouches[0]:e;
+  const sx=cl.clientX-rect.left, sy=cl.clientY-rect.top;
   return unprojectY(sx,sy,yLevel??PAL.H,W,H,sc);
 }
 
@@ -2090,12 +2105,15 @@ window.calculate=function(){
 
   const numPallets=allPlacements.length>0?Math.max(...allPlacements.map(p=>p.palletIdx))+1:1;
   const totalLeft=leftover.reduce((s,l)=>s+l.qty,0);
+  // Recompute totalH and layers from the full allPlacements set
+  const allTotalH=allPlacements.reduce((m,p)=>Math.max(m,p.y+p.h),PAL.H);
+  const allLayers=allPlacements.length>0?new Set(allPlacements.map(p=>Math.round(p.y))).size:0;
   res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
-       groups:[...groupAccum.values()],leftover};
+       totalH:allTotalH,layers:allLayers,groups:[...groupAccum.values()],leftover};
 
   document.getElementById('rTotal').textContent=res.count;
-  document.getElementById('rLayers').textContent=res.layers||0;
-  document.getElementById('rHeight').textContent=res.totalH||'—';
+  document.getElementById('rLayers').textContent=allLayers;
+  document.getElementById('rHeight').textContent=allTotalH||'—';
   document.getElementById('sPerLayer').style.display='none';
   document.getElementById('rLeft').textContent=totalLeft;
   document.getElementById('rPallets').textContent=numPallets;
@@ -2480,7 +2498,7 @@ window.moveGhost=function(dx,dz){
   // When stacking with overhang disabled, move freely within the combined bounding box of
   // same-level supporting boxes (allows spanning multiple boxes).
   if(!allowOverhang && manGhostY>PAL.H){
-    const r=_supBounds(manGhostY);
+    const r=_supBounds(manGhostY,manGhostX,fw);
     if(r){
       const nx2=Math.max(r.minX,Math.min(r.maxX-fw,manGhostX+dx));
       const nz2=Math.max(r.minZ,Math.min(r.maxZ-fd,manGhostZ+dz));
@@ -2691,8 +2709,6 @@ function palletBoxes(ox){
   return b;
 }
 
-const PAL_GAP = 200; // gap between pallets in mm
-
 function draw3D(res){
   if(!t3)initThreeJS();
   const vw=document.getElementById('view3d');
@@ -2719,7 +2735,11 @@ function draw3D(res){
 
   // rebuild static scene only when result changes (not on every camera drag)
   if(res!==_lastStaticRes){
-    t3.staticObjects.forEach(o=>t3.scene.remove(o));
+    t3.staticObjects.forEach(o=>{
+      t3.scene.remove(o);
+      o.geometry?.dispose();
+      if(o.material&&!o.material._cached){o.material.map?.dispose();o.material.dispose();}
+    });
     t3.staticObjects=[];_t3BoxMeshes=[];
     for(let i=0;i<numPallets;i++)
       for(const b of palletBoxes(i*(PAL.W+PAL_GAP))){
@@ -2745,7 +2765,11 @@ function draw3D(res){
   }
 
   // dynamic overlay: selection highlight + ghost
-  t3.dynObjects.forEach(o=>t3.scene.remove(o));
+  t3.dynObjects.forEach(o=>{
+    t3.scene.remove(o);
+    o.geometry?.dispose();
+    if(o.material&&!o.material._cached){o.material.map?.dispose();o.material.dispose();}
+  });
   t3.dynObjects=[];
   // selected box glow
   if(selectedBoxIdx>=0&&selectedBoxIdx<manBoxes.length){
