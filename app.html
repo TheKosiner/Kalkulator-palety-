@@ -108,6 +108,9 @@
     .amo-dpad-gap{width:40px;height:40px}
     .amo-place{width:100%;margin-top:8px;padding:10px;background:rgba(34,197,94,.22);border:1px solid rgba(34,197,94,.55);border-radius:8px;color:#4ade80;font-size:.82rem;font-weight:800;cursor:pointer;letter-spacing:.04em;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
     .amo-place:active{background:rgba(34,197,94,.42)}
+    .amo-place:disabled{opacity:.35;cursor:not-allowed;background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.2)}
+    .amo-exit{width:100%;margin-top:6px;padding:7px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:.78rem;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+    .amo-exit:active{background:rgba(239,68,68,.25)}
 
     /* BOX ACTION PANEL */
     #boxActionPanel{position:absolute;bottom:58px;right:12px;background:rgba(10,18,34,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.11);border-radius:var(--rl);padding:10px 12px;z-index:50;min-width:196px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:none}
@@ -356,7 +359,8 @@
       </div>
       <div class="amo-dpad-row"><button class="amo-dpad-btn" onclick="moveGhost(0,50)">▼</button></div>
     </div>
-    <button class="amo-place" onclick="manPlace()">✓ Postaw</button>
+    <button class="amo-place" id="btnPostaw" onclick="manPlace()">✓ Postaw</button>
+    <button class="amo-exit" onclick="exitAddMode()">✕ Wyjdź z trybu dodawania</button>
   </div>
   <div id="camCtrls">
     <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
@@ -754,6 +758,22 @@ function quickAddBox(pkgId) {
   _initMobileGhost();
   updateAddModeOverlay();
   if (lastRes) draw3D(lastRes);
+}
+
+function exitAddMode(){
+  if(isAddMode && manSelPkg) quickAddBox(manSelPkg.id);
+}
+window.exitAddMode=exitAddMode;
+
+function _updatePlaceBtn(){
+  const btn=document.getElementById('btnPostaw');
+  if(!btn) return;
+  if(!isAddMode||manRemoveMode){btn.disabled=false;return;}
+  const {lh}=manGetDims();
+  const maxH=parseInt(document.getElementById('maxH').value)||1800;
+  const noRoom=manGhostX===null||(manGhostY+lh>maxH);
+  btn.disabled=noRoom;
+  btn.title=noRoom?`Brak miejsca na palecie`:'';
 }
 
 function toggleDrawer() {
@@ -2185,6 +2205,7 @@ canvas.addEventListener('mousemove',e=>{
         }
       }else{manGhostX=null;}
     }
+    _updatePlaceBtn();
     if(lastRes)draw3D(lastRes); return;
   }
   if(isDragMode && drag && selectedBoxIdx>=0 && !rmb){
@@ -2498,6 +2519,7 @@ window.moveGhost=function(dx,dz){
     if(snapped){nx=snapped.x;nz=snapped.z;}
   }
   manGhostX=nx;manGhostZ=nz;manGhostY=newSurf;
+  _updatePlaceBtn();
   if(lastRes)draw3D(lastRes);
 };
 function _fixGhostForNewDims(oldFw,oldFd){
@@ -2541,6 +2563,7 @@ function updateAddModeOverlay(){
     html+=`<button class="rp-btn${act?' active':''}" onclick="rotPick(${i})">${w}×${d} (wys. ${c})</button>`;
   });
   document.getElementById('amoBtns').innerHTML=html;
+  _updatePlaceBtn();
 }
 
 // projection — orbit centre is the geometric centre of the scene in all 3 axes
