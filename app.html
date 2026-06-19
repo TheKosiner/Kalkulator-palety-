@@ -2192,12 +2192,18 @@ canvas.addEventListener('mousemove',e=>{
             surfY=manSurfAt(pg.x,pg.z,fw,fd);
           }
           const w=manHoverToWorld(e,surfY+lh/2)||wg;
-          const p=manSnapPos(w.x,w.z,fw,fd);
-          let gx=p.x, gz=p.z;
           const allowOverhang=document.getElementById('allowOverhang')?.checked??false;
+          let gx,gz;
           if(!allowOverhang&&surfY>PAL.H){
+            // Upper layer: position ghost from raw cursor (center→left corner),
+            // then clamp to the support bounding box — NO box-edge snap,
+            // so the ghost can span across multiple same-height boxes freely.
+            gx=w.x-fw/2; gz=w.z-fd/2;
             const snapped=_snapToSupport(gx,gz,fw,fd,surfY);
             if(snapped){gx=snapped.x;gz=snapped.z;}
+          } else {
+            const p=manSnapPos(w.x,w.z,fw,fd);
+            gx=p.x; gz=p.z;
           }
           manGhostX=gx;manGhostZ=gz;manGhostY=surfY;
         }
