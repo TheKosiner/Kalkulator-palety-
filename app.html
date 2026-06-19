@@ -2460,7 +2460,7 @@ window.bapRemove=function(){
 window.bapStartDrag=function(){
   if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
   isDragMode=true;
-  hideBoxActionPanel();
+  document.getElementById('boxActionPanel').style.display='none';
   document.getElementById('bapDragBtn').classList.add('active');
   document.getElementById('manHint').textContent='Kliknij na paletę aby ustawić karton';
   document.getElementById('manHint').style.display='block';
@@ -2805,6 +2805,7 @@ function draw3D(res){
     if(o.material&&!o.material._cached){o.material.map?.dispose();o.material.dispose();}
   });
   t3.dynObjects=[];
+  if(!isDragMode)_t3BoxMeshes.forEach(m=>{if(m)m.visible=true;});
   // selected box glow
   if(selectedBoxIdx>=0&&selectedBoxIdx<manBoxes.length){
     const sb=manBoxes[selectedBoxIdx];
