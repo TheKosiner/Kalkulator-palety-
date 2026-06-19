@@ -108,6 +108,8 @@
     .amo-dpad-gap{width:40px;height:40px}
     .amo-place{width:100%;margin-top:8px;padding:10px;background:rgba(34,197,94,.22);border:1px solid rgba(34,197,94,.55);border-radius:8px;color:#4ade80;font-size:.82rem;font-weight:800;cursor:pointer;letter-spacing:.04em;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
     .amo-place:active{background:rgba(34,197,94,.42)}
+    .amo-exit{width:100%;margin-top:5px;padding:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:.78rem;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+    .amo-exit:active{background:rgba(239,68,68,.25)}
 
     /* BOX ACTION PANEL */
     #boxActionPanel{position:absolute;bottom:58px;right:12px;background:rgba(10,18,34,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.11);border-radius:var(--rl);padding:10px 12px;z-index:50;min-width:196px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:none}
@@ -357,6 +359,7 @@
       <div class="amo-dpad-row"><button class="amo-dpad-btn" onclick="moveGhost(0,50)">▼</button></div>
     </div>
     <button class="amo-place" onclick="manPlace()">✓ Postaw</button>
+    <button class="amo-exit" onclick="exitAddMode()">✕ Wyjdź z trybu dodawania</button>
   </div>
   <div id="camCtrls">
     <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
@@ -755,6 +758,11 @@ function quickAddBox(pkgId) {
   updateAddModeOverlay();
   if (lastRes) draw3D(lastRes);
 }
+
+function exitAddMode(){
+  if(isAddMode && manSelPkg) quickAddBox(manSelPkg.id);
+}
+window.exitAddMode=exitAddMode;
 
 function toggleDrawer() {
   drawerOpen = !drawerOpen;
