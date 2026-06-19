@@ -2220,7 +2220,10 @@ canvas.addEventListener('mousemove',e=>{
       const w=surf>PAL.H ? manHoverToWorld(e,surf+b.h/2)||w0 : w0;
       const p=manSnapPos(w.x,w.z,b.w,b.d,selectedBoxIdx);
       b.x=p.x; b.z=p.z;
-      if(lastRes)draw3D(buildManualRes());
+      // Move just the one mesh — no full static rebuild on every mousemove
+      if(_t3BoxMeshes[selectedBoxIdx])
+        _t3BoxMeshes[selectedBoxIdx].position.set(b.x+b.w/2,b.y+b.h/2,b.z+b.d/2);
+      if(lastRes)draw3D(lastRes);
     }
     return;
   }
@@ -2341,15 +2344,15 @@ canvas.addEventListener('touchend',e=>{
 },{passive:true});
 
 // ── Box selection helpers ──────────────────────────────────────────────────
+const _rc=new THREE.Raycaster();
 function raycastBox(e) {
   if(!t3||!_t3BoxMeshes.length)return -1;
   const rect=canvas.getBoundingClientRect();
   const cl=e.changedTouches?e.changedTouches[0]:e;
   const x=((cl.clientX-rect.left)/rect.width)*2-1;
   const y=-((cl.clientY-rect.top)/rect.height)*2+1;
-  const rc=new THREE.Raycaster();
-  rc.setFromCamera({x,y},t3.camera);
-  const hits=rc.intersectObjects(_t3BoxMeshes,false);
+  _rc.setFromCamera({x,y},t3.camera);
+  const hits=_rc.intersectObjects(_t3BoxMeshes,false);
   if(!hits.length)return -1;
   return hits[0].object.userData.boxIdx??-1;
 }
@@ -2721,12 +2724,15 @@ function draw3D(res){
   const W=vw.clientWidth,H=vw.clientHeight;
   const dpr=Math.min(devicePixelRatio,2);
 
-  canvas2d.width=W*dpr;canvas2d.height=H*dpr;
-  canvas2d.style.width=W+'px';canvas2d.style.height=H+'px';
+  const cw=Math.round(W*dpr),ch=Math.round(H*dpr);
+  if(canvas2d.width!==cw||canvas2d.height!==ch){
+    canvas2d.width=cw;canvas2d.height=ch;
+    canvas2d.style.width=W+'px';canvas2d.style.height=H+'px';
+  }
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,W,H);
-  t3.r.setSize(W,H);
-  t3.camera.aspect=W/H;
+  const rSz=t3.r.getSize(new THREE.Vector2());
+  if(rSz.x!==W||rSz.y!==H){t3.r.setSize(W,H);t3.camera.aspect=W/H;}
 
   if(!res){t3.r.render(t3.scene,t3.camera);return;}
 
