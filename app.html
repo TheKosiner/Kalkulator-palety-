@@ -290,6 +290,45 @@
 </head>
 <body>
 
+<!-- ─── LOGIN OVERLAY ──────────────────────────────────────────────────── -->
+<div id="loginOverlay" style="
+  display:flex;align-items:center;justify-content:center;
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(7,13,26,.96);backdrop-filter:blur(8px)">
+  <div style="
+    background:#111a2e;border:1px solid #1d2a44;border-radius:18px;
+    padding:40px 36px;width:min(420px,90vw);text-align:center">
+    <img src="logo.png" style="height:52px;margin-bottom:18px"/>
+    <h2 style="color:#eef2f8;font-size:1.35rem;font-weight:800;margin-bottom:6px">
+      Kalkulator Palety 3D</h2>
+    <p style="color:#56688a;font-size:.87rem;margin-bottom:28px">
+      Zaloguj się, aby korzystać z aplikacji</p>
+    <div id="loginError" style="
+      display:none;color:#f87171;font-size:.82rem;
+      background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);
+      border-radius:8px;padding:8px 12px;margin-bottom:14px"></div>
+    <input id="loginEmail" type="email" placeholder="E-mail" style="
+      width:100%;padding:11px 14px;background:#0a1222;border:1px solid #1d2a44;
+      border-radius:10px;color:#eef2f8;font-size:.95rem;margin-bottom:10px;box-sizing:border-box"/>
+    <input id="loginPass" type="password" placeholder="Hasło" style="
+      width:100%;padding:11px 14px;background:#0a1222;border:1px solid #1d2a44;
+      border-radius:10px;color:#eef2f8;font-size:.95rem;margin-bottom:18px;box-sizing:border-box"/>
+    <button onclick="loginEmail()" style="
+      width:100%;padding:13px;background:#3b82f6;border:none;border-radius:10px;
+      color:#fff;font-size:.97rem;font-weight:700;cursor:pointer;margin-bottom:12px">
+      Zaloguj się</button>
+    <button onclick="loginGoogle()" style="
+      width:100%;padding:13px;background:#18233c;border:1px solid #2e405f;
+      border-radius:10px;color:#eef2f8;font-size:.9rem;font-weight:600;cursor:pointer">
+      🔵 Zaloguj przez Google</button>
+  </div>
+</div>
+
+<!-- ─── AUTH USER BAR (shows inside header after login) ─────────────────── -->
+
+<!-- ─── APP SHELL (hidden until logged in) ──────────────────────────────── -->
+<div id="appShell" style="display:none">
+
 <header>
   <h1><img src="logo.png" alt=""/><span>Kalkulator Palety 3D</span></h1>
   <span class="sub" id="palSub">Europaleta 1200×800 mm</span>
@@ -614,6 +653,50 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<!-- Firebase Auth SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+         signOut, GoogleAuthProvider, signInWithPopup }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+// ─── UZUPEŁNIJ SWOJĄ KONFIGURACJĘ FIREBASE ───────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "TWOJ_API_KEY",
+  authDomain:        "TWOJ_PROJECT.firebaseapp.com",
+  projectId:         "TWOJ_PROJECT_ID",
+  storageBucket:     "TWOJ_PROJECT.appspot.com",
+  messagingSenderId: "TWOJ_SENDER_ID",
+  appId:             "TWOJ_APP_ID",
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _fbApp  = initializeApp(firebaseConfig);
+const _fbAuth = getAuth(_fbApp);
+
+// Expose auth helpers globally so onclick handlers can reach them
+window._fbSignInEmail = (email, pass) =>
+  signInWithEmailAndPassword(_fbAuth, email, pass);
+window._fbSignInGoogle = () =>
+  signInWithPopup(_fbAuth, new GoogleAuthProvider());
+window._fbSignOut = () => signOut(_fbAuth);
+window._fbGetToken = () =>
+  _fbAuth.currentUser ? _fbAuth.currentUser.getIdToken() : Promise.reject('not logged in');
+
+onAuthStateChanged(_fbAuth, user => {
+  const overlay = document.getElementById('loginOverlay');
+  const app     = document.getElementById('appShell');
+  const userBar = document.getElementById('authUserBar');
+  if (user) {
+    overlay.style.display = 'none';
+    app.style.display     = '';
+    if (userBar) userBar.textContent = user.email || user.displayName || '';
+  } else {
+    overlay.style.display = 'flex';
+    app.style.display     = 'none';
+  }
+});
+</script>
 <script>
 // ═══════════════════════════════════════════════════════
 // DATA
@@ -3509,5 +3592,147 @@ function showToast(msg){
   _toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
 }
 </script>
+
+</div><!-- /#appShell -->
+
+<script>
+// ─── AUTH HELPERS (called from login overlay) ─────────────────────────────
+async function loginEmail(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass =document.getElementById('loginPass').value;
+  const errEl=document.getElementById('loginError');
+  errEl.style.display='none';
+  try{
+    await window._fbSignInEmail(email,pass);
+  }catch(e){
+    errEl.textContent=_authErrMsg(e.code);
+    errEl.style.display='block';
+  }
+}
+async function loginGoogle(){
+  const errEl=document.getElementById('loginError');
+  errEl.style.display='none';
+  try{
+    await window._fbSignInGoogle();
+  }catch(e){
+    if(e.code!=='auth/popup-closed-by-user'){
+      errEl.textContent=_authErrMsg(e.code);
+      errEl.style.display='block';
+    }
+  }
+}
+function _authErrMsg(code){
+  const map={
+    'auth/user-not-found':'Nie znaleziono użytkownika o tym e-mailu.',
+    'auth/wrong-password':'Nieprawidłowe hasło.',
+    'auth/invalid-email':'Nieprawidłowy adres e-mail.',
+    'auth/too-many-requests':'Za dużo prób. Spróbuj za chwilę.',
+    'auth/invalid-credential':'Nieprawidłowy e-mail lub hasło.',
+  };
+  return map[code]||'Błąd logowania. Spróbuj ponownie.';
+}
+// Enter key na polach logowania
+document.getElementById('loginPass')
+  .addEventListener('keydown',e=>{if(e.key==='Enter')loginEmail();});
+document.getElementById('loginEmail')
+  .addEventListener('keydown',e=>{if(e.key==='Enter')loginEmail();});
+</script>
+
+<script>
+// ─── CALCULATE → API CALL (replaces the local JS algorithm) ───────────────
+window.calculate = async function(){
+  if(!selectedIds.size){alert('Zaznacz przynajmniej jeden karton!');return;}
+
+  const margin     = parseInt(document.getElementById('margin').value)||0;
+  const maxPallets = Math.max(1,parseInt(document.getElementById('maxPallets').value)||1);
+  const maxH       = parseInt(document.getElementById('maxH').value)||1800;
+
+  const pkgOrients={};
+  const packages=[];
+  selectedIds.forEach(id=>{
+    const pkg=PKGS.find(p=>p.id===id);
+    if(!pkg)return;
+    const qtyEl =document.querySelector(`.pkg-qty[data-id="${id}"]`);
+    const faceEl=document.querySelector(`.pkg-face-btn[data-id="${id}"]`);
+    const qty=parseInt(qtyEl?.value)||0;
+    if(qty<=0)return;
+    pkgOrients[id]=faceEl?.dataset?.face||'auto';
+    packages.push({...pkg, qty});
+  });
+  if(!packages.length){alert('Podaj ilość kartonów!');return;}
+
+  // Show loading state
+  const calcBtn=document.getElementById('calcBtn');
+  const origTxt=calcBtn?.textContent||'';
+  if(calcBtn){calcBtn.textContent='⏳ Obliczanie...';calcBtn.disabled=true;}
+
+  try{
+    const token=await window._fbGetToken();
+    const resp=await fetch('/api/calculate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({
+        packages,
+        palDims:{W:PAL.W,D:PAL.D,H:PAL.H},
+        maxH, margin, maxPallets, pkgOrients
+      })
+    });
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(err.error||`HTTP ${resp.status}`);
+    }
+    const result=await resp.json();
+
+    // Map server response to the same shape as old lastRes
+    lastRes={
+      ...result,
+      leftover: (result.leftover||[]).map(l=>({
+        pkg: PKGS.find(p=>p.id===l.pkgId)||{id:l.pkgId,name:l.pkgId},
+        qty: l.qty
+      }))
+    };
+
+    // Update stats UI (same as before)
+    const numPallets=result.numPallets||1;
+    const totalLeft=(result.leftover||[]).reduce((s,l)=>s+l.qty,0);
+    document.getElementById('rTotal').textContent=result.count;
+    document.getElementById('rLayers').textContent=result.layers||0;
+    document.getElementById('rHeight').textContent=result.totalH||'—';
+    document.getElementById('sPerLayer').style.display='none';
+    document.getElementById('rLeft').textContent=totalLeft;
+    document.getElementById('rPallets').textContent=numPallets;
+    document.getElementById('sPallets').style.display=numPallets>1?'':'none';
+    document.getElementById('statsBar').style.display='flex';
+    document.getElementById('sSave').style.display='';
+    document.getElementById('savePalBtn').textContent=
+      numPallets>1?`💾 Zapisz zestaw ${numPallets} palet`:'💾 Zapisz paletę';
+
+    if(totalLeft&&numPallets>=maxPallets){
+      const avgPerPallet=result.count>0?result.count/numPallets:0;
+      const extra=avgPerPallet>0?Math.ceil(totalLeft/avgPerPallet):null;
+      const suggested=extra?numPallets+extra:null;
+      const warn=document.getElementById('warnMsg');
+      if(warn){
+        warn.textContent=`Nie zmieścił${totalLeft===1?'':'o'} się ${totalLeft} karton${totalLeft===1?'':'ów'}`+
+          (suggested?` — sugerowana liczba palet: ${suggested}`:'');
+        warn.style.display='';
+      }
+    } else {
+      const warn=document.getElementById('warnMsg');
+      if(warn)warn.style.display='none';
+    }
+
+    buildManualRes();
+    draw3D(lastRes);
+
+  }catch(err){
+    console.error('calculate error:',err);
+    showToast('Błąd: '+err.message);
+  }finally{
+    if(calcBtn){calcBtn.textContent=origTxt;calcBtn.disabled=false;}
+  }
+};
+</script>
+
 </body>
 </html>
