@@ -3037,11 +3037,12 @@ function arrangeVehicle(type){
     }
   }
 
-  // Sort heaviest-first (floor/rear of vehicle), then tallest-first as tiebreaker.
-  // Falls back to height-only sort when no weights are set.
+  // Sort shortest-first so the lowest pallets land at the front of the trailer
+  // (the placement loop fills from the rear toward the front, and the rear renders
+  // on the left / front side). Heaviest-first is kept only as a tiebreaker.
   unitPallets.sort((a,b)=>{
-    const wDiff=(b.weight||0)-(a.weight||0);
-    return wDiff!==0?wDiff:b.totalH-a.totalH;
+    const hDiff=a.totalH-b.totalH;
+    return hDiff!==0?hDiff:(b.weight||0)-(a.weight||0);
   });
 
   // Pre-merge pallets into vertical stacks when "stack pallets" option is checked.
@@ -3081,7 +3082,7 @@ function arrangeVehicle(type){
       }
     }
     unitPallets=merged;
-    unitPallets.sort((a,b)=>b.totalH-a.totalH);
+    unitPallets.sort((a,b)=>a.totalH-b.totalH); // shortest stacks first → front of trailer
   }
 
   // Pick orientation that fits the MOST pallets in the remaining row space.
