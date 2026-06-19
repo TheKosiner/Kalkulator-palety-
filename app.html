@@ -2195,18 +2195,17 @@ canvas.addEventListener('mousemove',e=>{
     }
     if(lastRes)draw3D(lastRes); return;
   }
-  if(isDragMode && drag && selectedBoxIdx>=0 && !rmb){
+  if(isDragMode && !rmb && selectedBoxIdx>=0 && selectedBoxIdx<manBoxes.length){
     const b=manBoxes[selectedBoxIdx];
-    const w0=manHoverToWorld(e);
-    if(w0){
-      const p0=manSnapPos(w0.x,w0.z,b.w,b.d,selectedBoxIdx);
+    const wg=manHoverToWorld(e,PAL.H+b.h/2);
+    if(wg){
+      const p0=manSnapPos(wg.x,wg.z,b.w,b.d,selectedBoxIdx);
       const surf=manSurfAtExcl(p0.x,p0.z,b.w,b.d,selectedBoxIdx);
-      const w=surf>PAL.H ? manHoverToWorld(e,surf+b.h/2)||w0 : w0;
+      const w=surf>PAL.H ? manHoverToWorld(e,surf+b.h/2)||wg : wg;
       const p=manSnapPos(w.x,w.z,b.w,b.d,selectedBoxIdx);
-      b.x=p.x; b.z=p.z;
-      if(lastRes)draw3D(buildManualRes());
+      b.x=p.x; b.z=p.z; b.y=surf;
     }
-    return;
+    if(lastRes)draw3D(lastRes); return;
   }
   if(!drag)return;
   const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
@@ -2423,9 +2422,12 @@ window.bapRemove=function(){
 
 window.bapStartDrag=function(){
   if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
-  const b=manBoxes[selectedBoxIdx];
-  hideBoxActionPanel();
-  quickAddBox(b.pkgId);
+  isDragMode=true;
+  document.getElementById('boxActionPanel').style.display='none';
+  document.getElementById('bapDragBtn').classList.add('active');
+  document.getElementById('manHint').textContent='Przesuń nad nowe miejsce i kliknij';
+  document.getElementById('manHint').style.display='block';
+  if(lastRes)draw3D(lastRes);
 };
 
 // Rotate a placed box 90° around the vertical axis (swap footprint, keep centre)
@@ -2755,6 +2757,7 @@ function draw3D(res){
   // dynamic overlay: selection highlight + ghost
   t3.dynObjects.forEach(o=>t3.scene.remove(o));
   t3.dynObjects=[];
+  if(!isDragMode)_t3BoxMeshes.forEach(m=>{if(m)m.visible=true;});
   // selected box glow
   if(selectedBoxIdx>=0&&selectedBoxIdx<manBoxes.length){
     const sb=manBoxes[selectedBoxIdx];
@@ -2779,6 +2782,12 @@ function draw3D(res){
       dm=makeBox3D(manGhostX,manGhostY,manGhostZ,fw,lh,fd,manSelPkg.color,0.38);
     }
     if(dm){t3.scene.add(dm);t3.dynObjects.push(dm);}
+  }
+  if(isDragMode&&selectedBoxIdx>=0&&selectedBoxIdx<manBoxes.length){
+    if(_t3BoxMeshes[selectedBoxIdx])_t3BoxMeshes[selectedBoxIdx].visible=false;
+    const b=manBoxes[selectedBoxIdx];
+    const gm=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color,0.42);
+    t3.scene.add(gm);t3.dynObjects.push(gm);
   }
 
   const sT=Math.sin(camTheta),cT=Math.cos(camTheta),sP=Math.sin(camPhi),cP=Math.cos(camPhi);
