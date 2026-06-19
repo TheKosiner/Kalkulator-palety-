@@ -3143,7 +3143,21 @@ function arrangeVehicle(type){
     for(const up of unitPallets){
       let o=_bestO(up,vs.W-rowUsedX);
       if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
-      if(curZ-o.palD<-0.5){leftover++;continue;}
+      if(curZ-o.palD<-0.5){
+        // width-optimal orientation too deep — try flipped before giving up
+        const oR={palW:o.palD,palD:o.palW,rotated:!o.rotated};
+        if(oR.palW<=vs.W-rowUsedX+0.5&&curZ-oR.palD>=-0.5){o=oR;}
+        else if(rowUsedX>0){
+          // try a fresh row with both orientations
+          curZ-=rowDepth;rowUsedX=0;rowDepth=0;
+          o=_bestO(up,vs.W);
+          if(!o){leftover++;continue;}
+          if(curZ-o.palD<-0.5){
+            const oR2={palW:o.palD,palD:o.palW,rotated:!o.rotated};
+            if(oR2.palW<=vs.W+0.5&&curZ-oR2.palD>=-0.5){o=oR2;}else{leftover++;continue;}
+          }
+        } else {leftover++;continue;}
+      }
       placements.push({x:rowUsedX,y:0,z:curZ-o.palD,palW:o.palW,palD:o.palD,totalH:up.totalH,color:up.color,name:up.name,palId:up.palId,rotated:o.rotated,isCarton:false,placements:up.tmpl,extraBases:up.extraBases||[]});
       rowUsedX+=o.palW;rowDepth=Math.max(rowDepth,o.palD);
     }
