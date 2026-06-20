@@ -177,6 +177,8 @@
     .btn-undo:hover{border-color:var(--border-2)}
     .btn-clear{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.18)}
     #manHint{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:rgba(10,18,34,.92);backdrop-filter:blur(8px);color:var(--text);padding:7px 16px;border-radius:20px;font-size:.75rem;font-weight:600;pointer-events:none;white-space:nowrap;display:none;border:1px solid rgba(255,255,255,.07)}
+    #dragRotateBtn{position:absolute;top:104px;left:50%;transform:translateX(-50%);background:rgba(10,18,34,.92);backdrop-filter:blur(8px);color:var(--accent-h);padding:6px 18px;border-radius:20px;font-size:.75rem;font-weight:700;border:1px solid rgba(59,130,246,.4);cursor:pointer;white-space:nowrap;display:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .12s}
+    #dragRotateBtn:active{background:rgba(59,130,246,.25)}
     .btn-fill{background:var(--accent-dim);color:var(--accent-h);border:1px solid rgba(59,130,246,.22)}
     .btn-fill:hover{background:rgba(59,130,246,.2)}
     .btn-remove{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.18)}
@@ -335,6 +337,7 @@
   <div class="ov" id="hintBar" data-i18n="hint_touch">Dotyk: obracaj · 2 palce: zoom</div>
   <div id="legend"></div>
   <div id="manHint">Dotknij palety aby postawić karton</div>
+  <button id="dragRotateBtn" onclick="dragRotate()">⟳ Obróć</button>
   <div id="boxActionPanel">
     <div class="bap-name" id="bapName">Karton</div>
     <div class="bap-row">
@@ -2417,9 +2420,10 @@ canvas.addEventListener('mousemove',e=>{
 });
 canvas.addEventListener('mouseup',e=>{
   if(tapStart&&rmb){
-    // right-click without drag → rotation popup for the ghost while adding
+    // right-click without drag → rotation popup for add mode, rotate for drag mode
     const moved=Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y);
     if(moved<6 && isAddMode && !manRemoveMode){ showRotPopup(e.clientX,e.clientY); }
+    else if(moved<6 && isDragMode){ dragRotate(); }
     drag=false; tapStart=null; return;
   }
   if(tapStart&&!rmb){
@@ -2441,6 +2445,7 @@ canvas.addEventListener('mouseup',e=>{
         dragGhostX=null; isDragMode=false;
         document.getElementById('bapDragBtn').classList.remove('active');
         document.getElementById('manHint').style.display='none';
+        document.getElementById('dragRotateBtn').style.display='none';
         refreshManual(); showBoxActionPanel(selectedBoxIdx);
       } else {
         const i=raycastBox(e);
@@ -2563,8 +2568,10 @@ function showBoxActionPanel(idx){
 }
 function hideBoxActionPanel(){
   document.getElementById('boxActionPanel').style.display='none';
+  if(isDragMode){document.getElementById('manHint').style.display='none';}
   isDragMode=false; dragGhostX=null;
   const d=document.getElementById('bapDragBtn');if(d)d.classList.remove('active');
+  document.getElementById('dragRotateBtn').style.display='none';
 }
 
 window.bapPush=function(dir){
@@ -2635,8 +2642,10 @@ window.bapStartDrag=function(){
   rmb=false; // reset stale right-click state
   document.getElementById('boxActionPanel').style.display='none';
   document.getElementById('bapDragBtn').classList.add('active');
-  document.getElementById('manHint').textContent='Przesuń nad nowe miejsce i kliknij';
+  const isDesk=window.innerWidth>=760;
+  document.getElementById('manHint').textContent=isDesk?'Przesuń i kliknij · PPM: Obróć':'Przesuń nad nowe miejsce i kliknij';
   document.getElementById('manHint').style.display='block';
+  document.getElementById('dragRotateBtn').style.display='block';
   if(lastRes)draw3D(lastRes);
 };
 
@@ -2652,6 +2661,17 @@ window.bapRotate=function(){
   b.y=manSurfAtExcl(b.x,b.z,b.w,b.d,selectedBoxIdx);
   refreshManual();
   showBoxActionPanel(selectedBoxIdx);
+};
+window.dragRotate=function(){
+  if(!isDragMode||selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  const cx=dragGhostX+b.w/2, cz=dragGhostZ+b.d/2;
+  [b.w,b.d]=[b.d,b.w];
+  const p=manSnapPos(cx,cz,b.w,b.d,selectedBoxIdx);
+  dragGhostX=p.x; dragGhostZ=p.z;
+  dragGhostY=manSurfAtExcl(dragGhostX,dragGhostZ,b.w,b.d,selectedBoxIdx);
+  rmb=false; // allow ghost to keep following cursor
+  if(lastRes)draw3D(lastRes);
 };
 
 // Rotation popup for the ghost box being placed (right-click in add mode)
