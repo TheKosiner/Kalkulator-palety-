@@ -177,8 +177,12 @@
     .btn-undo:hover{border-color:var(--border-2)}
     .btn-clear{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.18)}
     #manHint{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:rgba(10,18,34,.92);backdrop-filter:blur(8px);color:var(--text);padding:7px 16px;border-radius:20px;font-size:.75rem;font-weight:600;pointer-events:none;white-space:nowrap;display:none;border:1px solid rgba(255,255,255,.07)}
-    #dragRotateBtn{position:absolute;top:104px;left:50%;transform:translateX(-50%);background:rgba(10,18,34,.92);backdrop-filter:blur(8px);color:var(--accent-h);padding:6px 18px;border-radius:20px;font-size:.75rem;font-weight:700;border:1px solid rgba(59,130,246,.4);cursor:pointer;white-space:nowrap;display:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .12s}
-    #dragRotateBtn:active{background:rgba(59,130,246,.25)}
+    #dragFacePanel{position:absolute;top:104px;left:50%;transform:translateX(-50%);background:rgba(10,18,34,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.11);border-radius:var(--rl);padding:8px 10px;z-index:52;display:none;min-width:190px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+    #dragFaceBtns{display:flex;flex-direction:column;gap:5px}
+    .df-btn{padding:7px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:.72rem;cursor:pointer;color:var(--text);text-align:left;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+    .df-btn:hover{border-color:var(--border-2);background:rgba(255,255,255,.07)}
+    .df-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .df-sep{height:1px;background:rgba(255,255,255,.08);margin:4px 0}
     .btn-fill{background:var(--accent-dim);color:var(--accent-h);border:1px solid rgba(59,130,246,.22)}
     .btn-fill:hover{background:rgba(59,130,246,.2)}
     .btn-remove{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.18)}
@@ -337,7 +341,7 @@
   <div class="ov" id="hintBar" data-i18n="hint_touch">Dotyk: obracaj · 2 palce: zoom</div>
   <div id="legend"></div>
   <div id="manHint">Dotknij palety aby postawić karton</div>
-  <button id="dragRotateBtn" onclick="dragRotate()">⟳ Obróć</button>
+  <div id="dragFacePanel"><div id="dragFaceBtns"></div></div>
   <div id="boxActionPanel">
     <div class="bap-name" id="bapName">Karton</div>
     <div class="bap-row">
@@ -916,6 +920,7 @@ let isAddMode = false;
 let selectedBoxIdx = -1;
 let isDragMode = false;
 let dragGhostX = null, dragGhostY = PAL.H, dragGhostZ = null;
+let dragFaceIdx = 0, dragFlipped = false;
 let drawerOpen = false;
 
 function toggleAddMode() {
@@ -2445,7 +2450,7 @@ canvas.addEventListener('mouseup',e=>{
         dragGhostX=null; isDragMode=false;
         document.getElementById('bapDragBtn').classList.remove('active');
         document.getElementById('manHint').style.display='none';
-        document.getElementById('dragRotateBtn').style.display='none';
+        document.getElementById('dragFacePanel').style.display='none';
         refreshManual(); showBoxActionPanel(selectedBoxIdx);
       } else {
         const i=raycastBox(e);
@@ -2571,7 +2576,7 @@ function hideBoxActionPanel(){
   if(isDragMode){document.getElementById('manHint').style.display='none';}
   isDragMode=false; dragGhostX=null;
   const d=document.getElementById('bapDragBtn');if(d)d.classList.remove('active');
-  document.getElementById('dragRotateBtn').style.display='none';
+  document.getElementById('dragFacePanel').style.display='none';
 }
 
 window.bapPush=function(dir){
@@ -2638,6 +2643,16 @@ window.bapStartDrag=function(){
   if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
   const b=manBoxes[selectedBoxIdx];
   dragGhostX=b.x; dragGhostY=b.y; dragGhostZ=b.z;
+  // Detect current face from box height
+  const pkg=PKGS.find(p=>p.id===b.pkgId);
+  if(pkg){
+    const[A,B,C]=pkg.dims;
+    const faces=[[A,B,C],[A,C,B],[B,C,A]];
+    dragFaceIdx=faces.findIndex(([,,h])=>Math.abs(h-b.h)<0.5);
+    if(dragFaceIdx<0)dragFaceIdx=0;
+    const[fw,fd]=faces[dragFaceIdx];
+    dragFlipped=Math.abs(b.w-fd)<0.5&&Math.abs(b.d-fw)<0.5;
+  } else { dragFaceIdx=0; dragFlipped=false; }
   isDragMode=true;
   rmb=false; // reset stale right-click state
   document.getElementById('boxActionPanel').style.display='none';
@@ -2645,7 +2660,7 @@ window.bapStartDrag=function(){
   const isDesk=window.innerWidth>=760;
   document.getElementById('manHint').textContent=isDesk?'Przesuń i kliknij · PPM: Obróć':'Przesuń nad nowe miejsce i kliknij';
   document.getElementById('manHint').style.display='block';
-  document.getElementById('dragRotateBtn').style.display='block';
+  updateDragFacePanel();
   if(lastRes)draw3D(lastRes);
 };
 
@@ -2667,12 +2682,49 @@ window.dragRotate=function(){
   const b=manBoxes[selectedBoxIdx];
   const cx=dragGhostX+b.w/2, cz=dragGhostZ+b.d/2;
   [b.w,b.d]=[b.d,b.w];
+  dragFlipped=!dragFlipped;
   const p=manSnapPos(cx,cz,b.w,b.d,selectedBoxIdx);
   dragGhostX=p.x; dragGhostZ=p.z;
   dragGhostY=manSurfAtExcl(dragGhostX,dragGhostZ,b.w,b.d,selectedBoxIdx);
   rmb=false; // allow ghost to keep following cursor
+  updateDragFacePanel();
   if(lastRes)draw3D(lastRes);
 };
+window.dragPickFace=function(i){
+  if(!isDragMode||selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  const pkg=PKGS.find(p=>p.id===b.pkgId);
+  if(!pkg)return;
+  const[A,B,C]=pkg.dims;
+  const faces=[[A,B,C],[A,C,B],[B,C,A]];
+  dragFaceIdx=i; dragFlipped=false;
+  const[fw,fd,fh]=faces[i];
+  const cx=dragGhostX+b.w/2, cz=dragGhostZ+b.d/2;
+  b.w=fw; b.d=fd; b.h=fh;
+  const p=manSnapPos(cx,cz,b.w,b.d,selectedBoxIdx);
+  dragGhostX=p.x; dragGhostZ=p.z;
+  dragGhostY=manSurfAtExcl(dragGhostX,dragGhostZ,b.w,b.d,selectedBoxIdx);
+  updateDragFacePanel();
+  if(lastRes)draw3D(lastRes);
+};
+function updateDragFacePanel(){
+  const panel=document.getElementById('dragFacePanel');
+  if(!isDragMode||selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length){panel.style.display='none';return;}
+  const b=manBoxes[selectedBoxIdx];
+  const pkg=PKGS.find(p=>p.id===b.pkgId);
+  if(!pkg){panel.style.display='none';return;}
+  const[A,B,C]=pkg.dims;
+  const faces=[[A,B,C],[A,C,B],[B,C,A]];
+  let html='';
+  faces.forEach(([a,c,h],i)=>{
+    const act=i===dragFaceIdx;
+    const fw=(act&&dragFlipped)?c:a, fd=(act&&dragFlipped)?a:c;
+    html+=`<button class="df-btn${act?' active':''}" onclick="dragPickFace(${i})">${fmtLen(fw)}×${fmtLen(fd)} <span style="opacity:.65">(wys. ${fmtLen(h)})</span></button>`;
+  });
+  html+=`<div class="df-sep"></div><button class="df-btn" onclick="dragRotate()">⟳ Obróć 90°</button>`;
+  document.getElementById('dragFaceBtns').innerHTML=html;
+  panel.style.display='block';
+}
 
 // Rotation popup for the ghost box being placed (right-click in add mode)
 function showRotPopup(clientX,clientY){
