@@ -272,6 +272,21 @@
     @media(max-width:440px){.modal-layout{flex-direction:column-reverse}.modal-preview{flex-direction:row;align-items:center;gap:12px;width:100%}.preview-hint{max-width:none}}
     @media(min-width:760px){.modal-overlay{align-items:center}.modal-box{border-radius:var(--rl);border:1px solid var(--border);max-width:440px}}
 
+    /* SETTINGS */
+    .icon-btn{flex-shrink:0;width:34px;height:34px;border-radius:9px;background:var(--surface);border:1px solid var(--border);color:var(--text-2);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .icon-btn:hover{color:var(--text);border-color:var(--border-2);background:var(--surface-2)}
+    .set-group{margin-bottom:18px}
+    .set-label{font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+    .set-seg{display:flex;flex-direction:column;gap:6px}
+    .set-opt{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;text-align:left;width:100%;color:var(--text-2)}
+    .set-opt:hover{border-color:var(--border-2)}
+    .set-opt.active{border-color:var(--accent);background:var(--accent-dim);color:var(--text)}
+    .set-opt .so-ico{font-size:1.05rem;width:22px;text-align:center;flex-shrink:0}
+    .set-opt .so-txt{flex:1;min-width:0}
+    .set-opt .so-name{font-size:.84rem;font-weight:600}
+    .set-opt .so-desc{font-size:.66rem;color:var(--text-3);margin-top:1px}
+    .set-opt.active .so-name{color:var(--text)}
+
     /* DESKTOP */
     @media(min-width:760px){
       html,body{overflow:auto}
@@ -296,58 +311,59 @@
   <h1><img src="logo.png" alt=""/><span>Kalkulator Palety 3D</span></h1>
   <span class="sub" id="palSub">Europaleta 1200×800 mm</span>
   <div class="main-tabs">
-    <button class="main-tab active" id="mtab_paleta" onclick="switchMainTab('paleta')">Paleta</button>
-    <button class="main-tab" id="mtab_naczepa" onclick="switchMainTab('naczepa')">Naczepa</button>
-    <button class="main-tab" id="mtab_kontener" onclick="switchMainTab('kontener')">Kontener</button>
+    <button class="main-tab active" id="mtab_paleta" onclick="switchMainTab('paleta')" data-i18n="tab_pallet">Paleta</button>
+    <button class="main-tab" id="mtab_naczepa" onclick="switchMainTab('naczepa')" data-i18n="tab_trailer">Naczepa</button>
+    <button class="main-tab" id="mtab_kontener" onclick="switchMainTab('kontener')" data-i18n="tab_container">Kontener</button>
   </div>
+  <button class="icon-btn" id="settingsBtn" title="Ustawienia" onclick="openSettings()">⚙</button>
 </header>
 
 <div id="view3d">
   <canvas id="canvas3d"></canvas>
   <canvas id="canvas2d"></canvas>
   <div class="ov" id="statsBar">
-    <div class="s"><span class="v" id="rTotal">—</span><span class="l">Paczek</span></div>
-    <div class="s" id="sPallets" style="display:none"><span class="v" id="rPallets">—</span><span class="l">Palet</span></div>
-    <div class="s"><span class="v" id="rLayers">—</span><span class="l">Warstw</span></div>
-    <div class="s"><span class="v" id="rHeight">—</span><span class="l">Wys. mm</span></div>
-    <div class="s" id="sPerLayer" style="display:none"><span class="v" id="rPerLayer">—</span><span class="l">/ warstwę</span></div>
-    <div class="s"><span class="v" id="rLeft">—</span><span class="l">Zostało</span></div>
-    <div class="s" id="sSave"><button id="savePalBtn" onclick="saveCurrPallet()">💾 Zapisz paletę</button></div>
+    <div class="s"><span class="v" id="rTotal">—</span><span class="l" data-i18n="st_packages">Paczek</span></div>
+    <div class="s" id="sPallets" style="display:none"><span class="v" id="rPallets">—</span><span class="l" data-i18n="st_pallets">Palet</span></div>
+    <div class="s"><span class="v" id="rLayers">—</span><span class="l" data-i18n="st_layers">Warstw</span></div>
+    <div class="s"><span class="v" id="rHeight">—</span><span class="l" id="rHeightLbl">Wys. mm</span></div>
+    <div class="s" id="sPerLayer" style="display:none"><span class="v" id="rPerLayer">—</span><span class="l" data-i18n="st_perlayer">/ warstwę</span></div>
+    <div class="s"><span class="v" id="rLeft">—</span><span class="l" data-i18n="st_left">Zostało</span></div>
+    <div class="s" id="sSave"><button id="savePalBtn" onclick="saveCurrPallet()" data-i18n="save_pallet">💾 Zapisz paletę</button></div>
   </div>
   <div id="warnBar" onclick="this.style.display='none'" style="cursor:pointer" title="Kliknij aby zamknąć"></div>
   <div class="ov" id="orientHintBar"></div>
-  <div class="ov" id="hintBar">Dotyk: obracaj · 2 palce: zoom</div>
+  <div class="ov" id="hintBar" data-i18n="hint_touch">Dotyk: obracaj · 2 palce: zoom</div>
   <div id="legend"></div>
   <div id="manHint">Dotknij palety aby postawić karton</div>
   <div id="boxActionPanel">
     <div class="bap-name" id="bapName">Karton</div>
     <div class="bap-row">
-      <button class="bap-btn" onclick="bapPush('left')">← Do lewej</button>
-      <button class="bap-btn" onclick="bapPush('right')">Do prawej →</button>
+      <button class="bap-btn" onclick="bapPush('left')" data-i18n="bap_left">← Do lewej</button>
+      <button class="bap-btn" onclick="bapPush('right')" data-i18n="bap_right">Do prawej →</button>
     </div>
     <div class="bap-row">
-      <button class="bap-btn" onclick="bapPush('back')">↑ Do tyłu</button>
-      <button class="bap-btn" onclick="bapPush('front')">Do przodu ↓</button>
+      <button class="bap-btn" onclick="bapPush('back')" data-i18n="bap_back">↑ Do tyłu</button>
+      <button class="bap-btn" onclick="bapPush('front')" data-i18n="bap_front">Do przodu ↓</button>
     </div>
     <div class="bap-row">
-      <button class="bap-btn bap-btn-auto" onclick="bapAutoPlace()">⚡ Ustaw auto</button>
-      <button class="bap-btn bap-btn-drag" id="bapDragBtn" onclick="bapStartDrag()">✋ Przesuń</button>
+      <button class="bap-btn bap-btn-auto" onclick="bapAutoPlace()" data-i18n="bap_auto">⚡ Ustaw auto</button>
+      <button class="bap-btn bap-btn-drag" id="bapDragBtn" onclick="bapStartDrag()" data-i18n="bap_drag">✋ Przesuń</button>
     </div>
     <div class="bap-row">
-      <button class="bap-btn" onclick="bapRotate()">⟳ Obróć</button>
-      <button class="bap-btn bap-btn-del" onclick="bapRemove()">✕ Usuń</button>
+      <button class="bap-btn" onclick="bapRotate()" data-i18n="bap_rotate">⟳ Obróć</button>
+      <button class="bap-btn bap-btn-del" onclick="bapRemove()" data-i18n="bap_remove">✕ Usuń</button>
     </div>
   </div>
   <div id="rotPopup">
-    <div class="rp-title">Orientacja</div>
+    <div class="rp-title" data-i18n="rot_orient">Orientacja</div>
     <div id="rpBtns"></div>
   </div>
   <div id="addModeOverlay">
     <div class="amo-title" id="amoTitle">Karton</div>
     <div class="amo-btns" id="amoBtns"></div>
-    <button class="amo-rotate" onclick="ghostRotate()">⟳ Obróć 90°</button>
+    <button class="amo-rotate" onclick="ghostRotate()" data-i18n="amo_rotate">⟳ Obróć 90°</button>
     <div class="amo-opts">
-      <label class="amo-chk"><input type="checkbox" id="allowOverhang"/> Może wystawać poza spód</label>
+      <label class="amo-chk"><input type="checkbox" id="allowOverhang"/> <span data-i18n="amo_overhang">Może wystawać poza spód</span></label>
     </div>
     <div class="amo-dpad">
       <div class="amo-dpad-row"><button class="amo-dpad-btn" onclick="moveGhost(0,-50)">▲</button></div>
@@ -358,8 +374,8 @@
       </div>
       <div class="amo-dpad-row"><button class="amo-dpad-btn" onclick="moveGhost(0,50)">▼</button></div>
     </div>
-    <button class="amo-place" onclick="manPlace()">✓ Postaw</button>
-    <button class="amo-exit" onclick="exitAddMode()">✕ Wyjdź z trybu dodawania</button>
+    <button class="amo-place" onclick="manPlace()" data-i18n="amo_place">✓ Postaw</button>
+    <button class="amo-exit" onclick="exitAddMode()" data-i18n="amo_exit">✕ Wyjdź z trybu dodawania</button>
   </div>
   <div id="camCtrls">
     <button class="cam-btn" title="Zbliż" onclick="camZoomIn()">+</button>
@@ -376,9 +392,9 @@
 <div id="paneNaczepa" class="vpane" style="display:none">
   <canvas id="naczCanvas" class="vpane-canvas"></canvas>
   <div class="v-stats" id="naczStats">
-    <div class="s"><span class="v" id="naczStatPal">—</span><span class="l" id="naczStatPalLbl">Palet</span></div>
-    <div class="s"><span class="v" id="naczStatUtil">—</span><span class="l">Podłogi</span></div>
-    <div class="s"><span class="v" id="naczStatLeft">—</span><span class="l">Nie zmieści</span></div>
+    <div class="s"><span class="v" id="naczStatPal">—</span><span class="l" id="naczStatPalLbl" data-i18n="st_pallets">Palet</span></div>
+    <div class="s"><span class="v" id="naczStatUtil">—</span><span class="l" data-i18n="st_floor">Podłogi</span></div>
+    <div class="s"><span class="v" id="naczStatLeft">—</span><span class="l" data-i18n="st_notfit">Nie zmieści</span></div>
   </div>
   <div class="v-warn" id="naczWarnBar" onclick="this.style.display='none'"></div>
   <div class="v-cam">
@@ -417,7 +433,7 @@
       <label class="opt-chk"><input type="checkbox" id="naczCartonHigher"> Kartony luzem mogą być wyższe niż palety</label>
       <div class="vsec-title" style="margin-top:10px">Opcje układania</div>
       <label class="opt-chk"><input type="checkbox" id="naczStackPallets"> Palety mogą być układane jedna na drugą</label>
-      <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
+      <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px" data-i18n="veh_arrange">Ułóż ładunek automatycznie</button>
     </div>
   </div>
 </div>
@@ -426,9 +442,9 @@
 <div id="paneKontener" class="vpane" style="display:none">
   <canvas id="kontCanvas" class="vpane-canvas"></canvas>
   <div class="v-stats" id="kontStats">
-    <div class="s"><span class="v" id="kontStatPal">—</span><span class="l" id="kontStatPalLbl">Palet</span></div>
-    <div class="s"><span class="v" id="kontStatUtil">—</span><span class="l">Podłogi</span></div>
-    <div class="s"><span class="v" id="kontStatLeft">—</span><span class="l">Nie zmieści</span></div>
+    <div class="s"><span class="v" id="kontStatPal">—</span><span class="l" id="kontStatPalLbl" data-i18n="st_pallets">Palet</span></div>
+    <div class="s"><span class="v" id="kontStatUtil">—</span><span class="l" data-i18n="st_floor">Podłogi</span></div>
+    <div class="s"><span class="v" id="kontStatLeft">—</span><span class="l" data-i18n="st_notfit">Nie zmieści</span></div>
   </div>
   <div class="v-warn" id="kontWarnBar" onclick="this.style.display='none'"></div>
   <div class="v-cam">
@@ -467,7 +483,7 @@
       <label class="opt-chk"><input type="checkbox" id="kontCartonHigher"> Kartony luzem mogą być wyższe niż palety</label>
       <div class="vsec-title" style="margin-top:10px">Opcje układania</div>
       <label class="opt-chk"><input type="checkbox" id="kontStackPallets"> Palety mogą być układane jedna na drugą</label>
-      <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px">Ułóż ładunek automatycznie</button>
+      <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px" data-i18n="veh_arrange">Ułóż ładunek automatycznie</button>
     </div>
   </div>
 </div>
@@ -482,12 +498,12 @@
   <div id="drawerContent">
 
     <!-- PACKAGES -->
-    <div class="stitle">Kartony</div>
+    <div class="stitle" data-i18n="sec_packages">Kartony</div>
     <div id="pkgList"></div>
-    <button class="btn-add-pkg" onclick="openPkgModal(null)">+ Dodaj nowy karton</button>
+    <button class="btn-add-pkg" onclick="openPkgModal(null)" data-i18n="add_pkg">+ Dodaj nowy karton</button>
 
     <!-- PARAMS -->
-    <div class="stitle" style="margin-top:14px">Parametry</div>
+    <div class="stitle" style="margin-top:14px" data-i18n="sec_params">Parametry</div>
     <div class="ctrl-row">
       <div>
         <label class="lbl">Max. wysokość (mm)</label>
@@ -502,7 +518,7 @@
       <label class="lbl">Maks. liczba palet (nadmiar na kolejne)</label>
       <input type="number" id="maxPallets" value="1" min="1" max="20" inputmode="numeric"/>
     </div>
-    <button class="btn-calc" onclick="calculate()">Oblicz i wizualizuj</button>
+    <button class="btn-calc" onclick="calculate()" data-i18n="calc">Oblicz i wizualizuj</button>
 
     <!-- MANUAL ADD ACTION BUTTONS (shown when in add mode) -->
     <div id="manActionBar" style="display:none;margin-top:8px;display:none">
@@ -518,7 +534,7 @@
 
     <!-- PALLET DIMENSIONS (all modes) -->
     <div id="palSection">
-      <div class="stitle" style="margin-top:18px">Wymiary palety</div>
+      <div class="stitle" style="margin-top:18px" data-i18n="sec_paldims">Wymiary palety</div>
       <div class="pal-preset">
         <button class="btn-preset active" id="presetEuro" onclick="setPalPreset(1200,800,144)">Euro 1200×800</button>
         <button class="btn-preset" id="presetHalf" onclick="setPalPreset(800,600,144)">Pół 800×600</button>
@@ -554,6 +570,56 @@
     <div class="fp-btns">
       <button class="fp-btn fp-btn-auto" onclick="fpSetAuto()">Auto</button>
       <button class="fp-btn fp-btn-close" onclick="closeFacePicker()">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-box">
+    <div class="modal-title" data-i18n="settings_title">Ustawienia</div>
+
+    <div class="set-group">
+      <div class="set-label" data-i18n="set_nav">Sterowanie widokiem 3D</div>
+      <div class="set-seg" id="setNav">
+        <button class="set-opt" data-val="standard" onclick="setNavStyle('standard')">
+          <span class="so-ico">🧭</span><span class="so-txt"><span class="so-name" data-i18n="nav_standard_n">Standardowy</span><span class="so-desc" data-i18n="nav_standard_d">Przeciągnij w górę = widok unosi się</span></span>
+        </button>
+        <button class="set-opt" data-val="invY" onclick="setNavStyle('invY')">
+          <span class="so-ico">↕</span><span class="so-txt"><span class="so-name" data-i18n="nav_invy_n">Odwrócona oś pionowa</span><span class="so-desc" data-i18n="nav_invy_d">Przeciągnij w górę = widok opada</span></span>
+        </button>
+        <button class="set-opt" data-val="invX" onclick="setNavStyle('invX')">
+          <span class="so-ico">↔</span><span class="so-txt"><span class="so-name" data-i18n="nav_invx_n">Odwrócona oś pozioma</span><span class="so-desc" data-i18n="nav_invx_d">Przeciągnij w lewo = obrót w prawo</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-label" data-i18n="set_units">Jednostki miary</div>
+      <div class="set-seg" id="setUnits">
+        <button class="set-opt" data-val="metric" onclick="setUnits('metric')">
+          <span class="so-ico">📏</span><span class="so-txt"><span class="so-name" data-i18n="unit_metric_n">Europejskie (mm)</span><span class="so-desc" data-i18n="unit_metric_d">Milimetry, kilogramy</span></span>
+        </button>
+        <button class="set-opt" data-val="imperial" onclick="setUnits('imperial')">
+          <span class="so-ico">📐</span><span class="so-txt"><span class="so-name" data-i18n="unit_imperial_n">Amerykańskie (in)</span><span class="so-desc" data-i18n="unit_imperial_d">Cale, funty</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="set-group">
+      <div class="set-label" data-i18n="set_lang">Język / Language</div>
+      <div class="set-seg" id="setLang">
+        <button class="set-opt" data-val="pl" onclick="setLang('pl')">
+          <span class="so-ico">🇵🇱</span><span class="so-txt"><span class="so-name">Polski</span></span>
+        </button>
+        <button class="set-opt" data-val="en" onclick="setLang('en')">
+          <span class="so-ico">🇬🇧</span><span class="so-txt"><span class="so-name">English</span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-modal-save" onclick="closeSettings()" data-i18n="set_done">Gotowe</button>
     </div>
   </div>
 </div>
@@ -644,6 +710,141 @@ let PKGS = loadPkgsFromStorage();
 const PAL = { W:1200, D:800, H:144 };
 try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s?.H>0){PAL.W=+_s.W;PAL.D=+_s.D;PAL.H=+_s.H;}}catch(e){}
 
+// ═══════════════════════════════════════════════════════
+// SETTINGS (navigation, units, language)
+// ═══════════════════════════════════════════════════════
+const SETTINGS = { nav:'standard', units:'metric', lang:'pl' };
+try{const _ss=JSON.parse(localStorage.getItem('appSettings'));if(_ss){if(_ss.nav)SETTINGS.nav=_ss.nav;if(_ss.units)SETTINGS.units=_ss.units;if(_ss.lang)SETTINGS.lang=_ss.lang;}}catch(e){}
+function _saveSettings(){try{localStorage.setItem('appSettings',JSON.stringify(SETTINGS));}catch(e){}}
+
+// Orbit drag multipliers based on navigation style.
+// theta uses .t, phi uses .p — applied to the raw mouse/touch delta.
+function navMul(){
+  switch(SETTINGS.nav){
+    case 'invY': return {t:1, p:-1};
+    case 'invX': return {t:-1, p:1};
+    default:     return {t:1, p:1};
+  }
+}
+
+// ─── UNITS ───
+const MM_PER_IN = 25.4;
+// Format a length given in mm according to the chosen unit system.
+function fmtLen(mm){
+  if(SETTINGS.units==='imperial'){
+    const inch=mm/MM_PER_IN;
+    const r=Math.round(inch*10)/10;
+    return (Number.isInteger(r)?r:r.toFixed(1))+'″';
+  }
+  return Math.round(mm)+' mm';
+}
+function unitSuffix(){return SETTINGS.units==='imperial'?'in':'mm';}
+// Numeric-only length in the active unit (no suffix) — for places where the unit is shown separately.
+function lenVal(mm){
+  if(mm==null||mm==='—'||isNaN(mm))return '—';
+  if(SETTINGS.units==='imperial'){const r=Math.round(mm/MM_PER_IN*10)/10;return Number.isInteger(r)?String(r):r.toFixed(1);}
+  return String(Math.round(mm));
+}
+function fmtWeight(kg){
+  if(SETTINGS.units==='imperial'){const lb=kg*2.2046226;return (Math.round(lb*10)/10)+' lb';}
+  return kg+' kg';
+}
+
+// ─── I18N ───
+const I18N = {
+  pl:{
+    tab_pallet:'Paleta', tab_trailer:'Naczepa', tab_container:'Kontener',
+    settings_title:'Ustawienia',
+    set_nav:'Sterowanie widokiem 3D', set_units:'Jednostki miary', set_lang:'Język / Language', set_done:'Gotowe',
+    nav_standard_n:'Standardowy', nav_standard_d:'Przeciągnij w górę = widok unosi się',
+    nav_invy_n:'Odwrócona oś pionowa', nav_invy_d:'Przeciągnij w górę = widok opada',
+    nav_invx_n:'Odwrócona oś pozioma', nav_invx_d:'Przeciągnij w lewo = obrót w prawo',
+    unit_metric_n:'Europejskie (mm)', unit_metric_d:'Milimetry, kilogramy',
+    unit_imperial_n:'Amerykańskie (in)', unit_imperial_d:'Cale, funty',
+    st_packages:'Paczek', st_pallets:'Palet', st_layers:'Warstw', st_height:'Wys.', st_perlayer:'/ warstwę', st_left:'Zostało',
+    st_floor:'Podłogi', st_notfit:'Nie zmieści',
+    save_pallet:'💾 Zapisz paletę',
+    hint_touch:'Dotyk: obracaj · 2 palce: zoom',
+    man_hint_place:'Dotknij palety aby postawić karton',
+    bap_left:'← Do lewej', bap_right:'Do prawej →', bap_back:'↑ Do tyłu', bap_front:'Do przodu ↓',
+    bap_auto:'⚡ Ustaw auto', bap_drag:'✋ Przesuń', bap_rotate:'⟳ Obróć', bap_remove:'✕ Usuń',
+    amo_rotate:'⟳ Obróć 90°', amo_overhang:'Może wystawać poza spód', amo_place:'✓ Postaw', amo_exit:'✕ Wyjdź z trybu dodawania',
+    sec_packages:'Kartony', sec_params:'Parametry', sec_paldims:'Wymiary palety',
+    add_pkg:'+ Dodaj nowy karton', calc:'Oblicz i wizualizuj',
+    rot_orient:'Orientacja',
+    veh_arrange:'Ułóż ładunek automatycznie',
+    handle_label:'Wybierz kartony & oblicz',
+  },
+  en:{
+    tab_pallet:'Pallet', tab_trailer:'Trailer', tab_container:'Container',
+    settings_title:'Settings',
+    set_nav:'3D view controls', set_units:'Units of measure', set_lang:'Language / Język', set_done:'Done',
+    nav_standard_n:'Standard', nav_standard_d:'Drag up = view tilts up',
+    nav_invy_n:'Inverted vertical axis', nav_invy_d:'Drag up = view tilts down',
+    nav_invx_n:'Inverted horizontal axis', nav_invx_d:'Drag left = rotate right',
+    unit_metric_n:'European (mm)', unit_metric_d:'Millimetres, kilograms',
+    unit_imperial_n:'American (in)', unit_imperial_d:'Inches, pounds',
+    st_packages:'Boxes', st_pallets:'Pallets', st_layers:'Layers', st_height:'Height', st_perlayer:'/ layer', st_left:'Left',
+    st_floor:'Floor', st_notfit:"Won't fit",
+    save_pallet:'💾 Save pallet',
+    hint_touch:'Touch: rotate · 2 fingers: zoom',
+    man_hint_place:'Tap the pallet to place a box',
+    bap_left:'← To left', bap_right:'To right →', bap_back:'↑ To back', bap_front:'To front ↓',
+    bap_auto:'⚡ Auto place', bap_drag:'✋ Move', bap_rotate:'⟳ Rotate', bap_remove:'✕ Remove',
+    amo_rotate:'⟳ Rotate 90°', amo_overhang:'May overhang the base', amo_place:'✓ Place', amo_exit:'✕ Exit add mode',
+    sec_packages:'Boxes', sec_params:'Parameters', sec_paldims:'Pallet dimensions',
+    add_pkg:'+ Add new box', calc:'Calculate & visualise',
+    rot_orient:'Orientation',
+    veh_arrange:'Arrange load automatically',
+    handle_label:'Pick boxes & calculate',
+  }
+};
+function t(key){return (I18N[SETTINGS.lang]&&I18N[SETTINGS.lang][key])||I18N.pl[key]||key;}
+
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n');
+    const v=t(k);
+    if(v!=null)el.textContent=v;
+  });
+  const hl=document.getElementById('rHeightLbl');
+  if(hl)hl.textContent=t('st_height')+' '+unitSuffix();
+  const hb=document.getElementById('handleLabel');
+  if(hb)hb.textContent=t('handle_label');
+  document.documentElement.lang=SETTINGS.lang;
+}
+
+// ─── SETTINGS MODAL ───
+function _markActive(containerId,val){
+  const c=document.getElementById(containerId);
+  if(!c)return;
+  c.querySelectorAll('.set-opt').forEach(b=>b.classList.toggle('active',b.dataset.val===val));
+}
+function openSettings(){
+  _markActive('setNav',SETTINGS.nav);
+  _markActive('setUnits',SETTINGS.units);
+  _markActive('setLang',SETTINGS.lang);
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+function closeSettings(){document.getElementById('settingsModal').classList.add('hidden');}
+function setNavStyle(v){SETTINGS.nav=v;_saveSettings();_markActive('setNav',v);}
+function setUnits(v){SETTINGS.units=v;_saveSettings();_markActive('setUnits',v);refreshAllDisplays();}
+function setLang(v){SETTINGS.lang=v;_saveSettings();_markActive('setLang',v);applyI18n();refreshAllDisplays();}
+window.openSettings=openSettings;window.closeSettings=closeSettings;
+window.setNavStyle=setNavStyle;window.setUnits=setUnits;window.setLang=setLang;
+
+// Re-render every place that shows a dimension or unit-dependent label/string.
+function refreshAllDisplays(){
+  try{document.getElementById('palSub').textContent=palLabel(PAL.W,PAL.D);}catch(e){}
+  try{if(typeof buildPkgList==='function')buildPkgList();}catch(e){}
+  try{if(typeof lastRes!=='undefined'&&lastRes){updateManStats(lastRes);buildLegend(lastRes,'auto');draw3D(lastRes);}}catch(e){}
+  try{['naczepa','kontener'].forEach(tp=>{if(t3v&&t3v[tp]){_lastVDims[tp]=null;drawVehicle3D(tp);}});}catch(e){}
+}
+function palLabel(W,D){
+  const base=SETTINGS.lang==='en'?'Pallet':'Paleta';
+  return `${base} ${fmtLen(W)}×${fmtLen(D)}`;
+}
+
 // ─── SAVED PALLETS ───
 const SPAL_COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#f97316','#ec4899','#84cc16'];
 function _loadSavedPallets(){try{return JSON.parse(localStorage.getItem('savedPallets'))||[];}catch(e){return[];}}
@@ -689,7 +890,7 @@ function applyPalDims(){
   const H=Math.max(50, parseInt(document.getElementById('palH').value)||144);
   PAL.W=W;PAL.D=D;PAL.H=H;
   try{localStorage.setItem('palDims',JSON.stringify({W,D,H}));}catch(e){}
-  document.getElementById('palSub').textContent=`Paleta ${W}×${D} mm`;
+  document.getElementById('palSub').textContent=palLabel(W,D);
   updatePalPresetBtns();
   lastRes=null; draw3D(null);
 }
@@ -802,7 +1003,7 @@ function buildPkgList() {
       <div class="pkg-dot" style="background:${p.color}"></div>
       <div class="pkg-info">
         <div class="pkg-name">${p.name}</div>
-        <div class="pkg-dim">${A}×${B}×${C} mm${p.weight>0?` · ${p.weight} kg`:''}</div>
+        <div class="pkg-dim">${fmtLen(A)}×${fmtLen(B)}×${fmtLen(C)}${p.weight>0?` · ${fmtWeight(p.weight)}`:''}</div>
       </div>
       <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
       ${!BUILTIN_IDS.has(p.id)?`<button class="pkg-del-btn" title="Usuń" tabindex="-1">🗑️</button>`:''}
@@ -859,7 +1060,7 @@ buildPkgList();
 document.getElementById('palW').value=PAL.W;
 document.getElementById('palD').value=PAL.D;
 document.getElementById('palH').value=PAL.H;
-document.getElementById('palSub').textContent=`Paleta ${PAL.W}×${PAL.D} mm`;
+document.getElementById('palSub').textContent=palLabel(PAL.W,PAL.D);
 updatePalPresetBtns();
 
 // ═══════════════════════════════════════════════════════
@@ -886,7 +1087,7 @@ function buildManPkgList() {
     item.dataset.id = p.id;
     item.innerHTML = `<div class="pkg-dot" style="background:${p.color}"></div>
       <div class="pkg-info"><div class="pkg-name">${p.name}</div>
-      <div class="pkg-dim">${p.dims[0]}×${p.dims[1]}×${p.dims[2]} mm${p.weight>0?` · ${p.weight} kg`:''}</div></div>`;
+      <div class="pkg-dim">${fmtLen(p.dims[0])}×${fmtLen(p.dims[1])}×${fmtLen(p.dims[2])}${p.weight>0?` · ${fmtWeight(p.weight)}`:''}</div></div>`;
     item.addEventListener('click', () => {
       manSelPkg = p; manFaceIdx = 0; manFlipped = false;
       document.querySelectorAll('#manPkgList .pkg-item').forEach(i=>i.classList.remove('selected'));
@@ -1084,7 +1285,7 @@ function updateManStats(r) {
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('rTotal').textContent=r.count;
   document.getElementById('rLayers').textContent=r.layers;
-  document.getElementById('rHeight').textContent=r.totalH;
+  document.getElementById('rHeight').textContent=lenVal(r.totalH);
   document.getElementById('rLeft').textContent=0;
   const np=r.numPallets||1;
   document.getElementById('rPallets').textContent=np;
@@ -2103,7 +2304,7 @@ window.calculate=function(){
 
   document.getElementById('rTotal').textContent=res.count;
   document.getElementById('rLayers').textContent=res.layers||0;
-  document.getElementById('rHeight').textContent=res.totalH||'—';
+  document.getElementById('rHeight').textContent=res.totalH?lenVal(res.totalH):'—';
   document.getElementById('sPerLayer').style.display='none';
   document.getElementById('rLeft').textContent=totalLeft;
   document.getElementById('rPallets').textContent=numPallets;
@@ -2209,7 +2410,7 @@ canvas.addEventListener('mousemove',e=>{
   }
   if(!drag)return;
   const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
-  if(rmb){camTheta-=dx*.007;camPhi=Math.max(-1.4,Math.min(1.3,camPhi+dy*.007));}
+  if(rmb){const nm=navMul();camTheta-=nm.t*dx*.007;camPhi=Math.max(-1.4,Math.min(1.3,camPhi+nm.p*dy*.007));}
   else{panX+=dx*1.8;panY+=dy*1.8;}
   if(lastRes)draw3D(lastRes);
 });
@@ -2275,12 +2476,14 @@ canvas.addEventListener('touchmove',e=>{
       const db=Math.hypot(b.clientX-pb.x,b.clientY-pb.y);
       if(da<3&&db>=3){
         // a anchored → b controls orbit
-        camTheta-=(b.clientX-pb.x)*.007;
-        camPhi=Math.max(-1.4,Math.min(1.3,camPhi+(b.clientY-pb.y)*.007));
+        const nm=navMul();
+        camTheta-=nm.t*(b.clientX-pb.x)*.007;
+        camPhi=Math.max(-1.4,Math.min(1.3,camPhi+nm.p*(b.clientY-pb.y)*.007));
       } else if(db<3&&da>=3){
         // b anchored → a controls orbit
-        camTheta-=(a.clientX-pa.x)*.007;
-        camPhi=Math.max(-1.4,Math.min(1.3,camPhi+(a.clientY-pa.y)*.007));
+        const nm=navMul();
+        camTheta-=nm.t*(a.clientX-pa.x)*.007;
+        camPhi=Math.max(-1.4,Math.min(1.3,camPhi+nm.p*(a.clientY-pa.y)*.007));
       } else {
         // both moving → zoom + pan
         const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
@@ -2351,7 +2554,7 @@ function showBoxActionPanel(idx){
   if(idx<0||idx>=manBoxes.length)return;
   const b=manBoxes[idx];
   const p=PKGS.find(q=>q.id===b.pkgId);
-  document.getElementById('bapName').textContent=(p?.name||'Karton')+` — ${b.w}×${b.d}×${b.h} mm`;
+  document.getElementById('bapName').textContent=(p?.name||'Karton')+` — ${fmtLen(b.w)}×${fmtLen(b.d)}×${fmtLen(b.h)}`;
   document.getElementById('boxActionPanel').style.display='block';
 }
 function hideBoxActionPanel(){
@@ -2679,7 +2882,7 @@ function makeHeightLabel3D(palLabel,palH,x,z,labelW){
   c2.textBaseline='middle';
   c2.fillText(topLine,cw/2,ch*.32);
   c2.font=`bold ${Math.floor(ch*.40)}px Segoe UI`;
-  c2.fillText(palH+' mm',cw/2,ch*.70);
+  c2.fillText(fmtLen(palH),cw/2,ch*.70);
   const tex=new THREE.CanvasTexture(cv);
   const geo=new THREE.PlaneGeometry(lw,lw*(ch/cw));
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide});
@@ -2809,8 +3012,8 @@ function draw3D(res){
 function buildLegend(res,mode){
   const leg=document.getElementById('legend');
   const usedIds=new Set(res.placements.map(p=>p.pkgId));
-  let html='<div style="font-weight:700;margin-bottom:5px;">Legenda</div>';
-  html+=`<div class="lr"><div class="ls" style="background:#c8a86a"></div>Europaleta 1200×800 mm</div>`;
+  let html=`<div style="font-weight:700;margin-bottom:5px;">${SETTINGS.lang==='en'?'Legend':'Legenda'}</div>`;
+  html+=`<div class="lr"><div class="ls" style="background:#c8a86a"></div>${palLabel(PAL.W,PAL.D)}</div>`;
   PKGS.filter(p=>usedIds.has(p.id)).forEach(p=>{
     const grp=res.groups?.find(g=>g.pkgId===p.id);
     const cnt=grp?grp.placed:res.count;
@@ -2919,7 +3122,7 @@ function buildVehicleSavedLists(){
       d.innerHTML=`<div class="spal-dot" style="background:${pal.color}"></div>
         <div class="spal-info">
           <div class="spal-name">${pal.name}</div>
-          <div class="spal-dim">${pal.palW}×${pal.palD} mm · wys.${pal.totalH} mm · ${pal.count} paczek/paletę${(pal.numPallets||1)>1?' · <b style="color:var(--accent-h)">zestaw '+(pal.numPallets)+' palet</b>':''}</div>
+          <div class="spal-dim">${fmtLen(pal.palW)}×${fmtLen(pal.palD)} · ${SETTINGS.lang==='en'?'h.':'wys.'}${fmtLen(pal.totalH)} · ${pal.count} ${SETTINGS.lang==='en'?'pcs/pallet':'paczek/paletę'}${(pal.numPallets||1)>1?` · <b style="color:var(--accent-h)">${SETTINGS.lang==='en'?'set of '+(pal.numPallets)+' pallets':'zestaw '+(pal.numPallets)+' palet'}</b>`:''}</div>
         </div>
         <div class="spal-qty-wrap"><label>szt.:</label>
           <input class="spal-qty" type="number" id="${p}_qty_${pal.id}" value="1" min="0" max="99" inputmode="numeric"/></div>
@@ -3372,10 +3575,10 @@ function drawVehicle3D(type){
       sp.scale.set(dsc,dsc*(ch/cw),1);sp.position.set(x,y,z);sp.renderOrder=3;
       tv.scene.add(sp);tv.staticObjects.push(sp);
     }
-    const mm=v=>Math.round(v)+' mm';
-    dimSpr('Dł.: '+mm(VL),  -VW*.5, VH*.1,  VL/2);
-    dimSpr('Szer.: '+mm(VW), VW/2,  VH*.1, -VW*.5);
-    dimSpr('Wys.: '+mm(VH), -VW*.5, VH/2,   VL*.05);
+    const _en=SETTINGS.lang==='en';
+    dimSpr((_en?'L: ':'Dł.: ')+fmtLen(VL),  -VW*.5, VH*.1,  VL/2);
+    dimSpr((_en?'W: ':'Szer.: ')+fmtLen(VW), VW/2,  VH*.1, -VW*.5);
+    dimSpr((_en?'H: ':'Wys.: ')+fmtLen(VH), -VW*.5, VH/2,   VL*.05);
 
     // pallets and loose cartons at their actual positions inside the vehicle
     if(vs.result?.placements?.length){
@@ -3444,7 +3647,7 @@ function _initVehicleCanvas(type){
   window.addEventListener('mousemove',e=>{
     if(!drag)return;
     const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
-    if(rmb){cam.theta-=dx*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+dy*.007));}
+    if(rmb){const nm=navMul();cam.theta-=nm.t*dx*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+nm.p*dy*.007));}
     else{cam.panX+=dx*1.8;cam.panY+=dy*1.8;}
     drawVehicle3D(type);
   });
@@ -3469,8 +3672,8 @@ function _initVehicleCanvas(type){
       if(pa&&pb){
         const da=Math.hypot(a.clientX-pa.x,a.clientY-pa.y);
         const db=Math.hypot(b.clientX-pb.x,b.clientY-pb.y);
-        if(da<3&&db>=3){cam.theta-=(b.clientX-pb.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+(b.clientY-pb.y)*.007));}
-        else if(db<3&&da>=3){cam.theta-=(a.clientX-pa.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+(a.clientY-pa.y)*.007));}
+        if(da<3&&db>=3){const nm=navMul();cam.theta-=nm.t*(b.clientX-pb.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+nm.p*(b.clientY-pb.y)*.007));}
+        else if(db<3&&da>=3){const nm=navMul();cam.theta-=nm.t*(a.clientX-pa.x)*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+nm.p*(a.clientY-pa.y)*.007));}
         else{
           const mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;
           const pmx=(pa.x+pb.x)/2,pmy=(pa.y+pb.y)/2;
@@ -3499,6 +3702,10 @@ window.addEventListener('resize',()=>{
 buildVehicleSavedLists();
 _initVehicleCanvas('naczepa');
 _initVehicleCanvas('kontener');
+
+// Apply saved language/units to the whole UI on startup
+applyI18n();
+if(SETTINGS.units!=='metric'){try{refreshAllDisplays();}catch(e){}}
 </script>
 <div id="toast-msg"></div>
 <script>
