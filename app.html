@@ -912,6 +912,7 @@ function updatePalPresetBtns(){
 let isAddMode = false;
 let selectedBoxIdx = -1;
 let isDragMode = false;
+let dragGhostX = null, dragGhostY = PAL.H, dragGhostZ = null;
 let drawerOpen = false;
 
 function toggleAddMode() {
@@ -927,7 +928,7 @@ function toggleAddMode() {
     document.getElementById('manHint').style.display = 'none';
   }
   selectedBoxIdx = -1;
-  isDragMode = false;
+  isDragMode = false; dragGhostX = null;
   hideBoxActionPanel();
   hideRotPopup();
   updateAddModeOverlay();
@@ -953,7 +954,7 @@ function quickAddBox(pkgId) {
   document.getElementById('manActionBar').style.display = '';
   document.getElementById('manHint').textContent = `Kliknij na paletę aby dodać: ${pkg.name}`;
   document.getElementById('manHint').style.display = 'block';
-  selectedBoxIdx = -1; isDragMode = false;
+  selectedBoxIdx = -1; isDragMode = false; dragGhostX = null;
   hideBoxActionPanel(); hideRotPopup();
   _initMobileGhost();
   updateAddModeOverlay();
@@ -2333,7 +2334,7 @@ window.calculate=function(){
 
   // Load result into mutable manBoxes for interactive editing
   manBoxes=res.placements.map(p=>({...p}));
-  selectedBoxIdx=-1; isDragMode=false;
+  selectedBoxIdx=-1; isDragMode=false; dragGhostX=null;
   hideBoxActionPanel();
   manGhostX=null;manGhostY=PAL.H;
 
@@ -2404,7 +2405,7 @@ canvas.addEventListener('mousemove',e=>{
       const surf=manSurfAtExcl(p0.x,p0.z,b.w,b.d,selectedBoxIdx);
       const w=surf>PAL.H ? manHoverToWorld(e,surf+b.h/2)||wg : wg;
       const p=manSnapPos(w.x,w.z,b.w,b.d,selectedBoxIdx);
-      b.x=p.x; b.z=p.z; b.y=surf;
+      dragGhostX=p.x; dragGhostZ=p.z; dragGhostY=surf;
     }
     if(lastRes)draw3D(lastRes); return;
   }
@@ -2431,10 +2432,13 @@ canvas.addEventListener('mouseup',e=>{
           if(i>=0){manBoxes.splice(i,1);manHoverRemoveIdx=-1;selectedBoxIdx=-1;hideBoxActionPanel();refreshManual();}
         } else { const w=manEventToWorld(e); if(w) manPlace(w.x,w.z); }
       } else if(isDragMode && selectedBoxIdx>=0){
-        // drop: snap y to proper surface
-        const b=manBoxes[selectedBoxIdx];
-        const wy=manSurfAtExcl(b.x,b.z,b.w,b.d,selectedBoxIdx);
-        b.y=wy; isDragMode=false;
+        // drop: commit ghost position to box
+        if(dragGhostX!==null){
+          const b=manBoxes[selectedBoxIdx];
+          b.x=dragGhostX; b.z=dragGhostZ;
+          b.y=manSurfAtExcl(b.x,b.z,b.w,b.d,selectedBoxIdx);
+        }
+        dragGhostX=null; isDragMode=false;
         document.getElementById('bapDragBtn').classList.remove('active');
         document.getElementById('manHint').style.display='none';
         refreshManual(); showBoxActionPanel(selectedBoxIdx);
@@ -2559,7 +2563,7 @@ function showBoxActionPanel(idx){
 }
 function hideBoxActionPanel(){
   document.getElementById('boxActionPanel').style.display='none';
-  isDragMode=false;
+  isDragMode=false; dragGhostX=null;
   const d=document.getElementById('bapDragBtn');if(d)d.classList.remove('active');
 }
 
@@ -2625,7 +2629,10 @@ window.bapRemove=function(){
 
 window.bapStartDrag=function(){
   if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  dragGhostX=b.x; dragGhostY=b.y; dragGhostZ=b.z;
   isDragMode=true;
+  rmb=false; // reset stale right-click state
   document.getElementById('boxActionPanel').style.display='none';
   document.getElementById('bapDragBtn').classList.add('active');
   document.getElementById('manHint').textContent='Przesuń nad nowe miejsce i kliknij';
@@ -2986,10 +2993,10 @@ function draw3D(res){
     }
     if(dm){t3.scene.add(dm);t3.dynObjects.push(dm);}
   }
-  if(isDragMode&&selectedBoxIdx>=0&&selectedBoxIdx<manBoxes.length){
+  if(isDragMode&&dragGhostX!==null&&selectedBoxIdx>=0&&selectedBoxIdx<manBoxes.length){
     if(_t3BoxMeshes[selectedBoxIdx])_t3BoxMeshes[selectedBoxIdx].visible=false;
     const b=manBoxes[selectedBoxIdx];
-    const gm=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color,0.42);
+    const gm=makeBox3D(dragGhostX,dragGhostY,dragGhostZ,b.w,b.h,b.d,b.color,0.42);
     t3.scene.add(gm);t3.dynObjects.push(gm);
   }
 
