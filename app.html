@@ -3034,7 +3034,7 @@ function makeHeightLabel3D(palLabel,palH,x,z,labelW){
   c2.beginPath();c2.roundRect(0,0,cw,ch,22);c2.fill();
   c2.fillStyle='#ffffff';
   c2.textAlign='center';
-  const topLine=palLabel?palLabel+' – Wysokość':'Wysokość';
+  const topLine=palLabel?palLabel+' – '+t('st_height'):t('st_height');
   c2.font=`${Math.floor(ch*.26)}px Segoe UI`;
   c2.textBaseline='middle';
   c2.fillText(topLine,cw/2,ch*.32);
