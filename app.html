@@ -123,6 +123,9 @@
     .bap-btn-drag.active{background:rgba(59,130,246,.35);border-color:var(--accent);color:#fff}
     .bap-btn-del{background:var(--red-dim);color:var(--red);border-color:rgba(248,113,113,.2)}
     .bap-btn-del:hover{background:var(--red);color:#fff}
+    /* VEHICLE EDIT PANEL + HINT (shared by trailer/container) */
+    #vehBoxPanel{position:fixed;bottom:74px;right:18px;background:rgba(10,18,34,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.11);border-radius:var(--rl);padding:10px 12px;z-index:60;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:none}
+    #vehHint{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:rgba(10,18,34,.92);backdrop-filter:blur(8px);color:var(--text);padding:7px 16px;border-radius:20px;font-size:.75rem;font-weight:600;pointer-events:none;white-space:nowrap;display:none;border:1px solid rgba(255,255,255,.07);z-index:60}
 
     /* ROTATION POPUP (ghost during manual add) */
     #rotPopup{position:absolute;z-index:60;background:rgba(10,18,34,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:var(--rl);padding:9px 10px;box-shadow:0 8px 32px rgba(0,0,0,.6);min-width:172px;display:none}
@@ -785,6 +788,7 @@ const I18N = {
     add_pkg:'+ Dodaj nowy karton', calc:'Oblicz i wizualizuj',
     rot_orient:'Orientacja',
     veh_arrange:'Ułóż ładunek automatycznie',
+    veh_move_hint:'Przesuń nad nowe miejsce i kliknij',
     handle_label:'Wybierz kartony & oblicz',
     // params labels
     lbl_maxh:'Max. wysokość (mm)', lbl_margin:'Margines (mm / stronę)',
@@ -839,6 +843,7 @@ const I18N = {
     add_pkg:'+ Add new box', calc:'Calculate & visualise',
     rot_orient:'Orientation',
     veh_arrange:'Arrange load automatically',
+    veh_move_hint:'Move over a new spot and click',
     handle_label:'Pick boxes & calculate',
     // params labels
     lbl_maxh:'Max. height (mm)', lbl_margin:'Margin (mm / side)',
@@ -3223,6 +3228,15 @@ const vCam={
 let t3v={naczepa:null,kontener:null};
 let _lastVRes={naczepa:null,kontener:null};
 let _lastVDims={naczepa:'',kontener:''};
+// ─── Manual edit state for vehicle views ───
+let vSel={naczepa:-1,kontener:-1};       // selected placement index
+let vDrag={naczepa:false,kontener:false};// drag (move) mode active
+let vGhost={naczepa:null,kontener:null}; // {x,z} ghost position during drag
+let vActiveType='naczepa';               // which vehicle the action panel controls
+const _vRay=new THREE.Raycaster();
+const _vHitGeo=new THREE.BoxGeometry(1,1,1);          // shared geo for invisible hit boxes
+const _vHitMat=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+function _vInvalidate(type){_lastVRes[type]=null;} // force static rebuild after edit
 
 function switchMainTab(tab){
   ['paleta','naczepa','kontener'].forEach(t=>
@@ -3232,6 +3246,7 @@ function switchMainTab(tab){
   document.getElementById('drawer').style.display=isPal?'':'none';
   document.getElementById('paneNaczepa').style.display=tab==='naczepa'?'block':'none';
   document.getElementById('paneKontener').style.display=tab==='kontener'?'block':'none';
+  _vResetEdit('naczepa');_vResetEdit('kontener');
   if(!isPal){buildVehicleSavedLists();requestAnimationFrame(()=>drawVehicle3D(tab));}
 }
 
@@ -3242,7 +3257,7 @@ function toggleVSidebar(type){
 function setVehiclePreset(type,L,W,H,btn){
   const p=type==='naczepa'?'nacz':'kont';
   vehicleState[type].L=L;vehicleState[type].W=W;vehicleState[type].H=H;
-  vehicleState[type].result=null;
+  vehicleState[type].result=null;_vResetEdit(type);
   document.getElementById(p+'L').value=L;
   document.getElementById(p+'W').value=W;
   document.getElementById(p+'H').value=H;
@@ -3258,7 +3273,7 @@ function applyVehicleDims(type){
   vehicleState[type].L=Math.max(1000,parseInt(document.getElementById(p+'L').value)||13600);
   vehicleState[type].W=Math.max(500, parseInt(document.getElementById(p+'W').value)||2480);
   vehicleState[type].H=Math.max(500, parseInt(document.getElementById(p+'H').value)||3000);
-  vehicleState[type].result=null;
+  vehicleState[type].result=null;_vResetEdit(type);
   document.getElementById(p+'Stats').style.display='none';
   document.getElementById(p+'WarnBar').style.display='none';
   document.querySelectorAll(`#${p}Presets .btn-preset`).forEach(b=>b.classList.remove('active'));
@@ -3312,6 +3327,7 @@ function buildVehicleSavedLists(){
 function arrangeVehicle(type){
   const p=type==='naczepa'?'nacz':'kont';
   const vs=vehicleState[type];
+  _vResetEdit(type);
   vs.L=Math.max(1000,parseInt(document.getElementById(p+'L').value)||vs.L);
   vs.W=Math.max(500, parseInt(document.getElementById(p+'W').value)||vs.W);
   vs.H=Math.max(500, parseInt(document.getElementById(p+'H').value)||vs.H);
@@ -3675,7 +3691,7 @@ function initVehicleThreeJS(type){
   bgc.fillStyle=bgg;bgc.fillRect(0,0,2,256);
   scene.background=new THREE.CanvasTexture(bg);
   const camera=new THREE.PerspectiveCamera(42,1,1,500000);
-  t3v[type]={r,scene,camera,staticObjects:[]};
+  t3v[type]={r,scene,camera,staticObjects:[],dynObjects:[],placeMeshes:[],hitMeshes:[]};
 }
 
 function drawVehicle3D(type){
@@ -3738,22 +3754,19 @@ function drawVehicle3D(type){
     dimSpr((_en?'H: ':'Wys.: ')+fmtLen(VH), -VW*.5, VH/2,   VL*.05);
 
     // pallets and loose cartons at their actual positions inside the vehicle
+    tv.placeMeshes=[];tv.hitMeshes=[];
     if(vs.result?.placements?.length){
       const PH=PAL.H;
-      vs.result.placements.forEach(pp=>{
+      vs.result.placements.forEach((pp,i)=>{
+        const pmList=[];
+        const add=m=>{m.userData.vIdx=i;tv.scene.add(m);tv.staticObjects.push(m);pmList.push(m);};
         const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
         // Skip the wooden pallet base for loose carton stacks
         if(!pp.isCarton){
-          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>{
-            const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
-            tv.scene.add(m);tv.staticObjects.push(m);
-          });
+          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>add(makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color)));
           // Extra bases for stacked pallets (one base per stacked level)
           (pp.extraBases||[]).forEach(yOff=>{
-            _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD,yOff).forEach(b=>{
-              const m=makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color);
-              tv.scene.add(m);tv.staticObjects.push(m);
-            });
+            _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD,yOff).forEach(b=>add(makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color)));
           });
         }
         if(pkgList?.length){
@@ -3761,30 +3774,155 @@ function drawVehicle3D(type){
             let px,pz,pw2,pd;
             if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw2=pkg.d;pd=pkg.w;}
             else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw2=pkg.w;pd=pkg.d;}
-            const m=pkg.shape==='cylinder'
+            add(pkg.shape==='cylinder'
               ?makeCylinder3D(px,pkg.y,pz,pw2,pkg.h,pkg.color)
-              :makeBox3D(px,pkg.y,pz,pw2,pkg.h,pd,pkg.color);
-            tv.scene.add(m);tv.staticObjects.push(m);
+              :makeBox3D(px,pkg.y,pz,pw2,pkg.h,pd,pkg.color));
           });
         } else {
-          const m=makeBox3D(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38');
-          tv.scene.add(m);tv.staticObjects.push(m);
-          if(pp.totalH>PH){
-            const m2=makeBox3D(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color);
-            tv.scene.add(m2);tv.staticObjects.push(m2);
-          }
+          add(makeBox3D(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38'));
+          if(pp.totalH>PH)add(makeBox3D(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color));
         }
+        tv.placeMeshes[i]=pmList;
+        // invisible hit box spanning the whole footprint × height for click selection
+        const hh=Math.max(pp.totalH,PH);
+        const hb=new THREE.Mesh(_vHitGeo,_vHitMat);
+        hb.scale.set(pp.palW,hh,pp.palD);
+        hb.position.set(pp.x+pp.palW/2,hh/2,pp.z+pp.palD/2);
+        hb.userData.vIdx=i;
+        tv.scene.add(hb);tv.staticObjects.push(hb);tv.hitMeshes.push(hb);
       });
     }
 
     _lastVRes[type]=vs.result;
     _lastVDims[type]=_vDimKey;
   }
+
+  // ─── dynamic overlay: selection highlight + drag ghost ───
+  tv.dynObjects.forEach(o=>{tv.scene.remove(o);if(o.userData._disposeGeo)o.geometry?.dispose();});
+  tv.dynObjects=[];
+  const sel=vSel[type], placements=vs.result?.placements;
+  // hide the selected item's real meshes while dragging it
+  (tv.placeMeshes||[]).forEach((arr,i)=>(arr||[]).forEach(m=>{if(m)m.visible=!(vDrag[type]&&sel===i);}));
+  if(placements&&sel>=0&&sel<placements.length){
+    const pp=placements[sel];
+    const hh=Math.max(pp.totalH,PAL.H);
+    if(!vDrag[type]){
+      // selection outline
+      const em=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(pp.palW+8,hh+8,pp.palD+8)),
+        new THREE.LineBasicMaterial({color:0x60a5fa,transparent:true,opacity:.95}));
+      em.position.set(pp.x+pp.palW/2,hh/2,pp.z+pp.palD/2);
+      em.userData._disposeGeo=true;
+      tv.scene.add(em);tv.dynObjects.push(em);
+    } else if(vGhost[type]){
+      // translucent ghost following the cursor (uses cached geo — don't dispose)
+      const g=vGhost[type];
+      const gm=makeBox3D(g.x,0,g.z,pp.palW,hh,pp.palD,pp.color||'#3b82f6',0.42);
+      tv.scene.add(gm);tv.dynObjects.push(gm);
+    }
+  }
   tv.r.render(tv.scene,tv.camera);
 }
 
 function vCamZoom(type,f){vCam[type].zoom=Math.max(.2,Math.min(5,vCam[type].zoom*f));drawVehicle3D(type);}
 function vCamReset(type){vCam[type].theta=0.35;vCam[type].phi=-0.30;vCam[type].zoom=1;vCam[type].panX=0;vCam[type].panY=0;drawVehicle3D(type);}
+
+// ─── VEHICLE MANUAL EDIT (select / move / rotate / delete) ───
+function _vCanvas(type){return document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');}
+function _vNDC(type,clientX,clientY){
+  const cv=_vCanvas(type),rect=cv.getBoundingClientRect();
+  return new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1,-((clientY-rect.top)/rect.height)*2+1);
+}
+// raycast against hit boxes → placement index (or -1)
+function _vPick(type,clientX,clientY){
+  const tv=t3v[type];if(!tv||!tv.hitMeshes)return -1;
+  _vRay.setFromCamera(_vNDC(type,clientX,clientY),tv.camera);
+  const hits=_vRay.intersectObjects(tv.hitMeshes.filter(m=>m.visible));
+  return hits.length?(hits[0].object.userData.vIdx??-1):-1;
+}
+// raycast against the floor plane (y=0) → vehicle world {x,z}
+function _vFloorPoint(type,clientX,clientY){
+  const tv=t3v[type];if(!tv)return null;
+  _vRay.setFromCamera(_vNDC(type,clientX,clientY),tv.camera);
+  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+  const pt=new THREE.Vector3();
+  return _vRay.ray.intersectPlane(plane,pt)?pt:null;
+}
+function _vResetEdit(type){
+  vSel[type]=-1; vDrag[type]=false; vGhost[type]=null;
+  const p=document.getElementById('vehBoxPanel'); if(p)p.style.display='none';
+  const h=document.getElementById('vehHint'); if(h)h.style.display='none';
+}
+function _vShowPanel(type){
+  const placements=vehicleState[type].result?.placements;
+  const idx=vSel[type];
+  if(!placements||idx<0||idx>=placements.length){document.getElementById('vehBoxPanel').style.display='none';return;}
+  vActiveType=type;
+  document.getElementById('vbpName').textContent=placements[idx].name||(placements[idx].isCarton?t('veh_loose'):t('st_pallets'));
+  document.getElementById('vbpDragBtn').classList.remove('active');
+  document.getElementById('vehBoxPanel').style.display='block';
+}
+function vehSelect(type,idx){
+  vSel[type]=idx; vDrag[type]=false; vGhost[type]=null;
+  document.getElementById('vehHint').style.display='none';
+  _vShowPanel(type);
+  drawVehicle3D(type);
+}
+function vehDeselect(type){
+  vSel[type]=-1; vDrag[type]=false; vGhost[type]=null;
+  document.getElementById('vehBoxPanel').style.display='none';
+  document.getElementById('vehHint').style.display='none';
+  drawVehicle3D(type);
+}
+window.vehDeselect=vehDeselect;
+window.vbpDrag=function(){
+  const type=vActiveType, placements=vehicleState[type].result?.placements, idx=vSel[type];
+  if(!placements||idx<0)return;
+  const pp=placements[idx];
+  vDrag[type]=true; vGhost[type]={x:pp.x,z:pp.z};
+  document.getElementById('vehBoxPanel').style.display='none';
+  document.getElementById('vehHint').style.display='block';
+  drawVehicle3D(type);
+};
+window.vbpRotate=function(){
+  const type=vActiveType, vs=vehicleState[type], placements=vs.result?.placements, idx=vSel[type];
+  if(!placements||idx<0)return;
+  const pp=placements[idx];
+  [pp.palW,pp.palD]=[pp.palD,pp.palW];
+  pp.rotated=!pp.rotated;
+  pp.x=Math.max(0,Math.min(vs.W-pp.palW,pp.x));
+  pp.z=Math.max(0,Math.min(vs.L-pp.palD,pp.z));
+  _vInvalidate(type); _vRefreshStats(type); _vShowPanel(type); drawVehicle3D(type);
+};
+window.vbpRemove=function(){
+  const type=vActiveType, placements=vehicleState[type].result?.placements, idx=vSel[type];
+  if(!placements||idx<0)return;
+  placements.splice(idx,1);
+  vSel[type]=-1; vDrag[type]=false;
+  document.getElementById('vehBoxPanel').style.display='none';
+  _vInvalidate(type); _vRefreshStats(type); drawVehicle3D(type);
+};
+// commit a drag-move: place item at ghost position
+function _vDrop(type){
+  const vs=vehicleState[type], placements=vs.result?.placements, idx=vSel[type], g=vGhost[type];
+  if(placements&&idx>=0&&g){
+    const pp=placements[idx];
+    pp.x=Math.max(0,Math.min(vs.W-pp.palW,g.x));
+    pp.z=Math.max(0,Math.min(vs.L-pp.palD,g.z));
+  }
+  vDrag[type]=false; vGhost[type]=null;
+  document.getElementById('vehHint').style.display='none';
+  _vInvalidate(type); drawVehicle3D(type); _vShowPanel(type);
+}
+// update the stats bar after a structural edit
+function _vRefreshStats(type){
+  const p=type==='naczepa'?'nacz':'kont';
+  const vs=vehicleState[type], placements=vs.result?.placements||[];
+  const nPal=placements.filter(pp=>!pp.isCarton).length;
+  const nCar=placements.filter(pp=>pp.isCarton).length;
+  document.getElementById(p+'StatPal').textContent=nCar>0?(nPal>0?`${nPal}p+${nCar}k`:nCar):nPal;
+  const util=Math.round(placements.reduce((s,pp)=>s+pp.palW*pp.palD,0)/(vs.L*vs.W)*100);
+  document.getElementById(p+'StatUtil').textContent=util+'%';
+}
 
 // RAF throttle — only one draw per animation frame regardless of event rate
 const _vRaf={naczepa:0,kontener:0};
@@ -3797,24 +3935,42 @@ drawVehicle3D=function(type){
 function _initVehicleCanvas(type){
   const cv=document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');
   const cam=vCam[type];
-  // mouse: left=pan, right=orbit
-  let drag=false,lmx=0,lmy=0,rmb=false;
-  cv.addEventListener('mousedown',e=>{drag=true;lmx=e.clientX;lmy=e.clientY;rmb=e.button===2;});
+  // mouse: left=pan, right=orbit; click=select; drag-mode=move ghost
+  let drag=false,lmx=0,lmy=0,rmb=false,tapStart=null;
+  cv.addEventListener('mousedown',e=>{drag=true;lmx=e.clientX;lmy=e.clientY;rmb=e.button===2;tapStart={x:e.clientX,y:e.clientY};});
   cv.addEventListener('contextmenu',e=>e.preventDefault());
+  // ghost positioning while in move mode — fires regardless of button held
+  function _updateGhost(e){
+    const pt=_vFloorPoint(type,e.clientX,e.clientY);
+    if(pt){const pp=vehicleState[type].result.placements[vSel[type]];
+      vGhost[type]={x:pt.x-pp.palW/2,z:pt.z-pp.palD/2};}
+    drawVehicle3D(type);
+  }
   window.addEventListener('mousemove',e=>{
+    if(vDrag[type]&&!rmb&&vSel[type]>=0){_updateGhost(e);return;}
     if(!drag)return;
     const dx=e.clientX-lmx,dy=e.clientY-lmy;lmx=e.clientX;lmy=e.clientY;
     if(rmb){const nm=navMul();cam.theta-=nm.t*dx*.007;cam.phi=Math.max(-1.4,Math.min(1.3,cam.phi+nm.p*dy*.007));}
     else{cam.panX+=dx*1.8;cam.panY+=dy*1.8;}
     drawVehicle3D(type);
   });
-  window.addEventListener('mouseup',()=>drag=false);
+  window.addEventListener('mouseup',e=>{
+    const wasTap=tapStart&&Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)<6;
+    if(vDrag[type]){ if(wasTap&&!rmb)_vDrop(type); drag=false;tapStart=null;return; }
+    if(wasTap&&!rmb&&document.getElementById(type==='naczepa'?'paneNaczepa':'paneKontener').style.display!=='none'){
+      const idx=_vPick(type,e.clientX,e.clientY);
+      if(idx>=0)vehSelect(type,idx); else vehDeselect(type);
+    }
+    drag=false;tapStart=null;
+  });
   cv.addEventListener('wheel',e=>{e.preventDefault();cam.zoom=Math.max(0.15,Math.min(5,cam.zoom*(e.deltaY>0?.92:1.087)));drawVehicle3D(type);},{passive:false});
-  // touch: 1-finger=pan, 2-finger pinch=zoom+pan, anchor-finger=orbit
-  let tpts={},pinch0=null;
+  // touch: 1-finger=pan, 2-finger pinch=zoom+pan, anchor-finger=orbit; tap=select; move-mode=drag
+  let tpts={},pinch0=null,tTapStart=null;
   cv.addEventListener('touchstart',e=>{
     e.preventDefault();
     Array.from(e.changedTouches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
+    if(e.touches.length===1)tTapStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    else tTapStart=null;
     if(e.touches.length===2){
       Array.from(e.touches).forEach(t=>tpts[t.identifier]={x:t.clientX,y:t.clientY});
       const[a,b]=[e.touches[0],e.touches[1]];pinch0=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
@@ -3822,6 +3978,11 @@ function _initVehicleCanvas(type){
   },{passive:false});
   cv.addEventListener('touchmove',e=>{
     e.preventDefault();
+    if(vDrag[type]&&vSel[type]>=0&&e.touches.length===1){
+      const t=e.touches[0],pt=_vFloorPoint(type,t.clientX,t.clientY);
+      if(pt){const pp=vehicleState[type].result.placements[vSel[type]];vGhost[type]={x:pt.x-pp.palW/2,z:pt.z-pp.palD/2};}
+      drawVehicle3D(type);return;
+    }
     if(e.touches.length===2){
       const[a,b]=[e.touches[0],e.touches[1]];
       const d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
@@ -3848,7 +4009,16 @@ function _initVehicleCanvas(type){
     }
     drawVehicle3D(type);
   },{passive:false});
-  cv.addEventListener('touchend',e=>{Array.from(e.changedTouches).forEach(t=>delete tpts[t.identifier]);});
+  cv.addEventListener('touchend',e=>{
+    const ct=e.changedTouches[0];
+    const wasTap=tTapStart&&ct&&Math.hypot(ct.clientX-tTapStart.x,ct.clientY-tTapStart.y)<8&&e.touches.length===0;
+    Array.from(e.changedTouches).forEach(t=>delete tpts[t.identifier]);
+    if(wasTap){
+      if(vDrag[type]){_vDrop(type);}
+      else{const idx=_vPick(type,ct.clientX,ct.clientY); if(idx>=0)vehSelect(type,idx); else vehDeselect(type);}
+    }
+    tTapStart=null;
+  });
 }
 
 window.addEventListener('resize',()=>{
@@ -3864,6 +4034,17 @@ _initVehicleCanvas('kontener');
 applyI18n();
 if(SETTINGS.units!=='metric'){try{refreshAllDisplays();}catch(e){}}
 </script>
+<div id="vehHint" data-i18n="veh_move_hint">Przesuń nad nowe miejsce i kliknij</div>
+<div id="vehBoxPanel">
+  <div class="bap-name" id="vbpName">—</div>
+  <div class="bap-row">
+    <button class="bap-btn bap-btn-drag" id="vbpDragBtn" onclick="vbpDrag()" data-i18n="bap_drag">✋ Przesuń</button>
+    <button class="bap-btn" onclick="vbpRotate()" data-i18n="bap_rotate">⟳ Obróć</button>
+  </div>
+  <div class="bap-row">
+    <button class="bap-btn bap-btn-del" onclick="vbpRemove()" data-i18n="bap_remove">✕ Usuń</button>
+  </div>
+</div>
 <div id="toast-msg"></div>
 <script>
 let _toastTimer=null;
