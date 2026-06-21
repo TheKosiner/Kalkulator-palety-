@@ -414,11 +414,11 @@
   <div class="vsidebar" id="naczSidebar">
     <div class="vsidebar-handle" onclick="toggleVSidebar('naczepa')">
       <div class="pip"></div>
-      <span>Naczepa – ustawienia</span>
+      <span data-i18n="veh_handle_trailer">Naczepa – ustawienia</span>
       <span class="chev">▲</span>
     </div>
     <div class="vsidebar-content">
-      <div class="stitle">Typ naczepy</div>
+      <div class="stitle" data-i18n="veh_type_trailer">Typ naczepy</div>
       <div class="pal-preset" id="naczPresets">
         <button class="btn-preset active" onclick="setVehiclePreset('naczepa',13600,2480,3000,this)">Mega 13.6m</button>
         <button class="btn-preset" onclick="setVehiclePreset('naczepa',13600,2440,2720,this)">Standard</button>
@@ -426,22 +426,22 @@
         <button class="btn-preset" onclick="setVehiclePreset('naczepa',7200,2440,2700,this)">7.2m</button>
       </div>
       <div class="ctrl-row">
-        <div><label class="lbl">Długość wewn. (mm)</label>
+        <div><label class="lbl" data-i18n="lbl_int_len">Długość wewn. (mm)</label>
           <input type="number" id="naczL" value="13600" min="1000" max="25000" step="100" inputmode="numeric" onchange="applyVehicleDims('naczepa')"/></div>
-        <div><label class="lbl">Szerokość wewn. (mm)</label>
+        <div><label class="lbl" data-i18n="lbl_int_w">Szerokość wewn. (mm)</label>
           <input type="number" id="naczW" value="2480" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('naczepa')"/></div>
       </div>
-      <div class="ctrl-full"><label class="lbl">Wysokość wewn. (mm)</label>
+      <div class="ctrl-full"><label class="lbl" data-i18n="lbl_int_h">Wysokość wewn. (mm)</label>
         <input type="number" id="naczH" value="3000" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('naczepa')"/></div>
-      <div class="stitle" style="margin-top:14px">Palety do załadunku</div>
+      <div class="stitle" style="margin-top:14px" data-i18n="veh_pal_load">Palety do załadunku</div>
       <div id="naczPalList"></div>
-      <div id="naczNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
-      <div class="vsec-title">Kartony luzem</div>
+      <div id="naczNoPals" class="no-saved-msg" data-i18n-html="veh_no_pals">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
+      <div class="vsec-title" data-i18n="veh_loose">Kartony luzem</div>
       <div id="naczCartonList"></div>
-      <label class="opt-chk"><input type="checkbox" id="naczLoadOnPal"> Ładuj kartony na palety (jeśli jest miejsce)</label>
-      <label class="opt-chk"><input type="checkbox" id="naczCartonHigher"> Kartony luzem mogą być wyższe niż palety</label>
-      <div class="vsec-title" style="margin-top:10px">Opcje układania</div>
-      <label class="opt-chk"><input type="checkbox" id="naczStackPallets"> Palety mogą być układane jedna na drugą</label>
+      <label class="opt-chk"><input type="checkbox" id="naczLoadOnPal"> <span data-i18n="veh_load_on_pal">Ładuj kartony na palety (jeśli jest miejsce)</span></label>
+      <label class="opt-chk"><input type="checkbox" id="naczCartonHigher"> <span data-i18n="veh_higher">Kartony luzem mogą być wyższe niż palety</span></label>
+      <div class="vsec-title" style="margin-top:10px" data-i18n="veh_stack_opts">Opcje układania</div>
+      <label class="opt-chk"><input type="checkbox" id="naczStackPallets"> <span data-i18n="veh_stack_pal">Palety mogą być układane jedna na drugą</span></label>
       <button class="btn-calc" onclick="arrangeVehicle('naczepa')" style="margin-top:10px" data-i18n="veh_arrange">Ułóż ładunek automatycznie</button>
     </div>
   </div>
@@ -464,11 +464,11 @@
   <div class="vsidebar" id="kontSidebar">
     <div class="vsidebar-handle" onclick="toggleVSidebar('kontener')">
       <div class="pip"></div>
-      <span>Kontener – ustawienia</span>
+      <span data-i18n="veh_handle_container">Kontener – ustawienia</span>
       <span class="chev">▲</span>
     </div>
     <div class="vsidebar-content">
-      <div class="stitle">Typ kontenera (wymiary wewnętrzne)</div>
+      <div class="stitle" data-i18n="veh_type_container">Typ kontenera (wymiary wewnętrzne)</div>
       <div class="pal-preset" id="kontPresets">
         <button class="btn-preset active" onclick="setVehiclePreset('kontener',12032,2352,2698,this)">40′ HC</button>
         <button class="btn-preset" onclick="setVehiclePreset('kontener',12032,2352,2390,this)">40′ std</button>
@@ -476,22 +476,22 @@
         <button class="btn-preset" onclick="setVehiclePreset('kontener',13556,2352,2698,this)">45′ HC</button>
       </div>
       <div class="ctrl-row">
-        <div><label class="lbl">Długość wewn. (mm)</label>
+        <div><label class="lbl" data-i18n="lbl_int_len">Długość wewn. (mm)</label>
           <input type="number" id="kontL" value="12032" min="1000" max="25000" step="100" inputmode="numeric" onchange="applyVehicleDims('kontener')"/></div>
-        <div><label class="lbl">Szerokość wewn. (mm)</label>
+        <div><label class="lbl" data-i18n="lbl_int_w">Szerokość wewn. (mm)</label>
           <input type="number" id="kontW" value="2352" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('kontener')"/></div>
       </div>
-      <div class="ctrl-full"><label class="lbl">Wysokość wewn. (mm)</label>
+      <div class="ctrl-full"><label class="lbl" data-i18n="lbl_int_h">Wysokość wewn. (mm)</label>
         <input type="number" id="kontH" value="2698" min="500" max="5000" step="10" inputmode="numeric" onchange="applyVehicleDims('kontener')"/></div>
-      <div class="stitle" style="margin-top:14px">Palety do załadunku</div>
+      <div class="stitle" style="margin-top:14px" data-i18n="veh_pal_load">Palety do załadunku</div>
       <div id="kontPalList"></div>
-      <div id="kontNoPals" class="no-saved-msg">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
-      <div class="vsec-title">Kartony luzem</div>
+      <div id="kontNoPals" class="no-saved-msg" data-i18n-html="veh_no_pals">Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".</div>
+      <div class="vsec-title" data-i18n="veh_loose">Kartony luzem</div>
       <div id="kontCartonList"></div>
-      <label class="opt-chk"><input type="checkbox" id="kontLoadOnPal"> Ładuj kartony na palety (jeśli jest miejsce)</label>
-      <label class="opt-chk"><input type="checkbox" id="kontCartonHigher"> Kartony luzem mogą być wyższe niż palety</label>
-      <div class="vsec-title" style="margin-top:10px">Opcje układania</div>
-      <label class="opt-chk"><input type="checkbox" id="kontStackPallets"> Palety mogą być układane jedna na drugą</label>
+      <label class="opt-chk"><input type="checkbox" id="kontLoadOnPal"> <span data-i18n="veh_load_on_pal">Ładuj kartony na palety (jeśli jest miejsce)</span></label>
+      <label class="opt-chk"><input type="checkbox" id="kontCartonHigher"> <span data-i18n="veh_higher">Kartony luzem mogą być wyższe niż palety</span></label>
+      <div class="vsec-title" style="margin-top:10px" data-i18n="veh_stack_opts">Opcje układania</div>
+      <label class="opt-chk"><input type="checkbox" id="kontStackPallets"> <span data-i18n="veh_stack_pal">Palety mogą być układane jedna na drugą</span></label>
       <button class="btn-calc" onclick="arrangeVehicle('kontener')" style="margin-top:10px" data-i18n="veh_arrange">Ułóż ładunek automatycznie</button>
     </div>
   </div>
@@ -515,16 +515,16 @@
     <div class="stitle" style="margin-top:14px" data-i18n="sec_params">Parametry</div>
     <div class="ctrl-row">
       <div>
-        <label class="lbl">Max. wysokość (mm)</label>
+        <label class="lbl" data-i18n="lbl_maxh">Max. wysokość (mm)</label>
         <input type="number" id="maxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
       </div>
       <div>
-        <label class="lbl">Margines (mm / stronę)</label>
+        <label class="lbl" data-i18n="lbl_margin">Margines (mm / stronę)</label>
         <input type="number" id="margin" value="0" min="0" max="200" step="5" inputmode="numeric"/>
       </div>
     </div>
     <div class="ctrl-full">
-      <label class="lbl">Maks. liczba palet (nadmiar na kolejne)</label>
+      <label class="lbl" data-i18n="lbl_maxpal">Maks. liczba palet (nadmiar na kolejne)</label>
       <input type="number" id="maxPallets" value="1" min="1" max="20" inputmode="numeric"/>
     </div>
     <button class="btn-calc" onclick="calculate()" data-i18n="calc">Oblicz i wizualizuj</button>
@@ -532,37 +532,37 @@
     <!-- MANUAL ADD ACTION BUTTONS (shown when in add mode) -->
     <div id="manActionBar" style="display:none;margin-top:8px;display:none">
       <div class="man-action-row">
-        <button class="btn-man btn-undo" onclick="manUndo()">↩ Cofnij</button>
-        <button class="btn-man btn-clear" onclick="manClear()">🗑 Wyczyść</button>
+        <button class="btn-man btn-undo" onclick="manUndo()" data-i18n="man_undo">↩ Cofnij</button>
+        <button class="btn-man btn-clear" onclick="manClear()" data-i18n="man_clear">🗑 Wyczyść</button>
       </div>
       <div class="man-action-row" style="margin-top:6px">
-        <button class="btn-man btn-fill" onclick="manAutoFill()">⬛ Wypełnij</button>
-        <button class="btn-man btn-remove" id="btnRemove" onclick="manToggleRemove()">✕ Usuń</button>
+        <button class="btn-man btn-fill" onclick="manAutoFill()" data-i18n="man_fill">⬛ Wypełnij</button>
+        <button class="btn-man btn-remove" id="btnRemove" onclick="manToggleRemove()" data-i18n="man_remove_btn">✕ Usuń</button>
       </div>
     </div>
 
     <!-- PALLET DIMENSIONS (all modes) -->
     <div id="palSection">
       <div class="stitle" style="margin-top:18px" data-i18n="sec_paldims">Wymiary palety</div>
-      <button class="pal-edit-btn" id="palEditBtn" onclick="togglePalDims()">✏️ Edytuj wymiary</button>
+      <button class="pal-edit-btn" id="palEditBtn" onclick="togglePalDims()" data-i18n="pal_edit">✏️ Edytuj wymiary</button>
       <div id="palDimsBody" style="display:none;margin-top:10px">
         <div class="pal-preset">
           <button class="btn-preset active" id="presetEuro" onclick="setPalPreset(1200,800,144)">Euro 1200×800</button>
-          <button class="btn-preset" id="presetHalf" onclick="setPalPreset(800,600,144)">Pół 800×600</button>
+          <button class="btn-preset" id="presetHalf" onclick="setPalPreset(800,600,144)" data-i18n="pal_half">Pół 800×600</button>
           <button class="btn-preset" id="presetUS" onclick="setPalPreset(1219,1016,144)">US 48×40"</button>
         </div>
         <div class="ctrl-row">
           <div>
-            <label class="lbl">Szerokość (mm)</label>
+            <label class="lbl" data-i18n="lbl_palw">Szerokość (mm)</label>
             <input type="number" id="palW" value="1200" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
           </div>
           <div>
-            <label class="lbl">Długość (mm)</label>
+            <label class="lbl" data-i18n="lbl_pald">Długość (mm)</label>
             <input type="number" id="palD" value="800" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
           </div>
         </div>
         <div class="ctrl-full">
-          <label class="lbl">Wys. palety (mm)</label>
+          <label class="lbl" data-i18n="lbl_palh">Wys. palety (mm)</label>
           <input type="number" id="palH" value="144" min="50" max="500" step="1" inputmode="numeric" onchange="applyPalDims()"/>
         </div>
       </div>
@@ -574,14 +574,14 @@
 <!-- FACE PICKER POPUP -->
 <div class="hidden" id="facePickerModal" onclick="fpBgClick(event)">
   <div id="facePickerBox">
-    <div id="facePickerTitle">Ściana na górze</div>
+    <div id="facePickerTitle" data-i18n="fp_title">Ściana na górze</div>
     <div id="facePickerSub"></div>
     <canvas id="facePickerCanvas" width="190" height="190" style="cursor:pointer;border-radius:8px;background:#f4f7fb"></canvas>
-    <div id="facePickerHint">Kliknij ścianę · przeciągnij aby obrócić</div>
+    <div id="facePickerHint" data-i18n="fp_hint">Kliknij ścianę · przeciągnij aby obrócić</div>
     <div id="facePickerLabel">Auto</div>
     <div class="fp-btns">
       <button class="fp-btn fp-btn-auto" onclick="fpSetAuto()">Auto</button>
-      <button class="fp-btn fp-btn-close" onclick="closeFacePicker()">Zamknij</button>
+      <button class="fp-btn fp-btn-close" onclick="closeFacePicker()" data-i18n="fp_close">Zamknij</button>
     </div>
   </div>
 </div>
@@ -622,10 +622,10 @@
       <div class="set-label" data-i18n="set_lang">Język / Language</div>
       <div class="set-seg" id="setLang">
         <button class="set-opt" data-val="pl" onclick="setLang('pl')">
-          <span class="so-ico">🇵🇱</span><span class="so-txt"><span class="so-name">Polski</span></span>
+          <span class="so-ico" style="font-weight:800;font-size:.85rem;letter-spacing:-.02em">PL</span><span class="so-txt"><span class="so-name">Polski</span></span>
         </button>
         <button class="set-opt" data-val="en" onclick="setLang('en')">
-          <span class="so-ico">🇬🇧</span><span class="so-txt"><span class="so-name">English</span></span>
+          <span class="so-ico" style="font-weight:800;font-size:.85rem;letter-spacing:-.02em">EN</span><span class="so-txt"><span class="so-name">English</span></span>
         </button>
       </div>
     </div>
@@ -645,25 +645,25 @@
       <div class="modal-form">
         <input type="hidden" id="mType" value="box"/>
         <div class="modal-type-row">
-          <button class="modal-type-btn active" id="mTypeBox" onclick="setModalType('box')">&#x1F4E6; Karton</button>
-          <button class="modal-type-btn" id="mTypeCyl" onclick="setModalType('cylinder')">&#x1F6E2; Rolka/Beczka</button>
+          <button class="modal-type-btn active" id="mTypeBox" onclick="setModalType('box')" data-i18n="mtype_box">📦 Karton</button>
+          <button class="modal-type-btn" id="mTypeCyl" onclick="setModalType('cylinder')" data-i18n="mtype_cyl">🛢 Rolka/Beczka</button>
         </div>
         <div class="modal-row">
-          <label>Nazwa</label>
-          <input type="text" id="mName" placeholder="np. Karton XL" maxlength="48"/>
+          <label data-i18n="mlbl_name">Nazwa</label>
+          <input type="text" id="mName" data-i18n-ph="mph_name" placeholder="np. Karton XL" maxlength="48"/>
         </div>
         <div class="modal-row">
-          <label id="mDimLabel">Wymiary mm — Dł &times; Szer &times; Wys</label>
+          <label id="mDimLabel" data-i18n="mlbl_dims_box">Wymiary mm — Dł × Szer × Wys</label>
           <div class="modal-dims">
-            <input type="number" id="mDimA" placeholder="Dług." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
-            <input type="number" id="mDimB" placeholder="Szer." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+            <input type="number" id="mDimA" data-i18n-ph="mph_len" placeholder="Dług." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+            <input type="number" id="mDimB" data-i18n-ph="mph_wid" placeholder="Szer." min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
             <div id="mDimCRow">
-              <input type="number" id="mDimC" placeholder="Wys."  min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
+              <input type="number" id="mDimC" data-i18n-ph="mph_hgt" placeholder="Wys."  min="1" max="9999" inputmode="numeric" oninput="drawPreview()"/>
             </div>
           </div>
         </div>
         <div class="modal-row">
-          <label>Kolor etykiety</label>
+          <label data-i18n="mlbl_color">Kolor etykiety</label>
           <div class="modal-color-row">
             <input type="color" id="mColor" value="#3498db"
                    oninput="document.getElementById('mColorHex').textContent=this.value;drawPreview()"/>
@@ -671,26 +671,26 @@
           </div>
         </div>
         <div class="modal-row">
-          <label>Waga (kg, opcjonalnie)</label>
-          <input type="number" id="mWeight" min="0" max="99999" step="0.001" inputmode="decimal" placeholder="0 = nieznana"/>
+          <label data-i18n="mlbl_weight">Waga (kg, opcjonalnie)</label>
+          <input type="number" id="mWeight" min="0" max="99999" step="0.001" inputmode="decimal" data-i18n-ph="mph_weight" placeholder="0 = nieznana"/>
         </div>
       </div>
       <!-- right: 3-D preview + face selector -->
       <div class="modal-preview">
         <canvas id="previewCanvas" width="138" height="138"></canvas>
         <div class="preview-hint">
-          Kliknij ścianę = zawsze na górze<br>
+          <span data-i18n="mprev_hint">Kliknij ścianę = zawsze na górze</span><br>
           <b id="prevFaceLabel">Auto</b>
         </div>
       </div>
     </div>
     <div class="modal-btns">
-      <button class="btn-modal-save"            onclick="modalSave()">Zapisz</button>
-      <button class="btn-modal-del hidden" id="modalDelBtn" onclick="modalDelete()">Usuń</button>
-      <button class="btn-modal-cancel"          onclick="modalClose()">Anuluj</button>
+      <button class="btn-modal-save"            onclick="modalSave()" data-i18n="mbtn_save">Zapisz</button>
+      <button class="btn-modal-del hidden" id="modalDelBtn" onclick="modalDelete()" data-i18n="mbtn_del">Usuń</button>
+      <button class="btn-modal-cancel"          onclick="modalClose()" data-i18n="mbtn_cancel">Anuluj</button>
     </div>
     <div class="modal-restore" id="modalRestoreRow" style="display:none"
-         onclick="modalRestoreDefaults()">Przywróć domyślne kartony</div>
+         onclick="modalRestoreDefaults()" data-i18n="mbtn_restore">Przywróć domyślne kartony</div>
   </div>
 </div>
 
@@ -775,7 +775,7 @@ const I18N = {
     unit_imperial_n:'Amerykańskie (in)', unit_imperial_d:'Cale, funty',
     st_packages:'Paczek', st_pallets:'Palet', st_layers:'Warstw', st_height:'Wys.', st_perlayer:'/ warstwę', st_left:'Zostało',
     st_floor:'Podłogi', st_notfit:'Nie zmieści',
-    save_pallet:'💾 Zapisz paletę',
+    save_pallet:'💾 Zapisz paletę', save_pallet_set:'💾 Zapisz zestaw {n} palet',
     hint_touch:'Dotyk: obracaj · 2 palce: zoom',
     man_hint_place:'Dotknij palety aby postawić karton',
     bap_left:'← Do lewej', bap_right:'Do prawej →', bap_back:'↑ Do tyłu', bap_front:'Do przodu ↓',
@@ -786,6 +786,37 @@ const I18N = {
     rot_orient:'Orientacja',
     veh_arrange:'Ułóż ładunek automatycznie',
     handle_label:'Wybierz kartony & oblicz',
+    // params labels
+    lbl_maxh:'Max. wysokość (mm)', lbl_margin:'Margines (mm / stronę)',
+    lbl_maxpal:'Maks. liczba palet (nadmiar na kolejne)',
+    // pallet dims
+    pal_edit:'✏️ Edytuj wymiary', pal_close:'▲ Ukryj wymiary',
+    lbl_palw:'Szerokość (mm)', lbl_pald:'Długość (mm)', lbl_palh:'Wys. palety (mm)',
+    pal_half:'Pół 800×600',
+    // manual bar
+    man_undo:'↩ Cofnij', man_clear:'🗑 Wyczyść', man_fill:'⬛ Wypełnij', man_remove_btn:'✕ Usuń',
+    man_qty:'szt.:', man_add_one:'+ Dodaj ręcznie', man_orient:'↑ Orientacja',
+    // vehicle sidebars
+    veh_handle_trailer:'Naczepa – ustawienia', veh_handle_container:'Kontener – ustawienia',
+    veh_type_trailer:'Typ naczepy', veh_type_container:'Typ kontenera (wymiary wewnętrzne)',
+    lbl_int_len:'Długość wewn. (mm)', lbl_int_w:'Szerokość wewn. (mm)', lbl_int_h:'Wysokość wewn. (mm)',
+    veh_pal_load:'Palety do załadunku',
+    veh_no_pals:'Brak zapisanych palet.<br>Oblicz układ w zakładce <b>Paleta</b> i kliknij „💾 Zapisz paletę".',
+    veh_loose:'Kartony luzem', veh_stack_opts:'Opcje układania',
+    veh_load_on_pal:'Ładuj kartony na palety (jeśli jest miejsce)',
+    veh_higher:'Kartony luzem mogą być wyższe niż palety',
+    veh_stack_pal:'Palety mogą być układane jedna na drugą',
+    // face picker
+    fp_title:'Ściana na górze', fp_hint:'Kliknij ścianę · przeciągnij aby obrócić', fp_close:'Zamknij',
+    // package modal
+    modal_new:'Nowy element', modal_edit:'Edytuj element',
+    mtype_box:'📦 Karton', mtype_cyl:'🛢 Rolka/Beczka',
+    mlbl_name:'Nazwa', mlbl_dims_box:'Wymiary mm — Dł × Szer × Wys', mlbl_dims_cyl:'Wymiary mm — Śr × Wys',
+    mlbl_color:'Kolor etykiety', mlbl_weight:'Waga (kg, opcjonalnie)',
+    mph_name:'np. Karton XL', mph_len:'Dług.', mph_wid:'Szer.', mph_hgt:'Wys.', mph_weight:'0 = nieznana',
+    mprev_hint:'Kliknij ścianę = zawsze na górze',
+    mbtn_save:'Zapisz', mbtn_del:'Usuń', mbtn_cancel:'Anuluj',
+    mbtn_restore:'Przywróć domyślne kartony',
   },
   en:{
     tab_pallet:'Pallet', tab_trailer:'Trailer', tab_container:'Container',
@@ -797,8 +828,8 @@ const I18N = {
     unit_metric_n:'European (mm)', unit_metric_d:'Millimetres, kilograms',
     unit_imperial_n:'American (in)', unit_imperial_d:'Inches, pounds',
     st_packages:'Boxes', st_pallets:'Pallets', st_layers:'Layers', st_height:'Height', st_perlayer:'/ layer', st_left:'Left',
-    st_floor:'Floor', st_notfit:"Won't fit",
-    save_pallet:'💾 Save pallet',
+    st_floor:'Floor used', st_notfit:"Won't fit",
+    save_pallet:'💾 Save pallet', save_pallet_set:'💾 Save set of {n} pallets',
     hint_touch:'Touch: rotate · 2 fingers: zoom',
     man_hint_place:'Tap the pallet to place a box',
     bap_left:'← To left', bap_right:'To right →', bap_back:'↑ To back', bap_front:'To front ↓',
@@ -809,6 +840,37 @@ const I18N = {
     rot_orient:'Orientation',
     veh_arrange:'Arrange load automatically',
     handle_label:'Pick boxes & calculate',
+    // params labels
+    lbl_maxh:'Max. height (mm)', lbl_margin:'Margin (mm / side)',
+    lbl_maxpal:'Max. pallets (overflow to next)',
+    // pallet dims
+    pal_edit:'✏️ Edit dimensions', pal_close:'▲ Hide dimensions',
+    lbl_palw:'Width (mm)', lbl_pald:'Length (mm)', lbl_palh:'Pallet height (mm)',
+    pal_half:'Half 800×600',
+    // manual bar
+    man_undo:'↩ Undo', man_clear:'🗑 Clear', man_fill:'⬛ Fill', man_remove_btn:'✕ Remove',
+    man_qty:'qty:', man_add_one:'+ Add manually', man_orient:'↑ Orientation',
+    // vehicle sidebars
+    veh_handle_trailer:'Trailer – settings', veh_handle_container:'Container – settings',
+    veh_type_trailer:'Trailer type', veh_type_container:'Container type (internal dimensions)',
+    lbl_int_len:'Int. length (mm)', lbl_int_w:'Int. width (mm)', lbl_int_h:'Int. height (mm)',
+    veh_pal_load:'Pallets to load',
+    veh_no_pals:'No saved pallets.<br>Calculate a layout on the <b>Pallet</b> tab and click "💾 Save pallet".',
+    veh_loose:'Loose boxes', veh_stack_opts:'Stacking options',
+    veh_load_on_pal:'Load boxes onto pallets (if space)',
+    veh_higher:'Loose boxes may be taller than pallets',
+    veh_stack_pal:'Pallets may be stacked on top of each other',
+    // face picker
+    fp_title:'Top face', fp_hint:'Click face · drag to rotate', fp_close:'Close',
+    // package modal
+    modal_new:'New item', modal_edit:'Edit item',
+    mtype_box:'📦 Box', mtype_cyl:'🛢 Roll/Barrel',
+    mlbl_name:'Name', mlbl_dims_box:'Dimensions mm — L × W × H', mlbl_dims_cyl:'Dimensions mm — Dia × H',
+    mlbl_color:'Label colour', mlbl_weight:'Weight (kg, optional)',
+    mph_name:'e.g. Box XL', mph_len:'Len.', mph_wid:'Wid.', mph_hgt:'Hgt.', mph_weight:'0 = unknown',
+    mprev_hint:'Click face = always on top',
+    mbtn_save:'Save', mbtn_del:'Delete', mbtn_cancel:'Cancel',
+    mbtn_restore:'Restore default boxes',
   }
 };
 function t(key){return (I18N[SETTINGS.lang]&&I18N[SETTINGS.lang][key])||I18N.pl[key]||key;}
@@ -818,6 +880,14 @@ function applyI18n(){
     const k=el.getAttribute('data-i18n');
     const v=t(k);
     if(v!=null)el.textContent=v;
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el=>{
+    const v=t(el.getAttribute('data-i18n-html'));
+    if(v!=null)el.innerHTML=v;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    const v=t(el.getAttribute('data-i18n-ph'));
+    if(v!=null)el.placeholder=v;
   });
   const hl=document.getElementById('rHeightLbl');
   if(hl)hl.textContent=t('st_height')+' '+unitSuffix();
@@ -901,7 +971,7 @@ function togglePalDims(){
   const btn=document.getElementById('palEditBtn');
   const open=body.style.display!=='none';
   body.style.display=open?'none':'block';
-  btn.textContent=open?'✏️ Edytuj wymiary':'▲ Ukryj wymiary';
+  btn.textContent=t(open?'pal_edit':'pal_close');
 }
 function applyPalDims(){
   const W=Math.max(200,parseInt(document.getElementById('palW').value)||1200);
@@ -1743,9 +1813,7 @@ function setModalType(type) {
   document.getElementById('mTypeBox').classList.toggle('active', type === 'box');
   document.getElementById('mTypeCyl').classList.toggle('active', type === 'cylinder');
   const isCyl = type === 'cylinder';
-  document.getElementById('mDimLabel').textContent = isCyl
-    ? 'Wymiary mm — Średnicy \xd7 Wysokość'
-    : 'Wymiary mm — Dł \xd7 Szer \xd7 Wys';
+  document.getElementById('mDimLabel').textContent = t(isCyl ? 'mlbl_dims_cyl' : 'mlbl_dims_box');
   document.getElementById('mDimA').placeholder = isCyl ? 'Średn.' : 'Dług.';
   document.getElementById('mDimB').placeholder = isCyl ? 'Wys.' : 'Szer.';
   document.getElementById('mDimCRow').style.display = isCyl ? 'none' : '';
@@ -1761,7 +1829,7 @@ function openPkgModal(id) {
   const isNew = !id;
   const pkg = id ? PKGS.find(p=>p.id===id) : null;
 
-  document.getElementById('modalTitle').textContent = isNew ? 'Nowy element' : 'Edytuj element';
+  document.getElementById('modalTitle').textContent = t(isNew ? 'modal_new' : 'modal_edit');
   document.getElementById('mName').value   = pkg?.name   || '';
   document.getElementById('mWeight').value = pkg?.weight > 0 ? pkg.weight : '';
 
@@ -2330,7 +2398,7 @@ window.calculate=function(){
   document.getElementById('sPallets').style.display=numPallets>1?'':'none';
   document.getElementById('statsBar').style.display='flex';
   document.getElementById('sSave').style.display='';
-  document.getElementById('savePalBtn').textContent=numPallets>1?`💾 Zapisz zestaw ${numPallets} palet`:'💾 Zapisz paletę';
+  document.getElementById('savePalBtn').textContent=numPallets>1?t('save_pallet_set').replace('{n}',numPallets):t('save_pallet');
 
   if(leftover.length&&numPallets>=maxPallets){
     const avgPerPallet=res.count>0?res.count/numPallets:0;
