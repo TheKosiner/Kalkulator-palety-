@@ -3847,6 +3847,57 @@ function _vFloorPoint(type,clientX,clientY){
   const pt=new THREE.Vector3();
   return _vRay.ray.intersectPlane(plane,pt)?pt:null;
 }
+// 2D footprint overlap (all vehicle items sit on the floor)
+function _vRectsOverlap(x1,z1,w1,d1,x2,z2,w2,d2){
+  return x1<x2+w2-0.5 && x1+w1>x2+0.5 && z1<z2+d2-0.5 && z1+d1>z2+0.5;
+}
+// does footprint (x,z,w,d) fit inside the vehicle without overlapping other items?
+function _vFits(type,x,z,w,d,exclIdx){
+  const vs=vehicleState[type],pls=vs.result?.placements||[];
+  if(x<-0.5||z<-0.5||x+w>vs.W+0.5||z+d>vs.L+0.5)return false;
+  for(let i=0;i<pls.length;i++){
+    if(i===exclIdx)continue;
+    if(_vRectsOverlap(x,z,w,d,pls[i].x,pls[i].z,pls[i].palW,pls[i].palD))return false;
+  }
+  return true;
+}
+// snap a dragged item (cursor centre cx,cz) to nearest wall / item face, never overlapping
+function _vSnapPos(type,cx,cz,w,d,exclIdx){
+  const vs=vehicleState[type],pls=vs.result?.placements||[];
+  const clampX=v=>Math.max(0,Math.min(vs.W-w,v));
+  const clampZ=v=>Math.max(0,Math.min(vs.L-d,v));
+  const wx=clampX(cx-w/2), wz=clampZ(cz-d/2);
+  const SNAP=350; // mm attraction radius — same feel as pallet snapping
+  const cands=[];
+  const addC=(x,z)=>{const xc=clampX(x),zc=clampZ(z); if(_vFits(type,xc,zc,w,d,exclIdx))cands.push({x:xc,z:zc});};
+  // walls (one axis fixed, other follows cursor)
+  addC(0,wz); addC(vs.W-w,wz); addC(wx,0); addC(wx,vs.L-d);
+  // item faces — flush against each neighbour
+  pls.forEach((pp,i)=>{
+    if(i===exclIdx)return;
+    const zA=Math.max(pp.z,Math.min(pp.z+pp.palD-d,wz));
+    const xA=Math.max(pp.x,Math.min(pp.x+pp.palW-w,wx));
+    addC(pp.x-w,zA); addC(pp.x+pp.palW,zA);     // left / right of item
+    addC(xA,pp.z-d); addC(xA,pp.z+pp.palD);     // behind / in front of item
+    addC(pp.x,zA); addC(pp.x+pp.palW-w,zA);     // edge-aligned
+    addC(xA,pp.z); addC(xA,pp.z+pp.palD-d);
+  });
+  // nearest snap candidate within the attraction radius
+  let best=null,bestD=Infinity;
+  for(const c of cands){const dd=Math.hypot(c.x-wx,c.z-wz); if(dd<bestD){bestD=dd;best=c;}}
+  if(best&&bestD<=SNAP)return best;
+  // not near anything → free cursor position if it doesn't overlap
+  if(_vFits(type,wx,wz,w,d,exclIdx))return {x:wx,z:wz};
+  // overlapping & nothing within radius → take nearest fitting candidate
+  if(best)return best;
+  // last resort: coarse grid scan for any free spot
+  const step=Math.max(50,Math.floor(Math.min(w,d)/2));
+  let gB=null,gD=Infinity;
+  for(let gx=0;gx<=vs.W-w;gx+=step)for(let gz=0;gz<=vs.L-d;gz+=step){
+    if(_vFits(type,gx,gz,w,d,exclIdx)){const dd=Math.hypot(gx-wx,gz-wz);if(dd<gD){gD=dd;gB={x:gx,z:gz};}}
+  }
+  return gB||{x:wx,z:wz};
+}
 function _vResetEdit(type){
   vSel[type]=-1; vDrag[type]=false; vGhost[type]=null;
   const p=document.getElementById('vehBoxPanel'); if(p)p.style.display='none';
@@ -3887,10 +3938,12 @@ window.vbpRotate=function(){
   const type=vActiveType, vs=vehicleState[type], placements=vs.result?.placements, idx=vSel[type];
   if(!placements||idx<0)return;
   const pp=placements[idx];
+  const cx=pp.x+pp.palW/2, cz=pp.z+pp.palD/2; // keep centre fixed
   [pp.palW,pp.palD]=[pp.palD,pp.palW];
   pp.rotated=!pp.rotated;
-  pp.x=Math.max(0,Math.min(vs.W-pp.palW,pp.x));
-  pp.z=Math.max(0,Math.min(vs.L-pp.palD,pp.z));
+  // re-place around the same centre, snapping out of any overlap / walls
+  const s=_vSnapPos(type,cx,cz,pp.palW,pp.palD,idx);
+  pp.x=s.x; pp.z=s.z;
   _vInvalidate(type); _vRefreshStats(type); _vShowPanel(type); drawVehicle3D(type);
 };
 window.vbpRemove=function(){
@@ -3901,13 +3954,18 @@ window.vbpRemove=function(){
   document.getElementById('vehBoxPanel').style.display='none';
   _vInvalidate(type); _vRefreshStats(type); drawVehicle3D(type);
 };
-// commit a drag-move: place item at ghost position
+// commit a drag-move: place item at ghost position (guaranteed non-overlapping)
 function _vDrop(type){
   const vs=vehicleState[type], placements=vs.result?.placements, idx=vSel[type], g=vGhost[type];
   if(placements&&idx>=0&&g){
     const pp=placements[idx];
-    pp.x=Math.max(0,Math.min(vs.W-pp.palW,g.x));
-    pp.z=Math.max(0,Math.min(vs.L-pp.palD,g.z));
+    let nx=Math.max(0,Math.min(vs.W-pp.palW,g.x));
+    let nz=Math.max(0,Math.min(vs.L-pp.palD,g.z));
+    if(!_vFits(type,nx,nz,pp.palW,pp.palD,idx)){
+      const s=_vSnapPos(type,nx+pp.palW/2,nz+pp.palD/2,pp.palW,pp.palD,idx);
+      nx=s.x; nz=s.z;
+    }
+    pp.x=nx; pp.z=nz;
   }
   vDrag[type]=false; vGhost[type]=null;
   document.getElementById('vehHint').style.display='none';
@@ -3943,7 +4001,7 @@ function _initVehicleCanvas(type){
   function _updateGhost(e){
     const pt=_vFloorPoint(type,e.clientX,e.clientY);
     if(pt){const pp=vehicleState[type].result.placements[vSel[type]];
-      vGhost[type]={x:pt.x-pp.palW/2,z:pt.z-pp.palD/2};}
+      vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,vSel[type]);}
     drawVehicle3D(type);
   }
   window.addEventListener('mousemove',e=>{
@@ -3980,7 +4038,7 @@ function _initVehicleCanvas(type){
     e.preventDefault();
     if(vDrag[type]&&vSel[type]>=0&&e.touches.length===1){
       const t=e.touches[0],pt=_vFloorPoint(type,t.clientX,t.clientY);
-      if(pt){const pp=vehicleState[type].result.placements[vSel[type]];vGhost[type]={x:pt.x-pp.palW/2,z:pt.z-pp.palD/2};}
+      if(pt){const pp=vehicleState[type].result.placements[vSel[type]];vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,vSel[type]);}
       drawVehicle3D(type);return;
     }
     if(e.touches.length===2){
