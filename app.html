@@ -193,6 +193,8 @@
     .pkg-edit-btn:hover{color:var(--accent-h);background:var(--accent-dim)}
     .pkg-del-btn{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:.88rem;padding:3px 5px;flex-shrink:0;border-radius:5px;line-height:1;transition:color .15s,background .15s}
     .pkg-del-btn:hover{color:var(--red);background:var(--red-dim)}
+    .pal-edit-btn{width:100%;margin-top:6px;padding:7px 12px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r);color:var(--text-2);font-size:.75rem;font-weight:600;cursor:pointer;text-align:left;transition:border-color .15s,color .15s,background .15s}
+    .pal-edit-btn:hover{border-color:var(--accent);color:var(--accent-h);background:var(--accent-dim)}
     .pal-preset{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
     .btn-preset{background:var(--surface-2);border:1px solid var(--border-2);border-radius:6px;color:var(--text-2);font-size:.72rem;padding:4px 10px;cursor:pointer;transition:border-color .15s,color .15s;white-space:nowrap}
     .btn-preset:hover{border-color:var(--accent);color:var(--accent-h)}
@@ -542,24 +544,27 @@
     <!-- PALLET DIMENSIONS (all modes) -->
     <div id="palSection">
       <div class="stitle" style="margin-top:18px" data-i18n="sec_paldims">Wymiary palety</div>
-      <div class="pal-preset">
-        <button class="btn-preset active" id="presetEuro" onclick="setPalPreset(1200,800,144)">Euro 1200×800</button>
-        <button class="btn-preset" id="presetHalf" onclick="setPalPreset(800,600,144)">Pół 800×600</button>
-        <button class="btn-preset" id="presetUS" onclick="setPalPreset(1219,1016,144)">US 48×40"</button>
-      </div>
-      <div class="ctrl-row">
-        <div>
-          <label class="lbl">Szerokość (mm)</label>
-          <input type="number" id="palW" value="1200" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
+      <button class="pal-edit-btn" id="palEditBtn" onclick="togglePalDims()">✏️ Edytuj wymiary</button>
+      <div id="palDimsBody" style="display:none;margin-top:10px">
+        <div class="pal-preset">
+          <button class="btn-preset active" id="presetEuro" onclick="setPalPreset(1200,800,144)">Euro 1200×800</button>
+          <button class="btn-preset" id="presetHalf" onclick="setPalPreset(800,600,144)">Pół 800×600</button>
+          <button class="btn-preset" id="presetUS" onclick="setPalPreset(1219,1016,144)">US 48×40"</button>
         </div>
-        <div>
-          <label class="lbl">Długość (mm)</label>
-          <input type="number" id="palD" value="800" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
+        <div class="ctrl-row">
+          <div>
+            <label class="lbl">Szerokość (mm)</label>
+            <input type="number" id="palW" value="1200" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
+          </div>
+          <div>
+            <label class="lbl">Długość (mm)</label>
+            <input type="number" id="palD" value="800" min="200" max="3000" step="10" inputmode="numeric" onchange="applyPalDims()"/>
+          </div>
         </div>
-      </div>
-      <div class="ctrl-full">
-        <label class="lbl">Wys. palety (mm)</label>
-        <input type="number" id="palH" value="144" min="50" max="500" step="1" inputmode="numeric" onchange="applyPalDims()"/>
+        <div class="ctrl-full">
+          <label class="lbl">Wys. palety (mm)</label>
+          <input type="number" id="palH" value="144" min="50" max="500" step="1" inputmode="numeric" onchange="applyPalDims()"/>
+        </div>
       </div>
     </div>
 
@@ -891,6 +896,13 @@ function deleteSavedPallet(id){
   buildVehicleSavedLists();
 }
 
+function togglePalDims(){
+  const body=document.getElementById('palDimsBody');
+  const btn=document.getElementById('palEditBtn');
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  btn.textContent=open?'✏️ Edytuj wymiary':'▲ Ukryj wymiary';
+}
 function applyPalDims(){
   const W=Math.max(200,parseInt(document.getElementById('palW').value)||1200);
   const D=Math.max(200,parseInt(document.getElementById('palD').value)||800);
@@ -1961,10 +1973,8 @@ let _fpDragActive=false, _fpDragMoved=false, _fpDragX=0, _fpDragY=0;
 
 function _applyFaceBtnLabel(btn, dims, face) {
   if(!btn) return;
-  const [A,B,C]=dims;
-  const labels={'0':`${A}×${B}`,'1':`${A}×${C}`,'2':`${B}×${C}`};
   btn.dataset.face=face;
-  btn.textContent=face==='auto'?'↑ Auto':'↑ '+labels[face];
+  btn.textContent='↑ Orientacja';
 }
 
 function _fpFaceNames(dims) {
