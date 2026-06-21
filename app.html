@@ -56,15 +56,15 @@
     .stitle{font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:18px 0 8px}
 
     /* PACKAGE CARDS */
-    .pkg-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:10px}
+    .pkg-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .pkg-item:hover{border-color:var(--border-2);background:var(--surface-2)}
     .pkg-item.selected{border-color:var(--accent);background:var(--accent-dim)}
     .pkg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
     .pkg-info{flex:1;min-width:0}
     .pkg-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
     .pkg-dim{font-size:.63rem;color:var(--text-3);margin-top:1px}
-    .pkg-qty-wrap{display:none;align-items:center;gap:5px;flex-shrink:0}
-    .pkg-item.selected .pkg-qty-wrap{display:flex}
+    .pkg-controls{flex-basis:100%;width:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:8px;margin-top:2px;border-top:1px solid var(--border)}
+    .pkg-qty-wrap{display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:auto}
     .pkg-qty-wrap label{font-size:.63rem;color:var(--text-2);white-space:nowrap;margin:0}
     .pkg-qty{width:56px;padding:5px 7px;background:var(--bg);border:1px solid var(--border-2);border-radius:6px;font-size:.84rem;text-align:center;outline:none;color:var(--text)}
     .pkg-qty:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
@@ -144,7 +144,7 @@
     .cam-btn:active{transform:scale(.86)}
 
     /* PER-PKG FACE BUTTON */
-    .pkg-orient-wrap{display:none;flex-shrink:0}
+    .pkg-orient-wrap{display:flex;flex-shrink:0}
     .pkg-face-btn{padding:3px 8px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;font-size:.67rem;cursor:pointer;color:var(--text-2);white-space:nowrap;transition:border-color .15s,color .15s,background .15s}
     .pkg-face-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 
@@ -1016,13 +1016,15 @@ function buildPkgList() {
       </div>
       <button class="pkg-edit-btn" title="Edytuj" tabindex="-1">✏️</button>
       ${!BUILTIN_IDS.has(p.id)?`<button class="pkg-del-btn" title="Usuń" tabindex="-1">🗑️</button>`:''}
-      <div class="pkg-orient-wrap" style="display:${isSel?'flex':'none'}">
-        <button class="pkg-face-btn" data-id="${p.id}" data-face="auto">↑ Auto</button>
-      </div>
-      <div class="pkg-qty-wrap" style="display:${isSel?'flex':'none'}">
-        <label>szt.:</label>
-        <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
-        <button class="btn-add-one" data-id="${p.id}" title="Dodaj karton ręcznie na paletę">+ Dodaj ręcznie</button>
+      <div class="pkg-controls" style="display:${isSel?'flex':'none'}">
+        <div class="pkg-orient-wrap">
+          <button class="pkg-face-btn" data-id="${p.id}" data-face="auto">↑ Auto</button>
+        </div>
+        <div class="pkg-qty-wrap">
+          <label>szt.:</label>
+          <input class="pkg-qty" type="number" value="1" min="1" max="999" inputmode="numeric" data-id="${p.id}"/>
+          <button class="btn-add-one" data-id="${p.id}" title="Dodaj karton ręcznie na paletę">+ Dodaj ręcznie</button>
+        </div>
       </div>`;
 
     if (savedQtys.has(p.id)) item.querySelector('.pkg-qty').value = savedQtys.get(p.id);
@@ -1050,13 +1052,11 @@ function buildPkgList() {
       if (selectedIds.has(p.id) && selectedIds.size > 1) {
         selectedIds.delete(p.id);
         item.classList.remove('selected');
-        item.querySelector('.pkg-qty-wrap').style.display   = 'none';
-        item.querySelector('.pkg-orient-wrap').style.display = 'none';
+        item.querySelector('.pkg-controls').style.display = 'none';
       } else if (!selectedIds.has(p.id)) {
         selectedIds.add(p.id);
         item.classList.add('selected');
-        item.querySelector('.pkg-qty-wrap').style.display   = 'flex';
-        item.querySelector('.pkg-orient-wrap').style.display = 'flex';
+        item.querySelector('.pkg-controls').style.display = 'flex';
       }
     });
     list.appendChild(item);
