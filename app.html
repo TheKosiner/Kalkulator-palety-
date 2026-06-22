@@ -924,7 +924,7 @@ window.setNavStyle=setNavStyle;window.setUnits=setUnits;window.setLang=setLang;
 function refreshAllDisplays(){
   try{document.getElementById('palSub').textContent=palLabel(PAL.W,PAL.D);}catch(e){}
   try{if(typeof buildPkgList==='function')buildPkgList();}catch(e){}
-  try{if(typeof lastRes!=='undefined'&&lastRes){updateManStats(lastRes);buildLegend(lastRes,'auto');draw3D(lastRes);}}catch(e){}
+  try{if(typeof lastRes!=='undefined'&&lastRes){_lastStaticRes=null;updateManStats(lastRes);buildLegend(lastRes,'auto');draw3D(lastRes);}}catch(e){}
   try{['naczepa','kontener'].forEach(tp=>{if(t3v&&t3v[tp]){_lastVDims[tp]=null;drawVehicle3D(tp);}});}catch(e){}
 }
 function palLabel(W,D){
