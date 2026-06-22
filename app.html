@@ -2940,6 +2940,7 @@ let _t3BoxMeshes=[]; // mesh → box index in manBoxes
 function initThreeJS(){
   const r=new THREE.WebGLRenderer({canvas,antialias:true});
   r.setPixelRatio(Math.min(devicePixelRatio,2));
+  r.useLegacyLights=true;
   const scene=new THREE.Scene();
   const bg=document.createElement('canvas');bg.width=2;bg.height=256;
   const bgc=bg.getContext('2d'),bgg=bgc.createLinearGradient(0,0,0,256);
@@ -3698,6 +3699,7 @@ function initVehicleThreeJS(type){
   const canvas=document.getElementById(type==='naczepa'?'naczCanvas':'kontCanvas');
   const r=new THREE.WebGLRenderer({canvas,antialias:true});
   r.setPixelRatio(Math.min(devicePixelRatio,2));
+  r.useLegacyLights=true;
   const scene=new THREE.Scene();
   const bg=document.createElement('canvas');bg.width=2;bg.height=256;
   const bgc=bg.getContext('2d'),bgg=bgc.createLinearGradient(0,0,0,256);
