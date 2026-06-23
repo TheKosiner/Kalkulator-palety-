@@ -233,17 +233,16 @@ export default {
       const apiPath = path.replace('/api', '');
       if (method === 'OPTIONS') return new Response(null, { status:204, headers:{ 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Methods':'GET,POST,OPTIONS', 'Access-Control-Allow-Headers':'Content-Type', 'Access-Control-Allow-Credentials':'true' }});
       try {
-        if (method==='POST' && apiPath==='/auth/register')  return apiRegister(request, env);
-        if (method==='POST' && apiPath==='/auth/login')     return apiLogin(request, env);
-        if (method==='POST' && apiPath==='/auth/logout')    return apiLogout();
-        if (method==='GET'  && apiPath==='/auth/me')        return apiMe(request, env);
-        if (method==='POST' && apiPath==='/stripe/checkout') return apiCheckout(request, env);
-        if (method==='POST' && apiPath==='/stripe/webhook') return apiWebhook(request, env);
-        if (method==='GET'  && apiPath==='/billing/portal') return apiBillingPortal(request, env);
+        if (method==='POST' && apiPath==='/auth/register')   return await apiRegister(request, env);
+        if (method==='POST' && apiPath==='/auth/login')      return await apiLogin(request, env);
+        if (method==='POST' && apiPath==='/auth/logout')     return await apiLogout();
+        if (method==='GET'  && apiPath==='/auth/me')         return await apiMe(request, env);
+        if (method==='POST' && apiPath==='/stripe/checkout') return await apiCheckout(request, env);
+        if (method==='POST' && apiPath==='/stripe/webhook')  return await apiWebhook(request, env);
+        if (method==='GET'  && apiPath==='/billing/portal')  return await apiBillingPortal(request, env);
         return new Response('Not found', { status:404 });
       } catch(e) {
-        console.error(e);
-        return jsonRes({ error:'Internal server error' }, 500);
+        return jsonRes({ error: e?.message || 'Internal server error' }, 500);
       }
     }
 
