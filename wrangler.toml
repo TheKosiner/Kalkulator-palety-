@@ -1,12 +1,11 @@
 name = "pallet3d"
 main = "worker.js"
 compatibility_date = "2024-09-23"
+workers_dev = false
+preview_urls = false
 
 [assets]
 directory = "."
-
-workers_dev = false
-preview_urls = false
 
 [[d1_databases]]
 binding = "DB"
