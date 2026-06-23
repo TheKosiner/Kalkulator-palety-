@@ -326,6 +326,7 @@
     <button class="main-tab" id="mtab_naczepa" onclick="switchMainTab('naczepa')" data-i18n="tab_trailer">Naczepa</button>
     <button class="main-tab" id="mtab_kontener" onclick="switchMainTab('kontener')" data-i18n="tab_container">Kontener</button>
   </div>
+  <a href="account.html" class="icon-btn" id="userBtn" title="Moje konto" style="font-size:.72rem;font-weight:700;padding:0 10px;gap:4px;text-decoration:none;display:flex;align-items:center;color:var(--text-2);border:1px solid var(--border);border-radius:var(--r);height:32px;white-space:nowrap">👤 <span id="userNameBadge">Konto</span></a>
   <button class="icon-btn" id="settingsBtn" title="Ustawienia" onclick="openSettings()">⚙</button>
 </header>
 
@@ -4164,6 +4165,25 @@ function showToast(msg){
   clearTimeout(_toastTimer);
   _toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
 }
+</script>
+
+<script>
+// Auth: verify session and show user name in header
+(async()=>{
+  try{
+    const res=await fetch('/api/auth/me',{credentials:'include'});
+    if(res.status===401){location.href='/?login=1';return;}
+    if(!res.ok)return;
+    const u=await res.json();
+    const el=document.getElementById('userNameBadge');
+    if(el&&u.name)el.textContent=u.name.split(' ')[0];
+    // Warn if trial is about to expire
+    if(u.subscription?.status==='trial'&&u.subscription?.daysLeft<=2&&u.subscription?.active){
+      const bar=document.getElementById('warnBar');
+      if(bar){bar.textContent=`Okres próbny kończy się za ${u.subscription.daysLeft<=1?'1 dzień':u.subscription.daysLeft+' dni'} — aktywuj subskrypcję.`;bar.style.display='block';}
+    }
+  }catch{/* Offline or no server — allow working */}
+})();
 </script>
 </body>
 </html>

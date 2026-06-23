@@ -1,0 +1,17 @@
+name = "pallet3d"
+compatibility_date = "2024-09-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pallet3d-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+[vars]
+APP_URL    = "https://pallet3d.com"
+TRIAL_DAYS = "14"
+
+# Secrets — configure in Cloudflare dashboard or via CLI:
+#   wrangler pages secret put JWT_SECRET
+#   wrangler pages secret put STRIPE_SECRET_KEY
+#   wrangler pages secret put STRIPE_WEBHOOK_SECRET
+#   wrangler pages secret put STRIPE_PRICE_ID

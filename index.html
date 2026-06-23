@@ -411,9 +411,10 @@
     <button class="m-close" onclick="closeModal('loginModal')">×</button>
     <div class="m-title">Zaloguj się</div>
     <p class="m-sub">Witaj z powrotem! Wprowadź swoje dane.</p>
-    <div class="fg"><label>E-mail</label><input type="email" placeholder="jan@firma.pl"/></div>
-    <div class="fg"><label>Hasło</label><input type="password" placeholder="Twoje hasło"/></div>
-    <button class="m-submit" onclick="fakeAuth(this,'Logowanie…','Zalogowano! Otwieranie…')">Zaloguj się</button>
+    <div class="fg"><label>E-mail</label><input id="loginEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
+    <div class="fg"><label>Hasło</label><input id="loginPassword" type="password" placeholder="Twoje hasło" autocomplete="current-password"/></div>
+    <div id="loginErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
+    <button class="m-submit" id="loginSubmit" onclick="doLogin(this)">Zaloguj się</button>
     <div class="m-foot">Nie masz konta? <a href="#" onclick="switchModal('loginModal','signupModal');return false">Zarejestruj się</a></div>
   </div>
 </div>
@@ -421,14 +422,15 @@
   <div class="modal">
     <button class="m-close" onclick="closeModal('signupModal')">×</button>
     <div class="m-title">Utwórz konto</div>
-    <p class="m-sub">Pełen dostęp za 50 zł / mies. Anuluj kiedy chcesz.</p>
+    <p class="m-sub">14 dni za darmo, potem 50 zł / mies. Anuluj kiedy chcesz.</p>
     <div class="frow">
-      <div class="fg"><label>Imię</label><input type="text" placeholder="Jan"/></div>
-      <div class="fg"><label>Nazwisko</label><input type="text" placeholder="Kowalski"/></div>
+      <div class="fg"><label>Imię</label><input id="regFirst" type="text" placeholder="Jan" autocomplete="given-name"/></div>
+      <div class="fg"><label>Nazwisko</label><input id="regLast" type="text" placeholder="Kowalski" autocomplete="family-name"/></div>
     </div>
-    <div class="fg"><label>E-mail</label><input type="email" placeholder="jan@firma.pl"/></div>
-    <div class="fg"><label>Hasło</label><input type="password" placeholder="Min. 8 znaków"/></div>
-    <button class="m-submit" onclick="fakeAuth(this,'Tworzenie konta…','Konto gotowe! Otwieranie…')">Utwórz konto</button>
+    <div class="fg"><label>E-mail</label><input id="regEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
+    <div class="fg"><label>Hasło</label><input id="regPassword" type="password" placeholder="Min. 8 znaków" autocomplete="new-password"/></div>
+    <div id="regErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
+    <button class="m-submit" id="regSubmit" onclick="doRegister(this)">Utwórz konto i zacznij próbę</button>
     <div class="m-foot">Masz już konto? <a href="#" onclick="switchModal('signupModal','loginModal');return false">Zaloguj się</a></div>
   </div>
 </div>
@@ -446,10 +448,44 @@ function closeModal(id){document.getElementById(id).classList.remove('open');doc
 function switchModal(a,b){closeModal(a);setTimeout(()=>{document.getElementById(b).classList.add('open');document.body.style.overflow='hidden';},160);}
 function mmClose(){document.getElementById('mm').classList.remove('open');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('loginModal');closeModal('signupModal');mmClose();}});
-function fakeAuth(btn,working,done){
-  btn.textContent=working;btn.disabled=true;
-  setTimeout(()=>{btn.textContent=done;setTimeout(()=>location.href='app.html',850);},1100);
+
+function showErr(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.style.display=msg?'block':'none';}}
+
+async function doLogin(btn){
+  const email=(document.getElementById('loginEmail')?.value||'').trim();
+  const password=document.getElementById('loginPassword')?.value||'';
+  showErr('loginErr','');
+  if(!email||!password){showErr('loginErr','Uzupełnij wszystkie pola.');return;}
+  const orig=btn.textContent;btn.textContent='Logowanie…';btn.disabled=true;
+  try{
+    const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email,password})});
+    const data=await res.json();
+    if(!res.ok){showErr('loginErr',data.error||'Błąd logowania.');return;}
+    location.href='app.html';
+  }catch{showErr('loginErr','Błąd połączenia. Spróbuj ponownie.');}
+  finally{btn.textContent=orig;btn.disabled=false;}
 }
+
+async function doRegister(btn){
+  const first=(document.getElementById('regFirst')?.value||'').trim();
+  const last=(document.getElementById('regLast')?.value||'').trim();
+  const email=(document.getElementById('regEmail')?.value||'').trim();
+  const password=document.getElementById('regPassword')?.value||'';
+  showErr('regErr','');
+  if(!first||!last||!email||!password){showErr('regErr','Uzupełnij wszystkie pola.');return;}
+  const orig=btn.textContent;btn.textContent='Tworzenie konta…';btn.disabled=true;
+  try{
+    const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({name:`${first} ${last}`,email,password})});
+    const data=await res.json();
+    if(!res.ok){showErr('regErr',data.error||'Błąd rejestracji.');return;}
+    location.href='app.html';
+  }catch{showErr('regErr','Błąd połączenia. Spróbuj ponownie.');}
+  finally{btn.textContent=orig;btn.disabled=false;}
+}
+
+// Auto-open login modal if redirected with ?login=1
+if(new URLSearchParams(location.search).get('login')==='1')
+  setTimeout(()=>openModal('login'),300);
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hasGSAP = typeof gsap !== 'undefined';
