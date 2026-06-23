@@ -1,0 +1,12 @@
+.git
+.git/**
+.wrangler
+.wrangler/**
+node_modules
+node_modules/**
+functions
+functions/**
+worker.js
+wrangler.toml
+schema.sql
+*.map
