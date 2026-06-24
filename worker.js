@@ -240,6 +240,7 @@ export default {
         if (method==='POST' && apiPath==='/stripe/checkout') return await apiCheckout(request, env);
         if (method==='POST' && apiPath==='/stripe/webhook')  return await apiWebhook(request, env);
         if (method==='GET'  && apiPath==='/billing/portal')  return await apiBillingPortal(request, env);
+        if (method==='GET'  && apiPath==='/debug/env')       return jsonRes({ jwt: !!env.JWT_SECRET, jwtLen: (env.JWT_SECRET||'').length, db: !!env.DB, appUrl: env.APP_URL });
         return new Response('Not found', { status:404 });
       } catch(e) {
         return jsonRes({ error: e?.message || 'Internal server error' }, 500);
