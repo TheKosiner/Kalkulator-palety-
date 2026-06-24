@@ -1,3 +1,5 @@
+import { EmailMessage } from "cloudflare:email";
+
 // ─── UTILITIES ───────────────────────────────────────────────────────────────
 
 const _enc = new TextEncoder();
@@ -84,15 +86,21 @@ function subInfo(user) {
 // ─── EMAIL ───────────────────────────────────────────────────────────────────
 
 async function sendEmail(env, to, subject, html) {
-  if (!env.RESEND_API_KEY) return false;
+  if (!env.EMAIL) return false;
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Pallet3D <noreply@pallet3d.com>', to: [to], subject, html })
-    });
-    return res.ok;
-  } catch { return false; }
+    const raw = [
+      `From: Pallet3D <noreply@pallet3d.com>`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      '',
+      html
+    ].join('\r\n');
+    const msg = new EmailMessage('noreply@pallet3d.com', to, raw);
+    await env.EMAIL.send(msg);
+    return true;
+  } catch (e) { console.error('Email send error:', e?.message); return false; }
 }
 
 // ─── STRIPE ──────────────────────────────────────────────────────────────────
@@ -133,7 +141,7 @@ async function apiRegister(request, env) {
   const hash = await hashPassword(body.password, salt);
   const now = Math.floor(Date.now()/1000);
   const trialDays = parseInt(env.TRIAL_DAYS || '14');
-  const needsVerification = !!env.RESEND_API_KEY;
+  const needsVerification = !!env.EMAIL;
   const verifyToken = needsVerification ? randomStr(32) : null;
 
   await env.DB.prepare(
