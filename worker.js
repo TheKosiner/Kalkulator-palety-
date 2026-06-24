@@ -370,10 +370,26 @@ async function apiBillingPortal(request, env) {
 async function apiContact(request, env) {
   const body = await request.json().catch(() => null);
   if (!body?.name || !body?.email || !body?.msg) return jsonRes({ error:'Uzupełnij wszystkie pola.' }, 400);
-  const html = `<p><b>Od:</b> ${body.name} &lt;${body.email}&gt;</p><p><b>Wiadomość:</b></p><p style="white-space:pre-wrap">${body.msg.replace(/</g,'&lt;')}</p>`;
-  const sent = await sendEmail(env, 'thekosiner@gmail.com', `Kontakt Pallet3D — ${body.name}`, html);
-  if (!sent) return jsonRes({ error:'Błąd wysyłania e-mail.' }, 502);
-  return jsonRes({ ok:true });
+  if (!env.EMAIL) return jsonRes({ error:'Email binding nie skonfigurowany.' }, 502);
+  try {
+    const html = `<p><b>Od:</b> ${body.name} &lt;${body.email}&gt;</p><p><b>Wiadomosc:</b></p><p style="white-space:pre-wrap">${body.msg.replace(/</g,'&lt;')}</p>`;
+    const raw = [
+      `From: Pallet3D <noreply@pallet3d.com>`,
+      `To: thekosiner@gmail.com`,
+      `Reply-To: ${body.name} <${body.email}>`,
+      `Subject: Kontakt Pallet3D - ${body.name}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=UTF-8',
+      '',
+      html
+    ].join('\r\n');
+    const { EmailMessage } = await import('cloudflare:email');
+    const msg = new EmailMessage('noreply@pallet3d.com', 'thekosiner@gmail.com', raw);
+    await env.EMAIL.send(msg);
+    return jsonRes({ ok:true });
+  } catch(e) {
+    return jsonRes({ error: e?.message || 'Blad wysylania.' }, 502);
+  }
 }
 
 async function apiGetPallets(request, env) {
