@@ -366,6 +366,9 @@
       <button class="bap-btn" onclick="bapRotate()" data-i18n="bap_rotate">⟳ Obróć</button>
       <button class="bap-btn bap-btn-del" onclick="bapRemove()" data-i18n="bap_remove">✕ Usuń</button>
     </div>
+    <div class="bap-row">
+      <button class="bap-btn bap-btn-auto" onclick="bapCenter()" style="width:100%" data-i18n="bap_center">⊕ Wyśrodkuj na palecie</button>
+    </div>
   </div>
   <div id="rotPopup">
     <div class="rp-title" data-i18n="rot_orient">Orientacja</div>
@@ -802,7 +805,7 @@ const I18N = {
     hint_touch:'Dotyk: obracaj · 2 palce: zoom',
     man_hint_place:'Dotknij palety aby postawić karton',
     bap_left:'← Do lewej', bap_right:'Do prawej →', bap_back:'↑ Do tyłu', bap_front:'Do przodu ↓',
-    bap_auto:'⚡ Ustaw auto', bap_drag:'✋ Przesuń', bap_rotate:'⟳ Obróć', bap_remove:'✕ Usuń',
+    bap_auto:'⚡ Ustaw auto', bap_drag:'✋ Przesuń', bap_rotate:'⟳ Obróć', bap_remove:'✕ Usuń', bap_center:'⊕ Wyśrodkuj na palecie',
     amo_rotate:'⟳ Obróć 90°', amo_overhang:'Może wystawać poza spód', amo_place:'✓ Postaw', amo_exit:'✕ Wyjdź z trybu dodawania',
     sec_packages:'Kartony', sec_params:'Parametry', sec_paldims:'Wymiary palety',
     add_pkg:'+ Dodaj nowy karton', calc:'Oblicz i wizualizuj',
@@ -857,7 +860,7 @@ const I18N = {
     hint_touch:'Touch: rotate · 2 fingers: zoom',
     man_hint_place:'Tap the pallet to place a box',
     bap_left:'← To left', bap_right:'To right →', bap_back:'↑ To back', bap_front:'To front ↓',
-    bap_auto:'⚡ Auto place', bap_drag:'✋ Move', bap_rotate:'⟳ Rotate', bap_remove:'✕ Remove',
+    bap_auto:'⚡ Auto place', bap_drag:'✋ Move', bap_rotate:'⟳ Rotate', bap_remove:'✕ Remove', bap_center:'⊕ Center on pallet',
     amo_rotate:'⟳ Rotate 90°', amo_overhang:'May overhang the base', amo_place:'✓ Place', amo_exit:'✕ Exit add mode',
     sec_packages:'Boxes', sec_params:'Parameters', sec_paldims:'Pallet dimensions',
     add_pkg:'+ Add new box', calc:'Calculate & visualise',
@@ -2734,6 +2737,16 @@ window.bapPush=function(dir){
         nz=Math.min(nz,o.z-b.d);
     b.z=Math.max(0,nz);
   }
+  refreshManual();
+  showBoxActionPanel(selectedBoxIdx);
+};
+
+window.bapCenter=function(){
+  if(selectedBoxIdx<0||selectedBoxIdx>=manBoxes.length)return;
+  const b=manBoxes[selectedBoxIdx];
+  const palOx=(b.palletIdx??0)*(PAL.W+PAL_GAP);
+  b.x=palOx+Math.max(0,(PAL.W-b.w)/2);
+  b.z=Math.max(0,(PAL.D-b.d)/2);
   refreshManual();
   showBoxActionPanel(selectedBoxIdx);
 };
