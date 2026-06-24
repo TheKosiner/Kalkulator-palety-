@@ -19,6 +19,13 @@ function b64url(s) { return btoa(s).replace(/=/g,'').replace(/\+/g,'-').replace(
 function b64urlArr(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_'); }
 function fromB64url(s) { return atob(s.replace(/-/g,'+').replace(/_/g,'/')); }
 
+function validatePassword(pw) {
+  if (!pw || pw.length < 8) return 'Hasło musi mieć co najmniej 8 znaków.';
+  if (!/[A-Z]/.test(pw)) return 'Hasło musi zawierać co najmniej jedną wielką literę.';
+  if (!/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/.test(pw)) return 'Hasło musi zawierać co najmniej jeden znak specjalny.';
+  return null;
+}
+
 async function hashPassword(password, salt) {
   const key = await crypto.subtle.importKey('raw', _enc.encode(password), 'PBKDF2', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits(
@@ -134,7 +141,8 @@ async function apiRegister(request, env) {
   if (!body?.email || !body?.password || !body?.name) return jsonRes({ error:'Uzupełnij wszystkie pola.' }, 400);
   const email = body.email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonRes({ error:'Nieprawidłowy adres e-mail.' }, 400);
-  if (body.password.length < 8) return jsonRes({ error:'Hasło musi mieć co najmniej 8 znaków.' }, 400);
+  const pwErr = validatePassword(body.password);
+  if (pwErr) return jsonRes({ error: pwErr }, 400);
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
   if (existing) return jsonRes({ error:'Konto z tym adresem już istnieje.' }, 409);
   const id = randomStr(20), salt = randomStr(32);
@@ -235,7 +243,8 @@ async function apiChangePassword(request, env) {
   if (!user) return jsonRes({ error: 'Niezalogowany.' }, 401);
   const body = await request.json().catch(() => null);
   if (!body?.newPassword) return jsonRes({ error: 'Uzupełnij wszystkie pola.' }, 400);
-  if (body.newPassword.length < 8) return jsonRes({ error: 'Nowe hasło musi mieć co najmniej 8 znaków.' }, 400);
+  const pwErr = validatePassword(body.newPassword);
+  if (pwErr) return jsonRes({ error: pwErr }, 400);
   if (user.password_hash) {
     if (!body.currentPassword) return jsonRes({ error: 'Podaj aktualne hasło.' }, 400);
     const hash = await hashPassword(body.currentPassword, user.salt);
