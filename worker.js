@@ -367,6 +367,33 @@ async function apiBillingPortal(request, env) {
   return jsonRes({ url:session.url });
 }
 
+async function apiGetPackages(request, env) {
+  const user = await getUser(request, env);
+  if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
+  const { results } = await env.DB.prepare('SELECT * FROM packages WHERE user_id = ? ORDER BY created_at ASC').bind(user.id).all();
+  return jsonRes(results.map(r => ({ id:r.id, name:r.name, type:r.type, dims:JSON.parse(r.dims_json), color:r.color, topFace:r.top_face, weight:r.weight })));
+}
+
+async function apiSavePackage(request, env) {
+  const user = await getUser(request, env);
+  if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
+  const body = await request.json().catch(() => null);
+  if (!body?.id || !body?.name || !body?.dims) return jsonRes({ error:'Brak danych.' }, 400);
+  const now = Math.floor(Date.now()/1000);
+  await env.DB.prepare(
+    'INSERT INTO packages (id,user_id,name,type,dims_json,color,top_face,weight,created_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id,user_id) DO UPDATE SET name=excluded.name,type=excluded.type,dims_json=excluded.dims_json,color=excluded.color,top_face=excluded.top_face,weight=excluded.weight'
+  ).bind(body.id, user.id, body.name, body.type||'box', JSON.stringify(body.dims), body.color||'#3498db', body.topFace||null, body.weight||0, now).run();
+  return jsonRes({ ok:true });
+}
+
+async function apiDeletePackage(request, env) {
+  const user = await getUser(request, env);
+  if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
+  const id = new URL(request.url).pathname.split('/').pop();
+  await env.DB.prepare('DELETE FROM packages WHERE id = ? AND user_id = ?').bind(id, user.id).run();
+  return jsonRes({ ok:true });
+}
+
 // ─── MAIN FETCH HANDLER ───────────────────────────────────────────────────────
 
 export default {
@@ -408,6 +435,9 @@ export default {
         if (method==='POST' && apiPath==='/stripe/checkout')        return await apiCheckout(request, env);
         if (method==='POST' && apiPath==='/stripe/webhook')         return await apiWebhook(request, env);
         if (method==='GET'  && apiPath==='/billing/portal')         return await apiBillingPortal(request, env);
+        if (method==='GET'  && apiPath==='/packages')               return await apiGetPackages(request, env);
+        if (method==='POST' && apiPath==='/packages')               return await apiSavePackage(request, env);
+        if (method==='DELETE' && apiPath.startsWith('/packages/'))  return await apiDeletePackage(request, env);
         return new Response('Not found', { status:404 });
       } catch(e) {
         return jsonRes({ error: e?.message || 'Internal server error' }, 500);

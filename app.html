@@ -704,25 +704,44 @@
 // DATA
 // ═══════════════════════════════════════════════════════
 const DEFAULT_PKGS = [
-  { id:'rf4',   name:'Karton do RF4',            dims:[770,380,533], color:'#e74c3c' },
-  { id:'rp',    name:'Karton RP',                dims:[770,380,650], color:'#e67e22' },
-  { id:'st1',   name:'Karton stojak',            dims:[600,195,300], color:'#c9a800' },
-  { id:'st2',   name:'Karton stojak (NOWY)',     dims:[770,195,380], color:'#27ae60' },
-  { id:'hst',   name:'Karton H-stand (NOWY)',    dims:[770,250,700], color:'#16a085' },
-  { id:'nos',   name:'Nosy/Sterowniki (NOWY)',   dims:[300,300,200], color:'#2980b9' },
-  { id:'small', name:'Karton małe części',       dims:[250,150,100], color:'#8e44ad' },
+  { id:'__x', name:'X', dims:[400,300,200], color:'#e74c3c' },
+  { id:'__y', name:'Y', dims:[600,400,300], color:'#27ae60' },
+  { id:'__z', name:'Z', dims:[800,600,400], color:'#2980b9' },
 ];
 const BUILTIN_IDS = new Set(DEFAULT_PKGS.map(p=>p.id));
 
-function savePkgs() { try{localStorage.setItem('pkgs',JSON.stringify(PKGS));}catch(e){} if(typeof buildVehicleSavedLists==='function')buildVehicleSavedLists(); }
-function loadPkgsFromStorage() {
-  try {
-    const raw = localStorage.getItem('pkgs');
-    if (raw) { const p=JSON.parse(raw); if(Array.isArray(p)&&p.length) return p; }
-  } catch(e) {}
-  return DEFAULT_PKGS.map(p=>({...p, dims:[...p.dims]}));
+function _pkgsLocalKey() { return 'pkgs_custom'; }
+function _loadCustomFromStorage() { try{ const r=localStorage.getItem(_pkgsLocalKey()); if(r){ const p=JSON.parse(r); if(Array.isArray(p)) return p; } }catch(e){} return []; }
+function _saveCustomToStorage(custom) { try{localStorage.setItem(_pkgsLocalKey(),JSON.stringify(custom));}catch(e){} }
+
+function savePkgs() {
+  const custom = PKGS.filter(p=>!BUILTIN_IDS.has(p.id));
+  _saveCustomToStorage(custom);
+  if(typeof buildVehicleSavedLists==='function') buildVehicleSavedLists();
 }
-let PKGS = loadPkgsFromStorage();
+async function savePkgToServer(pkg) {
+  try { await fetch('/api/packages',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(pkg)}); } catch(e){}
+}
+async function deletePkgFromServer(id) {
+  try { await fetch('/api/packages/'+id,{method:'DELETE',credentials:'include'}); } catch(e){}
+}
+async function syncPkgsFromServer() {
+  try {
+    const res = await fetch('/api/packages',{credentials:'include'});
+    if (!res.ok) return;
+    const serverPkgs = await res.json();
+    if (!Array.isArray(serverPkgs)) return;
+    const localCustom = _loadCustomFromStorage();
+    const serverIds = new Set(serverPkgs.map(p=>p.id));
+    const localOnly = localCustom.filter(p=>!serverIds.has(p.id));
+    for (const p of localOnly) await savePkgToServer(p);
+    const merged = [...serverPkgs, ...localOnly];
+    _saveCustomToStorage(merged);
+    PKGS = [...DEFAULT_PKGS.map(p=>({...p,dims:[...p.dims]})), ...merged];
+    _afterPkgsChanged();
+  } catch(e) {}
+}
+let PKGS = [...DEFAULT_PKGS.map(p=>({...p,dims:[...p.dims]})), ..._loadCustomFromStorage()];
 const PAL = { W:1200, D:800, H:144 };
 try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s?.H>0){PAL.W=+_s.W;PAL.D=+_s.D;PAL.H=+_s.H;}}catch(e){}
 
@@ -1898,15 +1917,16 @@ function modalSave() {
   const topFace = type === 'cylinder' ? 'auto' : _previewFaceMode;
   const weight = Math.max(0, parseFloat(document.getElementById('mWeight').value) || 0);
 
+  let savedPkg;
   if (_modalEditId) {
-    // Edit existing
     const pkg = PKGS.find(p=>p.id===_modalEditId);
-    if (pkg) { pkg.name=name; pkg.type=type; pkg.dims=dims; pkg.color=color; pkg.topFace=topFace; pkg.weight=weight; }
+    if (pkg) { pkg.name=name; pkg.type=type; pkg.dims=dims; pkg.color=color; pkg.topFace=topFace; pkg.weight=weight; savedPkg=pkg; }
   } else {
-    // New custom package
-    PKGS.push({ id:'pkg_'+Date.now(), name, type, dims, color, topFace, weight });
+    savedPkg = { id:'pkg_'+Date.now(), name, type, dims, color, topFace, weight };
+    PKGS.push(savedPkg);
   }
   savePkgs();
+  if (savedPkg && !BUILTIN_IDS.has(savedPkg.id)) savePkgToServer(savedPkg);
   modalClose();
   _afterPkgsChanged();
 }
@@ -1919,6 +1939,7 @@ function modalDelete() {
   selectedIds.delete(id);
   if (!selectedIds.size && PKGS.length) selectedIds.add(PKGS[0].id);
   savePkgs();
+  deletePkgFromServer(id);
   modalClose();
   _afterPkgsChanged();
 }
@@ -4177,6 +4198,7 @@ function showToast(msg){
     const u=await res.json();
     const el=document.getElementById('userNameBadge');
     if(el&&u.name)el.textContent=u.name.split(' ')[0];
+    syncPkgsFromServer();
     // Warn if trial is about to expire
     if(u.subscription?.status==='trial'&&u.subscription?.daysLeft<=2&&u.subscription?.active){
       const bar=document.getElementById('warnBar');
