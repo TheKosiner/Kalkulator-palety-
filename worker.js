@@ -367,6 +367,34 @@ async function apiBillingPortal(request, env) {
   return jsonRes({ url:session.url });
 }
 
+async function apiGetPallets(request, env) {
+  const user = await getUser(request, env);
+  if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
+  const { results } = await env.DB.prepare('SELECT id, data_json FROM saved_pallets WHERE user_id = ? ORDER BY created_at ASC').bind(user.id).all();
+  return jsonRes(results.map(r => ({ id:r.id, ...JSON.parse(r.data_json) })));
+}
+
+async function apiSavePallet(request, env) {
+  const user = await getUser(request, env);
+  if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
+  const body = await request.json().catch(() => null);
+  if (!body?.id) return jsonRes({ error:'Brak danych.' }, 400);
+  const now = Math.floor(Date.now()/1000);
+  const { id, ...rest } = body;
+  await env.DB.prepare(
+    'INSERT INTO saved_pallets (id,user_id,data_json,created_at) VALUES (?,?,?,?) ON CONFLICT(id,user_id) DO UPDATE SET data_json=excluded.data_json'
+  ).bind(id, user.id, JSON.stringify(rest), now).run();
+  return jsonRes({ ok:true });
+}
+
+async function apiDeletePallet(request, env) {
+  const user = await getUser(request, env);
+  if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
+  const id = new URL(request.url).pathname.split('/').pop();
+  await env.DB.prepare('DELETE FROM saved_pallets WHERE id = ? AND user_id = ?').bind(id, user.id).run();
+  return jsonRes({ ok:true });
+}
+
 async function apiGetPackages(request, env) {
   const user = await getUser(request, env);
   if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
@@ -435,6 +463,9 @@ export default {
         if (method==='POST' && apiPath==='/stripe/checkout')        return await apiCheckout(request, env);
         if (method==='POST' && apiPath==='/stripe/webhook')         return await apiWebhook(request, env);
         if (method==='GET'  && apiPath==='/billing/portal')         return await apiBillingPortal(request, env);
+        if (method==='GET'  && apiPath==='/pallets')                return await apiGetPallets(request, env);
+        if (method==='POST' && apiPath==='/pallets')                return await apiSavePallet(request, env);
+        if (method==='DELETE' && apiPath.startsWith('/pallets/'))   return await apiDeletePallet(request, env);
         if (method==='GET'  && apiPath==='/packages')               return await apiGetPackages(request, env);
         if (method==='POST' && apiPath==='/packages')               return await apiSavePackage(request, env);
         if (method==='DELETE' && apiPath.startsWith('/packages/'))  return await apiDeletePackage(request, env);

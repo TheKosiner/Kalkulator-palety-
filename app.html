@@ -954,8 +954,25 @@ function palLabel(W,D){
 
 // ─── SAVED PALLETS ───
 const SPAL_COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#f97316','#ec4899','#84cc16'];
-function _loadSavedPallets(){try{return JSON.parse(localStorage.getItem('savedPallets'))||[];}catch(e){return[];}}
-function _storeSavedPallets(){try{localStorage.setItem('savedPallets',JSON.stringify(savedPallets));}catch(e){}}
+function _loadSavedPallets(){try{return JSON.parse(localStorage.getItem('savedPallets_v2'))||[];}catch(e){return[];}}
+function _storeSavedPallets(){try{localStorage.setItem('savedPallets_v2',JSON.stringify(savedPallets));}catch(e){}}
+async function _savePalletToServer(p){try{await fetch('/api/pallets',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}catch(e){}}
+async function _deletePalletFromServer(id){try{await fetch('/api/pallets/'+id,{method:'DELETE',credentials:'include'});}catch(e){}}
+async function syncPalletsFromServer(){
+  try{
+    const res=await fetch('/api/pallets',{credentials:'include'});
+    if(!res.ok)return;
+    const server=await res.json();
+    if(!Array.isArray(server))return;
+    const serverIds=new Set(server.map(p=>p.id));
+    const local=_loadSavedPallets();
+    const localOnly=local.filter(p=>!serverIds.has(p.id));
+    for(const p of localOnly) await _savePalletToServer(p);
+    savedPallets=[...server,...localOnly];
+    _storeSavedPallets();
+    buildVehicleSavedLists();
+  }catch(e){}
+}
 let savedPallets=_loadSavedPallets();
 function saveCurrPallet(){
   if(!lastRes||!lastRes.count){alert('Najpierw oblicz układ paczek.');return;}
@@ -972,7 +989,7 @@ function saveCurrPallet(){
     byPallet.get(pi).push({...p,x:p.x-ox,palletIdx:undefined});
   });
   const allPalPlacements=[...byPallet.values()];
-  savedPallets.push({
+  const newPallet = {
     id:'sp_'+Date.now(),name,
     palW:PAL.W,palD:PAL.D,totalH:lastRes.totalH,
     count:allPalPlacements[0]?.length||0,
@@ -980,14 +997,17 @@ function saveCurrPallet(){
     color:SPAL_COLORS[savedPallets.length%SPAL_COLORS.length],
     placements:allPalPlacements[0]||[],
     allPalletPlacements:allPalPlacements
-  });
+  };
+  savedPallets.push(newPallet);
   _storeSavedPallets();
+  _savePalletToServer(newPallet);
   buildVehicleSavedLists();
 }
 function deleteSavedPallet(id){
   if(!confirm('Usunąć tę paletę z listy zapisanych?'))return;
   savedPallets=savedPallets.filter(p=>p.id!==id);
   _storeSavedPallets();
+  _deletePalletFromServer(id);
   buildVehicleSavedLists();
 }
 
@@ -4199,6 +4219,7 @@ function showToast(msg){
     const el=document.getElementById('userNameBadge');
     if(el&&u.name)el.textContent=u.name.split(' ')[0];
     syncPkgsFromServer();
+    syncPalletsFromServer();
     // Warn if trial is about to expire
     if(u.subscription?.status==='trial'&&u.subscription?.daysLeft<=2&&u.subscription?.active){
       const bar=document.getElementById('warnBar');
