@@ -1787,6 +1787,39 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
     return wDiff !== 0 ? wDiff : vol(b.pkg) - vol(a.pkg);
   });
 
+  // Pre-pass: for 'auto' orientation, commit to the single best orientation for
+  // ALL boxes of each type by simulating each orientation and picking the one that
+  // packs the most boxes at the lowest total height. Without this, the greedy
+  // per-box choice can pick an orientation that tiles well for early boxes but
+  // leaves no room for the last one (e.g. 9 boxes of 500×600×400 on 1200×800
+  // pallet fit perfectly as 400×600 footprint, 3 cols × 1 row × 3 layers,
+  // but a greedy pick of 500×600 footprint fills 2 cols × 1 row and wastes space).
+  const lockedOrient = new Map(); // pkgId → [fw, fd, lh, fw0, fd0, lh0]
+  for (const {pkg, qty} of sorted) {
+    if ((pkgOrientMap.get(pkg.id) || 'auto') !== 'auto') continue;
+    const orients = genOrients(pkg.dims, 'auto', margin);
+    if (orients.length <= 1) continue;
+    let bestO = null, bestPacked = -1, bestH = Infinity;
+    for (const orient of orients) {
+      const [fw, fd, lh] = orient;
+      const snapBefore = [..._placed];
+      const savedP = _placed;
+      _placed = snapBefore;
+      let packed = 0;
+      for (let i = 0; i < qty; i++) {
+        const pos = _findPos(fw, fd, lh, maxH);
+        if (!pos) break;
+        _placed.push({x:pos.x, y:pos.y, z:pos.z, w:fw, h:lh, d:fd});
+        packed++;
+      }
+      const simH = _placed.reduce((m,p)=>Math.max(m,p.y+p.h), 0);
+      _placed = savedP;
+      if (packed > bestPacked || (packed === bestPacked && simH < bestH))
+        { bestPacked = packed; bestH = simH; bestO = orient; }
+    }
+    if (bestO) lockedOrient.set(pkg.id, bestO);
+  }
+
   // Pack sequentially: exhaust all boxes of each type before moving to smaller types.
   // This lets large boxes form a complete flat layer first; smaller types then fill
   // remaining pallet space and stack on top, maximising the flat surface they inherit.
@@ -1798,10 +1831,13 @@ function packMixed(entries, maxH, pkgOrientMap, margin=0, initialPlaced=[]) {
       placed = false;
       const faceMode = pkgOrientMap.get(pkg.id) || 'auto';
 
-      // Try every orientation; keep the one with the lowest valid placement y
-      // (then closest to pallet centre as tiebreak).
+      // Use pre-determined locked orientation if available; otherwise try all.
+      const orientsToTry = lockedOrient.has(pkg.id)
+        ? [lockedOrient.get(pkg.id)]
+        : genOrients(pkg.dims, faceMode, margin);
+
       let bestPos = null, bestOrient = null;
-      for (const [fw, fd, lh, fw0, fd0, lh0] of genOrients(pkg.dims, faceMode, margin)) {
+      for (const [fw, fd, lh, fw0, fd0, lh0] of orientsToTry) {
         const pos = _findPos(fw, fd, lh, maxH);
         if (!pos) continue;
         if (!bestPos || pos.y < bestPos.y ||
