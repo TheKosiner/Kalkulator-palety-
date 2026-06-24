@@ -21,7 +21,7 @@
     header{position:fixed;top:0;left:0;right:0;height:52px;background:var(--bg);display:flex;align-items:center;padding:0 18px;gap:12px;z-index:100;border-bottom:1px solid var(--border)}
     header h1{font-size:.92rem;font-weight:700;letter-spacing:-.01em;color:var(--text);flex:1;min-width:0;display:flex;align-items:center;gap:10px;overflow:hidden}
     header h1 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    header h1 img{width:30px;height:30px;object-fit:contain;flex-shrink:0}
+    header h1 img{height:26px;width:auto;object-fit:contain;flex-shrink:0}
     header .sub{font-size:.63rem;background:var(--surface);color:var(--text-3);padding:3px 10px;border-radius:20px;border:1px solid var(--border);white-space:nowrap;font-weight:500;letter-spacing:.01em}
     @media(max-width:759px){header .sub{display:none}}
 
@@ -319,7 +319,7 @@
 <body>
 
 <header>
-  <h1><img src="logo.png" alt=""/><span>Kalkulator Palety 3D</span></h1>
+  <h1><img src="logo-full.png" alt="Pallet3D"/></h1>
   <span class="sub" id="palSub">Europaleta 1200×800 mm</span>
   <div class="main-tabs">
     <button class="main-tab active" id="mtab_paleta" onclick="switchMainTab('paleta')" data-i18n="tab_pallet">Paleta</button>
