@@ -367,6 +367,15 @@ async function apiBillingPortal(request, env) {
   return jsonRes({ url:session.url });
 }
 
+async function apiContact(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!body?.name || !body?.email || !body?.msg) return jsonRes({ error:'Uzupełnij wszystkie pola.' }, 400);
+  const html = `<p><b>Od:</b> ${body.name} &lt;${body.email}&gt;</p><p><b>Wiadomość:</b></p><p style="white-space:pre-wrap">${body.msg.replace(/</g,'&lt;')}</p>`;
+  const sent = await sendEmail(env, 'thekosiner@gmail.com', `Kontakt Pallet3D — ${body.name}`, html);
+  if (!sent) return jsonRes({ error:'Błąd wysyłania e-mail.' }, 502);
+  return jsonRes({ ok:true });
+}
+
 async function apiGetPallets(request, env) {
   const user = await getUser(request, env);
   if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
@@ -463,6 +472,7 @@ export default {
         if (method==='POST' && apiPath==='/stripe/checkout')        return await apiCheckout(request, env);
         if (method==='POST' && apiPath==='/stripe/webhook')         return await apiWebhook(request, env);
         if (method==='GET'  && apiPath==='/billing/portal')         return await apiBillingPortal(request, env);
+        if (method==='POST' && apiPath==='/contact')                 return await apiContact(request, env);
         if (method==='GET'  && apiPath==='/pallets')                return await apiGetPallets(request, env);
         if (method==='POST' && apiPath==='/pallets')                return await apiSavePallet(request, env);
         if (method==='DELETE' && apiPath.startsWith('/pallets/'))   return await apiDeletePallet(request, env);
