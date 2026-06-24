@@ -81,6 +81,20 @@ function subInfo(user) {
   return { status: user.subscription_status || 'expired', active:false };
 }
 
+// ─── EMAIL ───────────────────────────────────────────────────────────────────
+
+async function sendEmail(env, to, subject, html) {
+  if (!env.RESEND_API_KEY) return false;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'Pallet3D <noreply@pallet3d.com>', to: [to], subject, html })
+    });
+    return res.ok;
+  } catch { return false; }
+}
+
 // ─── STRIPE ──────────────────────────────────────────────────────────────────
 
 async function stripePost(env, path, body) {
@@ -119,8 +133,29 @@ async function apiRegister(request, env) {
   const hash = await hashPassword(body.password, salt);
   const now = Math.floor(Date.now()/1000);
   const trialDays = parseInt(env.TRIAL_DAYS || '14');
-  await env.DB.prepare('INSERT INTO users (id,email,name,password_hash,salt,created_at,trial_ends_at,subscription_status) VALUES (?,?,?,?,?,?,?,?)')
-    .bind(id, email, body.name.trim(), hash, salt, now, now + trialDays * 86400, 'trial').run();
+  const needsVerification = !!env.RESEND_API_KEY;
+  const verifyToken = needsVerification ? randomStr(32) : null;
+
+  await env.DB.prepare(
+    'INSERT INTO users (id,email,name,password_hash,salt,created_at,trial_ends_at,subscription_status,email_verified,email_verify_token) VALUES (?,?,?,?,?,?,?,?,?,?)'
+  ).bind(id, email, body.name.trim(), hash, salt, now, now + trialDays * 86400, 'trial', needsVerification ? 0 : 1, verifyToken).run();
+
+  if (needsVerification) {
+    const firstName = body.name.trim().split(' ')[0];
+    await sendEmail(env, email, 'Potwierdź adres e-mail — Pallet3D', `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
+        <h2 style="color:#1e293b">Cześć ${firstName}!</h2>
+        <p>Kliknij przycisk poniżej, aby potwierdzić adres e-mail i aktywować 14-dniowy okres próbny Pallet3D.</p>
+        <p><a href="${env.APP_URL}/api/auth/verify-email?token=${verifyToken}"
+          style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem">
+          Potwierdź adres e-mail
+        </a></p>
+        <p style="color:#94a3b8;font-size:.82rem">Link jest ważny 24 godziny. Jeśli nie zakładałeś konta na Pallet3D, zignoruj tę wiadomość.</p>
+      </div>
+    `);
+    return jsonRes({ ok: true, needsVerification: true }, 201);
+  }
+
   const token = await signJWT({ sub:id, exp: now + 7*86400 }, env.JWT_SECRET);
   return new Response(JSON.stringify({ ok:true }), { status:201, headers:{ 'Content-Type':'application/json', 'Set-Cookie': setCookie('token', token, 7*86400) }});
 }
@@ -131,8 +166,12 @@ async function apiLogin(request, env) {
   const email = body.email.trim().toLowerCase();
   const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
   if (!user) return jsonRes({ error:'Nieprawidłowy e-mail lub hasło.' }, 401);
+  if (!user.password_hash) return jsonRes({ error:'To konto używa logowania przez Google. Kliknij „Zaloguj się przez Google".' }, 401);
   const hash = await hashPassword(body.password, user.salt);
   if (hash !== user.password_hash) return jsonRes({ error:'Nieprawidłowy e-mail lub hasło.' }, 401);
+  if (user.email_verified === 0) {
+    return jsonRes({ error:'Potwierdź adres e-mail — sprawdź skrzynkę odbiorczą.', needsVerification: true, email }, 403);
+  }
   const now = Math.floor(Date.now()/1000);
   const token = await signJWT({ sub:user.id, exp: now + 7*86400 }, env.JWT_SECRET);
   return new Response(JSON.stringify({ ok:true }), { headers:{ 'Content-Type':'application/json', 'Set-Cookie': setCookie('token', token, 7*86400) }});
@@ -145,7 +184,113 @@ function apiLogout() {
 async function apiMe(request, env) {
   const user = await getUser(request, env);
   if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
-  return jsonRes({ name:user.name, email:user.email, subscription: subInfo(user) });
+  return jsonRes({ name:user.name, email:user.email, emailVerified: user.email_verified !== 0, subscription: subInfo(user) });
+}
+
+async function apiVerifyEmail(request, env) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+  const appUrl = env.APP_URL || 'https://pallet3d.com';
+  if (!token) return Response.redirect(`${appUrl}/?login=1`, 302);
+  const user = await env.DB.prepare('SELECT id FROM users WHERE email_verify_token = ?').bind(token).first();
+  if (!user) return Response.redirect(`${appUrl}/?login=1&verifyErr=1`, 302);
+  await env.DB.prepare('UPDATE users SET email_verified = 1, email_verify_token = NULL WHERE id = ?').bind(user.id).run();
+  const now = Math.floor(Date.now()/1000);
+  const jwt = await signJWT({ sub: user.id, exp: now + 7*86400 }, env.JWT_SECRET);
+  return new Response(null, { status: 302, headers: { 'Location': `${appUrl}/app.html`, 'Set-Cookie': setCookie('token', jwt, 7*86400) }});
+}
+
+async function apiResendVerification(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!body?.email) return jsonRes({ error: 'Podaj adres e-mail.' }, 400);
+  const email = body.email.trim().toLowerCase();
+  const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+  if (!user || user.email_verified !== 0) return jsonRes({ ok: true });
+  const verifyToken = randomStr(32);
+  await env.DB.prepare('UPDATE users SET email_verify_token = ? WHERE id = ?').bind(verifyToken, user.id).run();
+  const firstName = user.name.split(' ')[0];
+  await sendEmail(env, email, 'Potwierdź adres e-mail — Pallet3D', `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
+      <h2 style="color:#1e293b">Cześć ${firstName}!</h2>
+      <p>Kliknij poniższy przycisk, aby potwierdzić adres e-mail:</p>
+      <p><a href="${env.APP_URL}/api/auth/verify-email?token=${verifyToken}"
+        style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">
+        Potwierdź adres e-mail
+      </a></p>
+    </div>
+  `);
+  return jsonRes({ ok: true });
+}
+
+async function apiChangePassword(request, env) {
+  const user = await getUser(request, env);
+  if (!user) return jsonRes({ error: 'Niezalogowany.' }, 401);
+  const body = await request.json().catch(() => null);
+  if (!body?.newPassword) return jsonRes({ error: 'Uzupełnij wszystkie pola.' }, 400);
+  if (body.newPassword.length < 8) return jsonRes({ error: 'Nowe hasło musi mieć co najmniej 8 znaków.' }, 400);
+  if (user.password_hash) {
+    if (!body.currentPassword) return jsonRes({ error: 'Podaj aktualne hasło.' }, 400);
+    const hash = await hashPassword(body.currentPassword, user.salt);
+    if (hash !== user.password_hash) return jsonRes({ error: 'Nieprawidłowe aktualne hasło.' }, 401);
+  }
+  const newSalt = randomStr(32);
+  const newHash = await hashPassword(body.newPassword, newSalt);
+  await env.DB.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?').bind(newHash, newSalt, user.id).run();
+  return jsonRes({ ok: true });
+}
+
+async function apiGoogleAuth(request, env) {
+  if (!env.GOOGLE_CLIENT_ID) return jsonRes({ error: 'Google OAuth nie jest skonfigurowane.' }, 503);
+  const appUrl = env.APP_URL || 'https://pallet3d.com';
+  const params = new URLSearchParams({
+    client_id: env.GOOGLE_CLIENT_ID,
+    redirect_uri: `${appUrl}/api/auth/google/callback`,
+    response_type: 'code',
+    scope: 'openid email profile',
+    prompt: 'select_account'
+  });
+  return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`, 302);
+}
+
+async function apiGoogleCallback(request, env) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const appUrl = env.APP_URL || 'https://pallet3d.com';
+  if (!code) return Response.redirect(`${appUrl}/?login=1`, 302);
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code, client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: `${appUrl}/api/auth/google/callback`, grant_type: 'authorization_code'
+    }).toString()
+  });
+  const tokens = await tokenRes.json();
+  if (!tokens.access_token) return Response.redirect(`${appUrl}/?login=1`, 302);
+
+  const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${tokens.access_token}` }
+  });
+  const gUser = await infoRes.json();
+  if (!gUser.email) return Response.redirect(`${appUrl}/?login=1`, 302);
+
+  let user = await env.DB.prepare('SELECT * FROM users WHERE google_id = ? OR email = ?').bind(gUser.id, gUser.email).first();
+  const now = Math.floor(Date.now()/1000);
+
+  if (!user) {
+    const id = randomStr(20);
+    const trialDays = parseInt(env.TRIAL_DAYS || '14');
+    await env.DB.prepare(
+      'INSERT INTO users (id,email,name,password_hash,salt,created_at,trial_ends_at,subscription_status,email_verified,google_id) VALUES (?,?,?,?,?,?,?,?,1,?)'
+    ).bind(id, gUser.email, gUser.name || gUser.email, '', '', now, now + trialDays * 86400, 'trial', gUser.id).run();
+    user = { id };
+  } else if (!user.google_id) {
+    await env.DB.prepare('UPDATE users SET google_id = ?, email_verified = 1 WHERE id = ?').bind(gUser.id, user.id).run();
+  }
+
+  const jwt = await signJWT({ sub: user.id, exp: now + 7*86400 }, env.JWT_SECRET);
+  return new Response(null, { status: 302, headers: { 'Location': `${appUrl}/app.html`, 'Set-Cookie': setCookie('token', jwt, 7*86400) }});
 }
 
 async function apiCheckout(request, env) {
@@ -223,6 +368,7 @@ export default {
         if (!payload) return Response.redirect(`${url.origin}/?login=1`, 302);
         const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(payload.sub).first();
         if (!user) return Response.redirect(`${url.origin}/?login=1`, 302);
+        if (user.email_verified === 0) return Response.redirect(`${url.origin}/?login=1&verify=1`, 302);
         if (!isActive(user)) return Response.redirect(`${url.origin}/account.html?expired=1`, 302);
       }
       return env.ASSETS.fetch(request);
@@ -233,14 +379,18 @@ export default {
       const apiPath = path.replace('/api', '');
       if (method === 'OPTIONS') return new Response(null, { status:204, headers:{ 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Methods':'GET,POST,OPTIONS', 'Access-Control-Allow-Headers':'Content-Type', 'Access-Control-Allow-Credentials':'true' }});
       try {
-        if (method==='POST' && apiPath==='/auth/register')   return await apiRegister(request, env);
-        if (method==='POST' && apiPath==='/auth/login')      return await apiLogin(request, env);
-        if (method==='POST' && apiPath==='/auth/logout')     return await apiLogout();
-        if (method==='GET'  && apiPath==='/auth/me')         return await apiMe(request, env);
-        if (method==='POST' && apiPath==='/stripe/checkout') return await apiCheckout(request, env);
-        if (method==='POST' && apiPath==='/stripe/webhook')  return await apiWebhook(request, env);
-        if (method==='GET'  && apiPath==='/billing/portal')  return await apiBillingPortal(request, env);
-        if (method==='GET'  && apiPath==='/debug/env')       return jsonRes({ jwt: !!env.JWT_SECRET, jwtLen: (env.JWT_SECRET||'').length, db: !!env.DB, appUrl: env.APP_URL });
+        if (method==='POST' && apiPath==='/auth/register')          return await apiRegister(request, env);
+        if (method==='POST' && apiPath==='/auth/login')             return await apiLogin(request, env);
+        if (method==='POST' && apiPath==='/auth/logout')            return await apiLogout();
+        if (method==='GET'  && apiPath==='/auth/me')                return await apiMe(request, env);
+        if (method==='GET'  && apiPath==='/auth/verify-email')      return await apiVerifyEmail(request, env);
+        if (method==='POST' && apiPath==='/auth/resend-verification') return await apiResendVerification(request, env);
+        if (method==='POST' && apiPath==='/auth/change-password')   return await apiChangePassword(request, env);
+        if (method==='GET'  && apiPath==='/auth/google')            return await apiGoogleAuth(request, env);
+        if (method==='GET'  && apiPath==='/auth/google/callback')   return await apiGoogleCallback(request, env);
+        if (method==='POST' && apiPath==='/stripe/checkout')        return await apiCheckout(request, env);
+        if (method==='POST' && apiPath==='/stripe/webhook')         return await apiWebhook(request, env);
+        if (method==='GET'  && apiPath==='/billing/portal')         return await apiBillingPortal(request, env);
         return new Response('Not found', { status:404 });
       } catch(e) {
         return jsonRes({ error: e?.message || 'Internal server error' }, 500);
