@@ -7,6 +7,9 @@ routes = [
   { pattern = "www.pallet3d.com", custom_domain = true }
 ]
 
+[[send_email]]
+name = "EMAIL"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "pallet3d-db"
