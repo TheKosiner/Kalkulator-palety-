@@ -27,18 +27,22 @@
     nav{position:fixed;top:0;left:0;right:0;z-index:200;height:68px;display:flex;align-items:center;gap:16px;padding:0 28px;background:rgba(7,13,26,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.05);transform:translateY(-100%)}
     .nav-logo{display:flex;align-items:center;gap:11px;font-weight:800;font-size:1.02rem;letter-spacing:-.02em;flex:1}
     .nav-logo img{height:30px;width:auto;object-fit:contain;display:block}
-    .nav-logo b{color:var(--accent-h)}
     .nav-links{display:flex;gap:30px;font-size:.86rem;color:var(--text-2);font-weight:500}
     .nav-links a{position:relative;padding:4px 0;transition:color .2s}
     .nav-links a::after{content:'';position:absolute;left:0;bottom:0;width:0;height:2px;background:var(--accent);border-radius:2px;transition:width .25s}
     .nav-links a:hover{color:var(--text)}
     .nav-links a:hover::after{width:100%}
-    .nav-actions{display:flex;gap:10px;margin-left:18px}
+    .nav-actions{display:flex;align-items:center;gap:10px;margin-left:18px}
     .btn-ghost{padding:9px 18px;border:1px solid var(--border-2);border-radius:var(--r);font-size:.84rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-2);transition:all .2s}
     .btn-ghost:hover{color:var(--text);border-color:var(--text-3)}
     .btn-primary{padding:10px 22px;background:var(--accent);border:none;border-radius:var(--r);font-size:.85rem;font-weight:700;cursor:pointer;color:#fff;transition:all .2s;box-shadow:0 2px 16px var(--accent-glow)}
     .btn-primary:hover{background:var(--accent-h);box-shadow:0 4px 24px rgba(96,165,250,.4);transform:translateY(-1px)}
     .nav-burger{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;padding:4px 10px}
+    /* language switcher */
+    .lang-sw{display:flex;align-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border-2);border-radius:8px;padding:3px;gap:2px}
+    .lang-sw button{background:none;border:none;color:var(--text-3);font-size:.75rem;font-weight:700;cursor:pointer;padding:4px 9px;border-radius:5px;transition:all .15s;letter-spacing:.06em}
+    .lang-sw button.active{background:var(--accent);color:#fff}
+    .lang-sw button:not(.active):hover{color:var(--text-2)}
 
     /* mobile menu */
     .mobile-menu{position:fixed;inset:0;z-index:300;background:rgba(7,13,26,.97);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -46,6 +50,9 @@
     .mobile-menu a{font-size:1.4rem;font-weight:700;color:var(--text-2)}
     .mobile-menu a:active{color:var(--accent-h)}
     .mobile-menu .mm-close{position:absolute;top:18px;right:24px;font-size:2rem;background:none;border:none;color:var(--text-2);cursor:pointer}
+    .mm-lang{display:flex;gap:8px;margin-top:10px}
+    .mm-lang button{background:rgba(255,255,255,.07);border:1px solid var(--border-2);color:var(--text-2);font-size:.9rem;font-weight:700;padding:8px 22px;border-radius:8px;cursor:pointer;transition:all .15s;letter-spacing:.06em}
+    .mm-lang button.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
     /* ─── HERO ─── */
     .hero{position:relative;min-height:115svh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;padding:118px 24px 0}
@@ -69,13 +76,10 @@
     .btn-hero.line{background:rgba(255,255,255,.05);border:1px solid var(--border-2);color:var(--text);backdrop-filter:blur(6px)}
     .btn-hero.line:hover{border-color:var(--text-3);background:rgba(255,255,255,.08)}
     .hero-hint{margin-top:22px;font-size:.78rem;color:var(--text-3)}
-    .scroll-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-3);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase}
-    .scroll-cue::after{content:'';width:1px;height:34px;background:linear-gradient(var(--text-3),transparent);animation:cue 1.8s infinite}
-    @keyframes cue{0%{transform:scaleY(0);transform-origin:top}45%{transform:scaleY(1);transform-origin:top}55%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
 
     /* ─── STATS ─── */
     .stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-2)}
-    .stats-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:52px 24px;gap:30px}
+    .stats-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr;padding:52px 24px;gap:30px}
     .stat{text-align:center}
     .stat-v{font-size:clamp(1.9rem,4vw,2.7rem);font-weight:800;letter-spacing:-.03em;color:#fff;line-height:1}
     .stat-v span{color:var(--accent-h)}
@@ -182,7 +186,7 @@
     .m-foot{text-align:center;margin-top:16px;font-size:.82rem;color:var(--text-2)}
     .m-foot a{color:var(--accent-h);font-weight:600}
 
-    /* ─── REVEAL DEFAULTS (animated by GSAP) ─── */
+    /* ─── REVEAL DEFAULTS ─── */
     .rv{opacity:0}
     @media (prefers-reduced-motion:reduce){
       .rv{opacity:1!important;transform:none!important}
@@ -196,7 +200,6 @@
       .steps{grid-template-columns:1fr}
       .feats{grid-template-columns:1fr 1fr}
       .show-grid{grid-template-columns:1fr;gap:48px}
-      .stats-inner{grid-template-columns:1fr 1fr;gap:36px 16px;padding:42px 20px}
       .foot-top{grid-template-columns:1fr 1fr}
     }
     @media(max-width:580px){
@@ -223,26 +226,34 @@
 <nav id="nav">
   <div class="nav-logo"><img src="logo-full.png" alt="Pallet3D"/></div>
   <div class="nav-links">
-    <a href="#jak-dziala">Jak to działa</a>
-    <a href="#funkcje">Funkcje</a>
-    <a href="#pojazdy">Naczepy i kontenery</a>
-    <a href="#cennik">Cennik</a>
+    <a href="#jak-dziala" data-i18n="nav_how">Jak to działa</a>
+    <a href="#funkcje" data-i18n="nav_features">Funkcje</a>
+    <a href="#pojazdy" data-i18n="nav_vehicles">Naczepy i kontenery</a>
+    <a href="#cennik" data-i18n="nav_pricing">Cennik</a>
   </div>
   <div class="nav-actions">
-    <button class="btn-ghost" onclick="openModal('login')">Zaloguj się</button>
-    <button class="btn-primary" onclick="openModal('signup')">Załóż konto</button>
+    <div class="lang-sw" id="langSw">
+      <button id="lBtn-pl" onclick="setLang('pl')">PL</button>
+      <button id="lBtn-en" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="btn-ghost" onclick="openModal('login')" data-i18n="nav_login">Zaloguj się</button>
+    <button class="btn-primary" onclick="openModal('signup')" data-i18n="nav_signup">Załóż konto</button>
   </div>
   <button class="nav-burger" onclick="document.getElementById('mm').classList.add('open')" aria-label="Menu">☰</button>
 </nav>
 
 <!-- mobile menu -->
 <div class="mobile-menu" id="mm">
-  <button class="mm-close" onclick="document.getElementById('mm').classList.remove('open')" aria-label="Zamknij">×</button>
-  <a href="#jak-dziala" onclick="mmClose()">Jak to działa</a>
-  <a href="#funkcje" onclick="mmClose()">Funkcje</a>
-  <a href="#pojazdy" onclick="mmClose()">Naczepy i kontenery</a>
-  <a href="#cennik" onclick="mmClose()">Cennik</a>
-  <button class="btn-primary" style="padding:14px 38px;font-size:1rem" onclick="mmClose();openModal('signup')">Załóż konto</button>
+  <button class="mm-close" onclick="document.getElementById('mm').classList.remove('open')" aria-label="Close">×</button>
+  <a href="#jak-dziala" onclick="mmClose()" data-i18n="nav_how">Jak to działa</a>
+  <a href="#funkcje" onclick="mmClose()" data-i18n="nav_features">Funkcje</a>
+  <a href="#pojazdy" onclick="mmClose()" data-i18n="nav_vehicles">Naczepy i kontenery</a>
+  <a href="#cennik" onclick="mmClose()" data-i18n="nav_pricing">Cennik</a>
+  <button class="btn-primary" style="padding:14px 38px;font-size:1rem" onclick="mmClose();openModal('signup')" data-i18n="nav_signup">Załóż konto</button>
+  <div class="mm-lang">
+    <button id="mmBtn-pl" onclick="setLang('pl')">PL</button>
+    <button id="mmBtn-en" onclick="setLang('en')">EN</button>
+  </div>
 </div>
 
 <!-- ═══ HERO ═══ -->
@@ -250,26 +261,26 @@
   <canvas id="heroCanvas"></canvas>
   <div class="hero-vignette"></div>
   <div class="hero-top">
-    <div class="hero-badge rv" id="heroBadge"><i></i>Wizualizacja 3D palet, naczep i kontenerów</div>
-    <h1 id="heroTitle">
+    <div class="hero-badge rv" id="heroBadge"><i></i><span data-i18n="hero_badge">Wizualizacja 3D palet, naczep i kontenerów</span></div>
+    <h1 id="heroTitle" data-i18n-html="hero_h1">
       <span class="word">Logistyka</span> <span class="word">załadunku</span><br>
       <span class="word accent">zaplanowana</span> <span class="word accent">w 3D</span>
     </h1>
   </div>
   <div class="hero-bot">
-    <p class="hero-sub rv" id="heroSub">Algorytm optymalnego upakowania rozmieszcza kartony na paletach, a palety w naczepach i kontenerach — z uwzględnieniem wagi, piętrowania i luźnych paczek. Wynik widzisz natychmiast w interaktywnym 3D.</p>
+    <p class="hero-sub rv" id="heroSub" data-i18n="hero_sub">Algorytm optymalnego upakowania rozmieszcza kartony na paletach, a palety w naczepach i kontenerach — z uwzględnieniem wagi, piętrowania i luźnych paczek. Wynik widzisz natychmiast w interaktywnym 3D.</p>
     <div class="hero-actions rv" id="heroActions">
-      <a href="app.html"><button class="btn-hero solid">Uruchom kalkulator →</button></a>
-      <button class="btn-hero line" onclick="openModal('signup')">Załóż konto</button>
+      <a href="app.html"><button class="btn-hero solid" data-i18n="hero_btn_open">Uruchom kalkulator →</button></a>
+      <button class="btn-hero line" onclick="openModal('signup')" data-i18n="hero_btn_signup">Załóż konto</button>
     </div>
-    <div class="hero-hint rv" id="heroHint">Działa w przeglądarce · Bez instalacji · Komputer, tablet i telefon</div>
+    <div class="hero-hint rv" id="heroHint" data-i18n="hero_hint">Działa w przeglądarce · Bez instalacji · Komputer, tablet i telefon</div>
   </div>
 </header>
 
 <!-- ═══ STATS ═══ -->
 <div class="stats">
-  <div class="stats-inner" style="grid-template-columns:1fr">
-    <div class="stat rv"><div class="stat-v"><span data-count="100">0</span>%</div><div class="stat-l">w przeglądarce — zero instalacji</div></div>
+  <div class="stats-inner">
+    <div class="stat rv"><div class="stat-v"><span data-count="100">0</span>%</div><div class="stat-l" data-i18n="stat_browser">w przeglądarce — zero instalacji</div></div>
   </div>
 </div>
 
@@ -277,25 +288,25 @@
 <section class="section" id="jak-dziala">
   <div class="section-inner">
     <div class="sec-head center">
-      <div class="tag rv">Jak to działa</div>
-      <h2 class="h2 rv">Od kartonu do pełnego kontenera<br>w trzech krokach</h2>
-      <p class="sub rv">Bez arkuszy kalkulacyjnych i zgadywania. Definiujesz ładunek — resztą zajmuje się algorytm.</p>
+      <div class="tag rv" data-i18n="how_tag">Jak to działa</div>
+      <h2 class="h2 rv" data-i18n-html="how_h2">Od kartonu do pełnego kontenera<br>w trzech krokach</h2>
+      <p class="sub rv" data-i18n="how_sub">Bez arkuszy kalkulacyjnych i zgadywania. Definiujesz ładunek — resztą zajmuje się algorytm.</p>
     </div>
     <div class="steps">
       <div class="step rv">
         <div class="step-ic">📦</div>
-        <h3>Zdefiniuj ładunek</h3>
-        <p>Dodaj kartony i rolki z wymiarami, wagą i kolorem etykiety. Wybierz ścianę nośną, ustaw marginesy. Własne typy zapisują się na Twoim koncie.</p>
+        <h3 data-i18n="step1_h">Zdefiniuj ładunek</h3>
+        <p data-i18n="step1_p">Dodaj kartony i rolki z wymiarami, wagą i kolorem etykiety. Wybierz ścianę nośną, ustaw marginesy. Własne typy zapisują się na Twoim koncie.</p>
       </div>
       <div class="step rv">
         <div class="step-ic">⚙️</div>
-        <h3>Algorytm układa</h3>
-        <p>Heightmapowy algorytm 3D dobiera orientacje i rozmieszczenie: najcięższe na dół, warstwy płaskie, zero lewitujących paczek. Tryb mieszany i ręczny w komplecie.</p>
+        <h3 data-i18n="step2_h">Algorytm układa</h3>
+        <p data-i18n="step2_p">Heightmapowy algorytm 3D dobiera orientacje i rozmieszczenie: najcięższe na dół, warstwy płaskie, zero lewitujących paczek. Tryb mieszany i ręczny w komplecie.</p>
       </div>
       <div class="step rv">
         <div class="step-ic">🚛</div>
-        <h3>Załaduj pojazd</h3>
-        <p>Gotowe palety rozmieszczasz w naczepie lub kontenerze. Piętrowanie palet, kartony luzem wypełniające luki, opcje wysokości — wszystko w interaktywnym 3D.</p>
+        <h3 data-i18n="step3_h">Załaduj pojazd</h3>
+        <p data-i18n="step3_p">Gotowe palety rozmieszczasz w naczepie lub kontenerze. Piętrowanie palet, kartony luzem wypełniające luki, opcje wysokości — wszystko w interaktywnym 3D.</p>
       </div>
     </div>
   </div>
@@ -305,16 +316,16 @@
 <section class="feats-wrap section" id="funkcje">
   <div class="section-inner">
     <div class="sec-head">
-      <div class="tag rv">Funkcje</div>
-      <h2 class="h2 rv">Wszystko, czego potrzebuje<br>dział logistyki</h2>
+      <div class="tag rv" data-i18n="feat_tag">Funkcje</div>
+      <h2 class="h2 rv" data-i18n-html="feat_h2">Wszystko, czego potrzebuje<br>dział logistyki</h2>
     </div>
     <div class="feats">
-      <div class="feat rv"><div class="feat-ic ic-b">🧊</div><h3>Wizualizacja 3D w czasie rzeczywistym</h3><p>Pełna kontrola kamery: obracanie, zoom, panorama — myszą i dotykiem. Każdy karton, paleta i pojazd odwzorowane w skali.</p></div>
-      <div class="feat rv"><div class="feat-ic ic-g">⚖️</div><h3>Układanie według wagi</h3><p>Najcięższe paczki trafiają na dolne warstwy, najcięższe palety na podłogę pojazdu. Lżejsze palety wjeżdżają na górę przy piętrowaniu.</p></div>
-      <div class="feat rv"><div class="feat-ic ic-o">🏗️</div><h3>Piętrowanie palet</h3><p>Opcjonalne układanie palet jedna na drugiej z poszanowaniem limitu wysokości pojazdu i dopasowaniem wymiarów podstaw.</p></div>
-      <div class="feat rv"><div class="feat-ic ic-p">📐</div><h3>Heightmapowy algorytm upakowania</h3><p>Paczki mogą stać obok siebie, nie tylko w równych warstwach. Gwarancja pełnego podparcia — nic nie wisi w powietrzu.</p></div>
-      <div class="feat rv"><div class="feat-ic ic-t">🚚</div><h3>Naczepy i kontenery</h3><p>Presety Mega 13.6m, 40′ HC i własne wymiary. Kartony luzem automatycznie wypełniają luki między paletami i przestrzeń nad nimi.</p></div>
-      <div class="feat rv"><div class="feat-ic ic-r">✋</div><h3>Tryb ręczny</h3><p>Pełna kontrola: stawiaj kartony klikając na paletę, usuwaj pojedyncze sztuki, cofaj zmiany. Idealny do nietypowych załadunków.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-b">🧊</div><h3 data-i18n="feat1_h">Wizualizacja 3D w czasie rzeczywistym</h3><p data-i18n="feat1_p">Pełna kontrola kamery: obracanie, zoom, panorama — myszą i dotykiem. Każdy karton, paleta i pojazd odwzorowane w skali.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-g">⚖️</div><h3 data-i18n="feat2_h">Układanie według wagi</h3><p data-i18n="feat2_p">Najcięższe paczki trafiają na dolne warstwy, najcięższe palety na podłogę pojazdu. Lżejsze palety wjeżdżają na górę przy piętrowaniu.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-o">🏗️</div><h3 data-i18n="feat3_h">Piętrowanie palet</h3><p data-i18n="feat3_p">Opcjonalne układanie palet jedna na drugiej z poszanowaniem limitu wysokości pojazdu i dopasowaniem wymiarów podstaw.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-p">📐</div><h3 data-i18n="feat4_h">Heightmapowy algorytm upakowania</h3><p data-i18n="feat4_p">Paczki mogą stać obok siebie, nie tylko w równych warstwach. Gwarancja pełnego podparcia — nic nie wisi w powietrzu.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-t">🚚</div><h3 data-i18n="feat5_h">Naczepy i kontenery</h3><p data-i18n="feat5_p">Presety Mega 13.6m, 40′ HC i własne wymiary. Kartony luzem automatycznie wypełniają luki między paletami i przestrzeń nad nimi.</p></div>
+      <div class="feat rv"><div class="feat-ic ic-r">✋</div><h3 data-i18n="feat6_h">Tryb ręczny</h3><p data-i18n="feat6_p">Pełna kontrola: stawiaj kartony klikając na paletę, usuwaj pojedyncze sztuki, cofaj zmiany. Idealny do nietypowych załadunków.</p></div>
     </div>
   </div>
 </section>
@@ -323,19 +334,19 @@
 <section class="section" id="pojazdy">
   <div class="section-inner show-grid">
     <div class="rv" id="showText">
-      <div class="tag">Załadunek pojazdów</div>
-      <h2 class="h2">Z palety prosto<br>do naczepy</h2>
-      <p class="sub">Zapisane palety stają się klockami, które algorytm rozmieszcza w przestrzeni ładunkowej — a Ty widzisz dokładnie, co i gdzie pojedzie.</p>
+      <div class="tag" data-i18n="show_tag">Załadunek pojazdów</div>
+      <h2 class="h2" data-i18n-html="show_h2">Z palety prosto<br>do naczepy</h2>
+      <p class="sub" data-i18n="show_sub">Zapisane palety stają się klockami, które algorytm rozmieszcza w przestrzeni ładunkowej — a Ty widzisz dokładnie, co i gdzie pojedzie.</p>
       <ul class="checks">
-        <li><div class="chk">✓</div><div><strong>Dwupasmowe pakowanie kontenera</strong><span>Wąskie i szerokie orientacje palet w dwóch równoległych pasach minimalizują stratę szerokości.</span></div></li>
-        <li><div class="chk">✓</div><div><strong>Kartony luzem dopełniają przestrzeń</strong><span>Luźne paczki wypełniają luki przy paletach i mogą być ładowane na palety, jeśli zostało miejsce.</span></div></li>
-        <li><div class="chk">✓</div><div><strong>Statystyki zapełnienia</strong><span>Liczba palet i kartonów, procent zajętej podłogi oraz lista tego, co się nie zmieściło.</span></div></li>
+        <li><div class="chk">✓</div><div><strong data-i18n="check1_h">Dwupasmowe pakowanie kontenera</strong><span data-i18n="check1_p">Wąskie i szerokie orientacje palet w dwóch równoległych pasach minimalizują stratę szerokości.</span></div></li>
+        <li><div class="chk">✓</div><div><strong data-i18n="check2_h">Kartony luzem dopełniają przestrzeń</strong><span data-i18n="check2_p">Luźne paczki wypełniają luki przy paletach i mogą być ładowane na palety, jeśli zostało miejsce.</span></div></li>
+        <li><div class="chk">✓</div><div><strong data-i18n="check3_h">Statystyki zapełnienia</strong><span data-i18n="check3_p">Liczba palet i kartonów, procent zajętej podłogi oraz lista tego, co się nie zmieściło.</span></div></li>
       </ul>
     </div>
     <div class="show-visual rv" id="showVis">
       <div class="show-glow"></div>
       <div class="show-frame">
-        <div class="show-bar"><i></i><i></i><i></i><span>Kalkulator Palety 3D — Naczepa Mega 13.6m</span></div>
+        <div class="show-bar"><i></i><i></i><i></i><span data-i18n="show_bar_title">Kalkulator Palety 3D — Naczepa Mega 13.6m</span></div>
         <canvas id="showCanvas"></canvas>
       </div>
     </div>
@@ -346,53 +357,53 @@
 <section class="section" id="cennik" style="background:var(--bg-2);border-top:1px solid var(--border)">
   <div class="section-inner">
     <div class="sec-head center">
-      <div class="tag rv">Cennik</div>
-      <h2 class="h2 rv">Jeden plan. Pełen dostęp.</h2>
-      <p class="sub rv">Bez limitów, bez ukrytych opłat. Jedna subskrypcja dla Twojego zespołu logistyki.</p>
+      <div class="tag rv" data-i18n="price_tag">Cennik</div>
+      <h2 class="h2 rv" data-i18n="price_h2">Jeden plan. Pełen dostęp.</h2>
+      <p class="sub rv" data-i18n="price_sub">Bez limitów, bez ukrytych opłat. Jedna subskrypcja dla Twojego zespołu logistyki.</p>
     </div>
     <div class="price-wrap">
       <div class="price rv">
-        <div class="price-badge">PEŁEN DOSTĘP</div>
-        <div class="price-amount"><sup>zł</sup>50<sub>/mies.</sub></div>
-        <p class="price-desc">Jedno konto — wszystkie funkcje kalkulatora bez ograniczeń.</p>
+        <div class="price-badge" data-i18n="price_badge">PEŁEN DOSTĘP</div>
+        <div class="price-amount"><sup>zł</sup>50<sub data-i18n="price_period">/mies.</sub></div>
+        <p class="price-desc" data-i18n="price_desc">Jedno konto — wszystkie funkcje kalkulatora bez ograniczeń.</p>
         <ul>
-          <li>Kalkulator palet, naczep i kontenerów</li>
-          <li>Własne kartony i wagi zapisane na koncie</li>
-          <li>Piętrowanie palet i kartony luzem</li>
-          <li>Tryb automatyczny, mieszany i ręczny</li>
-          <li>Wsparcie techniczne</li>
+          <li data-i18n="price_li1">Kalkulator palet, naczep i kontenerów</li>
+          <li data-i18n="price_li2">Własne kartony i wagi zapisane na koncie</li>
+          <li data-i18n="price_li3">Piętrowanie palet i kartony luzem</li>
+          <li data-i18n="price_li4">Tryb automatyczny, mieszany i ręczny</li>
+          <li data-i18n="price_li5">Wsparcie techniczne</li>
         </ul>
-        <button class="btn-hero solid" style="width:100%" onclick="openModal('signup')">Załóż konto i zacznij</button>
-        <p class="price-note">Cena netto + 23% VAT · Anuluj w dowolnym momencie</p>
+        <button class="btn-hero solid" style="width:100%" onclick="openModal('signup')" data-i18n="price_btn">Załóż konto i zacznij</button>
+        <p class="price-note" data-i18n="price_note">Cena netto + 23% VAT · Anuluj w dowolnym momencie</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══ KONTAKT ═══ -->
+<!-- ═══ CONTACT ═══ -->
 <section class="section" id="kontakt" style="background:var(--bg-2);border-top:1px solid var(--border)">
   <div class="section-inner" style="max-width:560px">
-    <h2 class="rv" style="text-align:center;margin-bottom:8px">Kontakt</h2>
-    <p class="rv" style="text-align:center;color:var(--text-2);margin-bottom:32px">Masz pytanie lub potrzebujesz pomocy? Napisz do nas.</p>
+    <h2 class="rv" style="text-align:center;margin-bottom:8px" data-i18n="contact_h2">Kontakt</h2>
+    <p class="rv" style="text-align:center;color:var(--text-2);margin-bottom:32px" data-i18n="contact_sub">Masz pytanie lub potrzebujesz pomocy? Napisz do nas.</p>
     <div class="rv" style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px 24px">
-      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px">Imię i nazwisko</label>
-        <input id="ctxName" type="text" placeholder="Jan Kowalski" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
-      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px">Adres e-mail</label>
-        <input id="ctxEmail" type="email" placeholder="jan@firma.pl" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
-      <div style="margin-bottom:18px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px">Wiadomość</label>
-        <textarea id="ctxMsg" rows="5" placeholder="Opisz swoje pytanie..." style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea></div>
+      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_name">Imię i nazwisko</label>
+        <input id="ctxName" type="text" data-i18n-ph="contact_name_ph" placeholder="Jan Kowalski" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
+      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_email_lbl">Adres e-mail</label>
+        <input id="ctxEmail" type="email" data-i18n-ph="contact_email_ph" placeholder="jan@firma.pl" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
+      <div style="margin-bottom:18px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_msg_lbl">Wiadomość</label>
+        <textarea id="ctxMsg" rows="5" data-i18n-ph="contact_msg_ph" placeholder="Opisz swoje pytanie..." style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea></div>
       <div id="ctxErr" style="color:#f87171;font-size:.82rem;margin-bottom:10px;display:none"></div>
-      <div id="ctxOk" style="color:#4ade80;font-size:.82rem;margin-bottom:10px;display:none">Wiadomość wysłana! Odpiszemy wkrótce.</div>
-      <button id="ctxBtn" onclick="sendContact()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:600;cursor:pointer">Wyślij wiadomość</button>
+      <div id="ctxOk" style="color:#4ade80;font-size:.82rem;margin-bottom:10px;display:none" data-i18n="contact_ok">Wiadomość wysłana! Odpiszemy wkrótce.</div>
+      <button id="ctxBtn" onclick="sendContact()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:600;cursor:pointer" data-i18n="contact_btn">Wyślij wiadomość</button>
     </div>
   </div>
 </section>
 
 <!-- ═══ CTA ═══ -->
 <section class="cta">
-  <h2 class="rv">Przestań zgadywać.<br>Zacznij planować.</h2>
-  <p class="rv">Pierwsze obliczenie zrobisz w mniej niż minutę — bez zakładania konta.</p>
-  <a href="app.html" class="rv" style="display:inline-block;position:relative"><button class="btn-hero solid">Otwórz kalkulator →</button></a>
+  <h2 class="rv" data-i18n-html="cta_h2">Przestań zgadywać.<br>Zacznij planować.</h2>
+  <p class="rv" data-i18n="cta_p">Pierwsze obliczenie zrobisz w mniej niż minutę — bez zakładania konta.</p>
+  <a href="app.html" class="rv" style="display:inline-block;position:relative"><button class="btn-hero solid" data-i18n="cta_btn">Otwórz kalkulator →</button></a>
 </section>
 
 <!-- ═══ FOOTER ═══ -->
@@ -401,21 +412,32 @@
     <div class="foot-top">
       <div class="foot-brand">
         <div class="nav-logo" style="flex:none"><img src="logo-full.png" alt="Pallet3D"/></div>
-        <p>Profesjonalne narzędzie do optymalizacji załadunku palet, naczep i kontenerów. Szybko, precyzyjnie, wizualnie.</p>
+        <p data-i18n="foot_desc">Profesjonalne narzędzie do optymalizacji załadunku palet, naczep i kontenerów. Szybko, precyzyjnie, wizualnie.</p>
       </div>
-      <div class="foot-col"><h4>Produkt</h4>
-        <a href="#jak-dziala">Jak to działa</a><a href="#funkcje">Funkcje</a><a href="#cennik">Cennik</a><a href="app.html">Otwórz kalkulator</a>
+      <div class="foot-col"><h4 data-i18n="foot_product">Produkt</h4>
+        <a href="#jak-dziala" data-i18n="foot_f_how">Jak to działa</a>
+        <a href="#funkcje" data-i18n="foot_f_feat">Funkcje</a>
+        <a href="#cennik" data-i18n="foot_f_price">Cennik</a>
+        <a href="app.html" data-i18n="foot_f_open">Otwórz kalkulator</a>
       </div>
-      <div class="foot-col"><h4>Konto</h4>
-        <a href="#" onclick="openModal('signup');return false">Rejestracja</a><a href="#" onclick="openModal('login');return false">Logowanie</a><a href="#cennik">Subskrypcja</a>
+      <div class="foot-col"><h4 data-i18n="foot_account">Konto</h4>
+        <a href="#" onclick="openModal('signup');return false" data-i18n="foot_f_reg">Rejestracja</a>
+        <a href="#" onclick="openModal('login');return false" data-i18n="foot_f_login">Logowanie</a>
+        <a href="#cennik" data-i18n="foot_f_sub">Subskrypcja</a>
       </div>
-      <div class="foot-col"><h4>Pomoc</h4>
-        <a href="#">Dokumentacja</a><a href="#">FAQ</a><a href="#kontakt">Kontakt</a>
+      <div class="foot-col"><h4 data-i18n="foot_help">Pomoc</h4>
+        <a href="#" data-i18n="foot_f_docs">Dokumentacja</a>
+        <a href="#" data-i18n="foot_f_faq">FAQ</a>
+        <a href="#kontakt" data-i18n="foot_f_contact">Kontakt</a>
       </div>
     </div>
     <div class="foot-bottom">
-      <div>© 2026 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
-      <div><a href="#">Regulamin</a><a href="#">Polityka prywatności</a><a href="#">Cookies</a></div>
+      <div data-i18n="foot_copy">© 2026 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
+      <div>
+        <a href="#" data-i18n="foot_tos">Regulamin</a>
+        <a href="#" data-i18n="foot_priv">Polityka prywatności</a>
+        <a href="#" data-i18n="foot_cookies">Cookies</a>
+      </div>
     </div>
   </div>
 </footer>
@@ -424,45 +446,45 @@
 <div class="mb" id="loginModal" onclick="if(event.target===this)closeModal('loginModal')">
   <div class="modal">
     <button class="m-close" onclick="closeModal('loginModal')">×</button>
-    <div class="m-title">Zaloguj się</div>
-    <p class="m-sub">Witaj z powrotem! Wprowadź swoje dane.</p>
-    <div class="fg"><label>E-mail</label><input id="loginEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
-    <div class="fg"><label>Hasło</label><input id="loginPassword" type="password" placeholder="Twoje hasło" autocomplete="current-password"/></div>
+    <div class="m-title" data-i18n="login_title">Zaloguj się</div>
+    <p class="m-sub" data-i18n="login_sub">Witaj z powrotem! Wprowadź swoje dane.</p>
+    <div class="fg"><label data-i18n="login_email">E-mail</label><input id="loginEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
+    <div class="fg"><label data-i18n="login_pass">Hasło</label><input id="loginPassword" type="password" data-i18n-ph="login_pass_ph" placeholder="Twoje hasło" autocomplete="current-password"/></div>
     <div id="loginErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
     <div id="loginVerifyMsg" style="display:none;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:8px">
-      Sprawdź skrzynkę i kliknij link weryfikacyjny. <a href="#" id="resendLink" style="color:#fbbf24;font-weight:700;text-decoration:underline">Wyślij ponownie</a>
+      <span data-i18n="login_verify_msg">Sprawdź skrzynkę i kliknij link weryfikacyjny.</span> <a href="#" id="resendLink" style="color:#fbbf24;font-weight:700;text-decoration:underline" data-i18n="login_resend">Wyślij ponownie</a>
     </div>
-    <button class="m-submit" id="loginSubmit" onclick="doLogin(this)">Zaloguj się</button>
-    <div style="display:flex;align-items:center;gap:10px;margin:10px 0"><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div><span style="color:#56688a;font-size:.78rem">lub</span><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div></div>
+    <button class="m-submit" id="loginSubmit" onclick="doLogin(this)" data-i18n="login_btn">Zaloguj się</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0"><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div><span style="color:#56688a;font-size:.78rem" data-i18n="or">lub</span><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div></div>
     <a href="/api/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#eef2f8;font-size:.88rem;font-weight:600;text-decoration:none;background:rgba(255,255,255,.05)">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Kontynuuj przez Google
+      <span data-i18n="login_google">Kontynuuj przez Google</span>
     </a>
-    <div class="m-foot">Nie masz konta? <a href="#" onclick="switchModal('loginModal','signupModal');return false">Zarejestruj się</a></div>
+    <div class="m-foot"><span data-i18n="login_no_acc">Nie masz konta?</span> <a href="#" onclick="switchModal('loginModal','signupModal');return false" data-i18n="login_reg">Zarejestruj się</a></div>
   </div>
 </div>
 <div class="mb" id="signupModal" onclick="if(event.target===this)closeModal('signupModal')">
   <div class="modal">
     <button class="m-close" onclick="closeModal('signupModal')">×</button>
-    <div class="m-title">Utwórz konto</div>
-    <p class="m-sub">14 dni za darmo, potem 50 zł / mies. Anuluj kiedy chcesz.</p>
+    <div class="m-title" data-i18n="signup_title">Utwórz konto</div>
+    <p class="m-sub" data-i18n="signup_sub">14 dni za darmo, potem 50 zł / mies. Anuluj kiedy chcesz.</p>
     <div class="frow">
-      <div class="fg"><label>Imię</label><input id="regFirst" type="text" placeholder="Jan" autocomplete="given-name"/></div>
-      <div class="fg"><label>Nazwisko</label><input id="regLast" type="text" placeholder="Kowalski" autocomplete="family-name"/></div>
+      <div class="fg"><label data-i18n="signup_first">Imię</label><input id="regFirst" type="text" data-i18n-ph="signup_first_ph" placeholder="Jan" autocomplete="given-name"/></div>
+      <div class="fg"><label data-i18n="signup_last">Nazwisko</label><input id="regLast" type="text" data-i18n-ph="signup_last_ph" placeholder="Kowalski" autocomplete="family-name"/></div>
     </div>
-    <div class="fg"><label>E-mail</label><input id="regEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
-    <div class="fg"><label>Hasło</label><input id="regPassword" type="password" placeholder="Min. 8 znaków" autocomplete="new-password"/></div>
+    <div class="fg"><label data-i18n="signup_email">E-mail</label><input id="regEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
+    <div class="fg"><label data-i18n="signup_pass">Hasło</label><input id="regPassword" type="password" data-i18n-ph="signup_pass_ph" placeholder="Min. 8 znaków" autocomplete="new-password"/></div>
     <div id="regErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
-    <div id="regSuccess" style="display:none;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399;border-radius:8px;padding:12px 14px;font-size:.84rem;text-align:center">
+    <div id="regSuccess" style="display:none;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399;border-radius:8px;padding:12px 14px;font-size:.84rem;text-align:center" data-i18n="signup_success">
       ✓ Konto utworzone! Sprawdź skrzynkę e-mail i kliknij link weryfikacyjny.
     </div>
-    <button class="m-submit" id="regSubmit" onclick="doRegister(this)">Utwórz konto i zacznij próbę</button>
-    <div style="display:flex;align-items:center;gap:10px;margin:10px 0"><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div><span style="color:#56688a;font-size:.78rem">lub</span><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div></div>
+    <button class="m-submit" id="regSubmit" onclick="doRegister(this)" data-i18n="signup_btn">Utwórz konto i zacznij próbę</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0"><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div><span style="color:#56688a;font-size:.78rem" data-i18n="or">lub</span><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div></div>
     <a href="/api/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#eef2f8;font-size:.88rem;font-weight:600;text-decoration:none;background:rgba(255,255,255,.05)">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Kontynuuj przez Google
+      <span data-i18n="signup_google">Kontynuuj przez Google</span>
     </a>
-    <div class="m-foot">Masz już konto? <a href="#" onclick="switchModal('signupModal','loginModal');return false">Zaloguj się</a></div>
+    <div class="m-foot"><span data-i18n="signup_has_acc">Masz już konto?</span> <a href="#" onclick="switchModal('signupModal','loginModal');return false" data-i18n="signup_login">Zaloguj się</a></div>
   </div>
 </div>
 
@@ -470,6 +492,200 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 <script>
+/* ════════ i18n ════════ */
+const T = {
+  pl: {
+    page_title:'Kalkulator Palety 3D — Inteligentna logistyka załadunku',
+    page_desc:'Planuj załadunek palet, naczep i kontenerów w 3D. Algorytm optymalnego upakowania dla firm logistycznych.',
+    nav_how:'Jak to działa', nav_features:'Funkcje', nav_vehicles:'Naczepy i kontenery', nav_pricing:'Cennik',
+    nav_login:'Zaloguj się', nav_signup:'Załóż konto',
+    hero_badge:'Wizualizacja 3D palet, naczep i kontenerów',
+    hero_h1:'<span class="word">Logistyka</span> <span class="word">załadunku</span><br><span class="word accent">zaplanowana</span> <span class="word accent">w 3D</span>',
+    hero_sub:'Algorytm optymalnego upakowania rozmieszcza kartony na paletach, a palety w naczepach i kontenerach — z uwzględnieniem wagi, piętrowania i luźnych paczek. Wynik widzisz natychmiast w interaktywnym 3D.',
+    hero_btn_open:'Uruchom kalkulator →', hero_btn_signup:'Załóż konto',
+    hero_hint:'Działa w przeglądarce · Bez instalacji · Komputer, tablet i telefon',
+    stat_browser:'w przeglądarce — zero instalacji',
+    how_tag:'Jak to działa',
+    how_h2:'Od kartonu do pełnego kontenera<br>w trzech krokach',
+    how_sub:'Bez arkuszy kalkulacyjnych i zgadywania. Definiujesz ładunek — resztą zajmuje się algorytm.',
+    step1_h:'Zdefiniuj ładunek', step1_p:'Dodaj kartony i rolki z wymiarami, wagą i kolorem etykiety. Wybierz ścianę nośną, ustaw marginesy. Własne typy zapisują się na Twoim koncie.',
+    step2_h:'Algorytm układa', step2_p:'Heightmapowy algorytm 3D dobiera orientacje i rozmieszczenie: najcięższe na dół, warstwy płaskie, zero lewitujących paczek. Tryb mieszany i ręczny w komplecie.',
+    step3_h:'Załaduj pojazd', step3_p:'Gotowe palety rozmieszczasz w naczepie lub kontenerze. Piętrowanie palet, kartony luzem wypełniające luki, opcje wysokości — wszystko w interaktywnym 3D.',
+    feat_tag:'Funkcje', feat_h2:'Wszystko, czego potrzebuje<br>dział logistyki',
+    feat1_h:'Wizualizacja 3D w czasie rzeczywistym', feat1_p:'Pełna kontrola kamery: obracanie, zoom, panorama — myszą i dotykiem. Każdy karton, paleta i pojazd odwzorowane w skali.',
+    feat2_h:'Układanie według wagi', feat2_p:'Najcięższe paczki trafiają na dolne warstwy, najcięższe palety na podłogę pojazdu. Lżejsze palety wjeżdżają na górę przy piętrowaniu.',
+    feat3_h:'Piętrowanie palet', feat3_p:'Opcjonalne układanie palet jedna na drugiej z poszanowaniem limitu wysokości pojazdu i dopasowaniem wymiarów podstaw.',
+    feat4_h:'Heightmapowy algorytm upakowania', feat4_p:'Paczki mogą stać obok siebie, nie tylko w równych warstwach. Gwarancja pełnego podparcia — nic nie wisi w powietrzu.',
+    feat5_h:'Naczepy i kontenery', feat5_p:'Presety Mega 13.6m, 40′ HC i własne wymiary. Kartony luzem automatycznie wypełniają luki między paletami i przestrzeń nad nimi.',
+    feat6_h:'Tryb ręczny', feat6_p:'Pełna kontrola: stawiaj kartony klikając na paletę, usuwaj pojedyncze sztuki, cofaj zmiany. Idealny do nietypowych załadunków.',
+    show_tag:'Załadunek pojazdów', show_h2:'Z palety prosto<br>do naczepy',
+    show_sub:'Zapisane palety stają się klockami, które algorytm rozmieszcza w przestrzeni ładunkowej — a Ty widzisz dokładnie, co i gdzie pojedzie.',
+    check1_h:'Dwupasmowe pakowanie kontenera', check1_p:'Wąskie i szerokie orientacje palet w dwóch równoległych pasach minimalizują stratę szerokości.',
+    check2_h:'Kartony luzem dopełniają przestrzeń', check2_p:'Luźne paczki wypełniają luki przy paletach i mogą być ładowane na palety, jeśli zostało miejsce.',
+    check3_h:'Statystyki zapełnienia', check3_p:'Liczba palet i kartonów, procent zajętej podłogi oraz lista tego, co się nie zmieściło.',
+    show_bar_title:'Kalkulator Palety 3D — Naczepa Mega 13.6m',
+    price_tag:'Cennik', price_h2:'Jeden plan. Pełen dostęp.',
+    price_sub:'Bez limitów, bez ukrytych opłat. Jedna subskrypcja dla Twojego zespołu logistyki.',
+    price_badge:'PEŁEN DOSTĘP', price_period:'/mies.',
+    price_desc:'Jedno konto — wszystkie funkcje kalkulatora bez ograniczeń.',
+    price_li1:'Kalkulator palet, naczep i kontenerów', price_li2:'Własne kartony i wagi zapisane na koncie',
+    price_li3:'Piętrowanie palet i kartony luzem', price_li4:'Tryb automatyczny, mieszany i ręczny', price_li5:'Wsparcie techniczne',
+    price_btn:'Załóż konto i zacznij', price_note:'Cena netto + 23% VAT · Anuluj w dowolnym momencie',
+    contact_h2:'Kontakt', contact_sub:'Masz pytanie lub potrzebujesz pomocy? Napisz do nas.',
+    contact_name:'Imię i nazwisko', contact_name_ph:'Jan Kowalski',
+    contact_email_lbl:'Adres e-mail', contact_email_ph:'jan@firma.pl',
+    contact_msg_lbl:'Wiadomość', contact_msg_ph:'Opisz swoje pytanie...',
+    contact_ok:'Wiadomość wysłana! Odpiszemy wkrótce.', contact_btn:'Wyślij wiadomość',
+    contact_err_fields:'Uzupełnij wszystkie pola.', contact_err_email:'Nieprawidłowy adres e-mail.',
+    contact_err_send:'Błąd wysyłania.', contact_err_conn:'Błąd połączenia. Spróbuj ponownie.',
+    contact_sending:'Wysyłanie…',
+    cta_h2:'Przestań zgadywać.<br>Zacznij planować.',
+    cta_p:'Pierwsze obliczenie zrobisz w mniej niż minutę — bez zakładania konta.',
+    cta_btn:'Otwórz kalkulator →',
+    foot_desc:'Profesjonalne narzędzie do optymalizacji załadunku palet, naczep i kontenerów. Szybko, precyzyjnie, wizualnie.',
+    foot_product:'Produkt', foot_f_how:'Jak to działa', foot_f_feat:'Funkcje', foot_f_price:'Cennik', foot_f_open:'Otwórz kalkulator',
+    foot_account:'Konto', foot_f_reg:'Rejestracja', foot_f_login:'Logowanie', foot_f_sub:'Subskrypcja',
+    foot_help:'Pomoc', foot_f_docs:'Dokumentacja', foot_f_faq:'FAQ', foot_f_contact:'Kontakt',
+    foot_copy:'© 2026 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.',
+    foot_tos:'Regulamin', foot_priv:'Polityka prywatności', foot_cookies:'Cookies',
+    login_title:'Zaloguj się', login_sub:'Witaj z powrotem! Wprowadź swoje dane.',
+    login_email:'E-mail', login_pass:'Hasło', login_pass_ph:'Twoje hasło',
+    login_btn:'Zaloguj się', login_loading:'Logowanie…', login_google:'Kontynuuj przez Google',
+    login_no_acc:'Nie masz konta?', login_reg:'Zarejestruj się',
+    login_verify_msg:'Sprawdź skrzynkę i kliknij link weryfikacyjny.', login_resend:'Wyślij ponownie',
+    login_err_fields:'Uzupełnij wszystkie pola.', login_err_conn:'Błąd połączenia. Spróbuj ponownie.', login_err_default:'Błąd logowania.',
+    signup_title:'Utwórz konto', signup_sub:'14 dni za darmo, potem 50 zł / mies. Anuluj kiedy chcesz.',
+    signup_first:'Imię', signup_last:'Nazwisko', signup_first_ph:'Jan', signup_last_ph:'Kowalski',
+    signup_email:'E-mail', signup_pass:'Hasło', signup_pass_ph:'Min. 8 znaków',
+    signup_btn:'Utwórz konto i zacznij próbę', signup_loading:'Tworzenie konta…', signup_google:'Kontynuuj przez Google',
+    signup_has_acc:'Masz już konto?', signup_login:'Zaloguj się',
+    signup_success:'✓ Konto utworzone! Sprawdź skrzynkę e-mail i kliknij link weryfikacyjny.',
+    signup_err_fields:'Uzupełnij wszystkie pola.', signup_err_len:'Hasło musi mieć co najmniej 8 znaków.',
+    signup_err_upper:'Hasło musi zawierać co najmniej jedną wielką literę.',
+    signup_err_special:'Hasło musi zawierać co najmniej jeden znak specjalny.',
+    signup_err_conn:'Błąd połączenia. Spróbuj ponownie.', signup_err_default:'Błąd rejestracji.',
+    or:'lub',
+  },
+  en: {
+    page_title:'Pallet3D — Smart loading logistics',
+    page_desc:'Plan pallet, trailer and container loading in 3D. Optimal packing algorithm for logistics companies.',
+    nav_how:'How it works', nav_features:'Features', nav_vehicles:'Trailers & containers', nav_pricing:'Pricing',
+    nav_login:'Log in', nav_signup:'Sign up',
+    hero_badge:'3D visualisation of pallets, trailers and containers',
+    hero_h1:'<span class="word">Loading logistics</span><br><span class="word accent">planned</span> <span class="word accent">in 3D</span>',
+    hero_sub:'The optimal packing algorithm arranges boxes on pallets, and pallets in trailers and containers — factoring in weight, stacking and loose parcels. See the result instantly in interactive 3D.',
+    hero_btn_open:'Open calculator →', hero_btn_signup:'Sign up',
+    hero_hint:'Runs in the browser · No installation · Desktop, tablet and phone',
+    stat_browser:'in the browser — zero installation',
+    how_tag:'How it works',
+    how_h2:'From box to full container<br>in three steps',
+    how_sub:'No spreadsheets, no guessing. You define the cargo — the algorithm handles the rest.',
+    step1_h:'Define the cargo', step1_p:'Add boxes and rolls with dimensions, weight and label colour. Choose the load-bearing face, set margins. Custom types are saved to your account.',
+    step2_h:'Algorithm arranges', step2_p:'The 3D heightmap algorithm selects orientations and placement: heaviest on the bottom, flat layers, nothing floating. Mixed and manual modes included.',
+    step3_h:'Load the vehicle', step3_p:'Place finished pallets in the trailer or container. Stacking pallets, loose boxes filling gaps, height options — all in interactive 3D.',
+    feat_tag:'Features', feat_h2:'Everything your<br>logistics team needs',
+    feat1_h:'Real-time 3D visualisation', feat1_p:'Full camera control: rotate, zoom, pan — mouse and touch. Every box, pallet and vehicle rendered to scale.',
+    feat2_h:'Weight-based stacking', feat2_p:'Heaviest parcels go to the bottom layers, heaviest pallets to the vehicle floor. Lighter pallets ride on top when stacking.',
+    feat3_h:'Pallet stacking', feat3_p:'Optional stacking of pallets on top of each other, respecting the vehicle height limit and matching footprint dimensions.',
+    feat4_h:'Heightmap packing algorithm', feat4_p:'Boxes can stand side by side, not just in even layers. Full support guarantee — nothing hangs in the air.',
+    feat5_h:'Trailers & containers', feat5_p:'Presets for Mega 13.6m, 40′ HC and custom dimensions. Loose boxes automatically fill gaps between pallets and the space above them.',
+    feat6_h:'Manual mode', feat6_p:'Full control: place boxes by clicking the pallet, remove individual pieces, undo changes. Ideal for non-standard loads.',
+    show_tag:'Vehicle loading', show_h2:'From pallet straight<br>to the trailer',
+    show_sub:'Saved pallets become building blocks that the algorithm places in the cargo space — and you see exactly what goes where.',
+    check1_h:'Dual-lane container packing', check1_p:'Narrow and wide pallet orientations in two parallel lanes minimise width waste.',
+    check2_h:'Loose boxes fill the space', check2_p:'Loose parcels fill gaps beside pallets and can be loaded on top if space allows.',
+    check3_h:'Fill statistics', check3_p:'Number of pallets and boxes, percentage of floor occupied, and a list of what didn\'t fit.',
+    show_bar_title:'Pallet3D — Mega 13.6m Trailer',
+    price_tag:'Pricing', price_h2:'One plan. Full access.',
+    price_sub:'No limits, no hidden fees. One subscription for your logistics team.',
+    price_badge:'FULL ACCESS', price_period:'/mo.',
+    price_desc:'One account — all calculator features with no restrictions.',
+    price_li1:'Pallet, trailer and container calculator', price_li2:'Custom boxes and weights saved to your account',
+    price_li3:'Pallet stacking and loose boxes', price_li4:'Automatic, mixed and manual modes', price_li5:'Technical support',
+    price_btn:'Sign up and get started', price_note:'Net price + VAT · Cancel any time',
+    contact_h2:'Contact', contact_sub:'Have a question or need help? Write to us.',
+    contact_name:'Full name', contact_name_ph:'John Smith',
+    contact_email_lbl:'Email address', contact_email_ph:'john@company.com',
+    contact_msg_lbl:'Message', contact_msg_ph:'Describe your question...',
+    contact_ok:'Message sent! We\'ll reply shortly.', contact_btn:'Send message',
+    contact_err_fields:'Please fill in all fields.', contact_err_email:'Invalid email address.',
+    contact_err_send:'Send error.', contact_err_conn:'Connection error. Please try again.',
+    contact_sending:'Sending…',
+    cta_h2:'Stop guessing.<br>Start planning.',
+    cta_p:'Your first calculation takes less than a minute — no account needed.',
+    cta_btn:'Open calculator →',
+    foot_desc:'Professional tool for optimising pallet, trailer and container loading. Fast, precise, visual.',
+    foot_product:'Product', foot_f_how:'How it works', foot_f_feat:'Features', foot_f_price:'Pricing', foot_f_open:'Open calculator',
+    foot_account:'Account', foot_f_reg:'Sign up', foot_f_login:'Log in', foot_f_sub:'Subscription',
+    foot_help:'Help', foot_f_docs:'Documentation', foot_f_faq:'FAQ', foot_f_contact:'Contact',
+    foot_copy:'© 2026 Pallet3D. All rights reserved.',
+    foot_tos:'Terms', foot_priv:'Privacy policy', foot_cookies:'Cookies',
+    login_title:'Log in', login_sub:'Welcome back! Enter your credentials.',
+    login_email:'E-mail', login_pass:'Password', login_pass_ph:'Your password',
+    login_btn:'Log in', login_loading:'Logging in…', login_google:'Continue with Google',
+    login_no_acc:'Don\'t have an account?', login_reg:'Sign up',
+    login_verify_msg:'Check your inbox and click the verification link.', login_resend:'Resend',
+    login_err_fields:'Please fill in all fields.', login_err_conn:'Connection error. Please try again.', login_err_default:'Login error.',
+    signup_title:'Create account', signup_sub:'14 days free, then 50 zł/mo. Cancel any time.',
+    signup_first:'First name', signup_last:'Last name', signup_first_ph:'John', signup_last_ph:'Smith',
+    signup_email:'E-mail', signup_pass:'Password', signup_pass_ph:'Min. 8 characters',
+    signup_btn:'Create account and start trial', signup_loading:'Creating account…', signup_google:'Continue with Google',
+    signup_has_acc:'Already have an account?', signup_login:'Log in',
+    signup_success:'✓ Account created! Check your email and click the verification link.',
+    signup_err_fields:'Please fill in all fields.', signup_err_len:'Password must be at least 8 characters.',
+    signup_err_upper:'Password must contain at least one uppercase letter.',
+    signup_err_special:'Password must contain at least one special character.',
+    signup_err_conn:'Connection error. Please try again.', signup_err_default:'Registration error.',
+    or:'or',
+  }
+};
+
+let _lang = 'pl';
+
+function t(k){ return (T[_lang]||T.pl)[k] || (T.pl[k]) || k; }
+
+function applyI18n(lang) {
+  _lang = lang;
+  document.documentElement.lang = lang;
+  document.title = t('page_title');
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if(metaDesc) metaDesc.setAttribute('content', t('page_desc'));
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = t(el.dataset.i18n);
+    if(v !== undefined) el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const v = t(el.dataset.i18nHtml);
+    if(v !== undefined) el.innerHTML = v;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const v = t(el.dataset.i18nPh);
+    if(v !== undefined) el.placeholder = v;
+  });
+  // update lang switcher buttons
+  ['pl','en'].forEach(l => {
+    document.getElementById('lBtn-'+l)?.classList.toggle('active', l===lang);
+    document.getElementById('mmBtn-'+l)?.classList.toggle('active', l===lang);
+  });
+  localStorage.setItem('lang', lang);
+}
+
+function setLang(lang) {
+  applyI18n(lang);
+  // re-init GSAP word spans after innerHTML replacement
+  if(typeof gsap !== 'undefined') {
+    gsap.set('#heroTitle .word', {yPercent:0, opacity:1});
+  }
+}
+
+// detect: saved preference → browser language → default pl
+(function(){
+  const saved = localStorage.getItem('lang');
+  const nav = (navigator.language||navigator.userLanguage||'pl').toLowerCase();
+  const detected = saved ? saved : (nav.startsWith('pl') ? 'pl' : 'en');
+  applyI18n(detected);
+})();
+
 /* ════════ helpers ════════ */
 function openModal(which){
   document.getElementById(which==='signup'?'signupModal':'loginModal').classList.add('open');
@@ -489,8 +705,8 @@ async function doLogin(btn){
   const password=document.getElementById('loginPassword')?.value||'';
   showErr('loginErr','');
   document.getElementById('loginVerifyMsg').style.display='none';
-  if(!email||!password){showErr('loginErr','Uzupełnij wszystkie pola.');return;}
-  const orig=btn.textContent;btn.textContent='Logowanie…';btn.disabled=true;
+  if(!email||!password){showErr('loginErr',t('login_err_fields'));return;}
+  const orig=btn.textContent;btn.textContent=t('login_loading');btn.disabled=true;
   try{
     const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email,password})});
     const data=await res.json();
@@ -500,17 +716,17 @@ async function doLogin(btn){
         document.getElementById('loginVerifyMsg').style.display='block';
         document.getElementById('resendLink').onclick=async(e)=>{
           e.preventDefault();
-          document.getElementById('resendLink').textContent='Wysłano!';
+          document.getElementById('resendLink').textContent=t('login_resend')+'…';
           await fetch('/api/auth/resend-verification',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:_pendingVerifyEmail})});
         };
       } else {
-        showErr('loginErr',data.error||'Błąd logowania.');
+        showErr('loginErr',data.error||t('login_err_default'));
       }
       return;
     }
     location.href='app.html';
-  }catch{showErr('loginErr','Błąd połączenia. Spróbuj ponownie.');}
-  finally{btn.textContent=orig;btn.disabled=false;}
+  }catch{showErr('loginErr',t('login_err_conn'));}
+  finally{btn.textContent=t('login_btn');btn.disabled=false;}
 }
 
 async function doRegister(btn){
@@ -520,32 +736,30 @@ async function doRegister(btn){
   const password=document.getElementById('regPassword')?.value||'';
   showErr('regErr','');
   document.getElementById('regSuccess').style.display='none';
-  if(!first||!last||!email||!password){showErr('regErr','Uzupełnij wszystkie pola.');return;}
-  if(password.length<8){showErr('regErr','Hasło musi mieć co najmniej 8 znaków.');return;}
-  if(!/[A-Z]/.test(password)){showErr('regErr','Hasło musi zawierać co najmniej jedną wielką literę.');return;}
-  if(!/[!@#$%^&*()\-_=+\[\]{};:\'",.<>/?\\|]/.test(password)){showErr('regErr','Hasło musi zawierać co najmniej jeden znak specjalny.');return;}
-  const orig=btn.textContent;btn.textContent='Tworzenie konta…';btn.disabled=true;
+  if(!first||!last||!email||!password){showErr('regErr',t('signup_err_fields'));return;}
+  if(password.length<8){showErr('regErr',t('signup_err_len'));return;}
+  if(!/[A-Z]/.test(password)){showErr('regErr',t('signup_err_upper'));return;}
+  if(!/[!@#$%^&*()\-_=+\[\]{};:\'",.<>/?\\|]/.test(password)){showErr('regErr',t('signup_err_special'));return;}
+  const orig=btn.textContent;btn.textContent=t('signup_loading');btn.disabled=true;
   try{
     const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({name:`${first} ${last}`,email,password})});
     const data=await res.json();
-    if(!res.ok){showErr('regErr',data.error||'Błąd rejestracji.');return;}
+    if(!res.ok){showErr('regErr',data.error||t('signup_err_default'));return;}
     if(data.needsVerification){
       document.getElementById('regSuccess').style.display='block';
       document.getElementById('regSubmit').style.display='none';
     } else {
       location.href='app.html';
     }
-  }catch{showErr('regErr','Błąd połączenia. Spróbuj ponownie.');}
-  finally{btn.textContent=orig;btn.disabled=false;}
+  }catch{showErr('regErr',t('signup_err_conn'));}
+  finally{btn.textContent=t('signup_btn');btn.disabled=false;}
 }
 
 // Auto-open login modal
 const _sp=new URLSearchParams(location.search);
 if(_sp.get('login')==='1') setTimeout(()=>openModal('login'),300);
 if(_sp.get('login')==='1'&&_sp.get('verify')==='1'){
-  setTimeout(()=>{
-    document.getElementById('loginVerifyMsg').style.display='block';
-  },400);
+  setTimeout(()=>{document.getElementById('loginVerifyMsg').style.display='block';},400);
 }
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -558,12 +772,10 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   const cv=document.getElementById('heroCanvas');
   if(!cv||!hasTHREE)return;
 
-  // opaque renderer — objects need a real background to show contrast
   const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   const scene=new THREE.Scene();
 
-  // subtle dark gradient background matching the page theme
   const bgCv=document.createElement('canvas');bgCv.width=1;bgCv.height=256;
   const bgCtx=bgCv.getContext('2d'),bgGrad=bgCtx.createLinearGradient(0,0,0,256);
   bgGrad.addColorStop(0,'#070c18');bgGrad.addColorStop(1,'#0c1628');
@@ -579,19 +791,16 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   const rim=new THREE.DirectionalLight(0x4f9bff,.9);
   rim.position.set(-2000,800,-1600);scene.add(rim);
 
-  // floor grid
   const grid=new THREE.GridHelper(12000,40,0x3a5275,0x1e2d42);
   grid.position.y=0;scene.add(grid);
 
   const group=new THREE.Group();scene.add(group);
 
-  // Euro pallet — 5 deck planks with clear 50mm gaps, running full 1200mm width
   function palletMesh(){
     const g=new THREE.Group();
-    const m1=new THREE.MeshLambertMaterial({color:0xc8a86a}); // deck planks
-    const m2=new THREE.MeshLambertMaterial({color:0xb8965a}); // stringers
-    const m3=new THREE.MeshLambertMaterial({color:0x9a6e38}); // blocks
-
+    const m1=new THREE.MeshLambertMaterial({color:0xc8a86a});
+    const m2=new THREE.MeshLambertMaterial({color:0xb8965a});
+    const m3=new THREE.MeshLambertMaterial({color:0x9a6e38});
     [-340,-170,0,170,340].forEach(z=>{
       const m=new THREE.Mesh(new THREE.BoxGeometry(1200,22,120),m1);
       m.position.set(0,133,z);g.add(m);
@@ -612,7 +821,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   }
   group.add(palletMesh());
 
-  // cartons — 2×2 × 3 layers
   const COLORS=[0xe74c3c,0xe67e22,0x27ae60,0x3b82f6,0x9b59b6,0x16a085];
   const boxes=[];
   const BW=560,BD=380,BH=310;
@@ -624,20 +832,15 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
         const tx=-290+ix*580,ty=144+BH/2+layer*BH,tz=-195+iz*390;
         m.position.set(tx,ty,tz);
         m.userData.target={x:tx,y:ty,z:tz};
-        const edge=new THREE.LineSegments(
-          new THREE.EdgesGeometry(m.geometry),
-          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.3}));
+        const edge=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.3}));
         m.add(edge);
         group.add(m);boxes.push(m);
       }
 
-  // floating decorative boxes
   const floaters=[];
   for(let i=0;i<10;i++){
     const s=80+Math.random()*180;
-    const m=new THREE.Mesh(
-      new THREE.BoxGeometry(s,s,s),
-      new THREE.MeshLambertMaterial({color:COLORS[i%COLORS.length],transparent:true,opacity:.65}));
+    const m=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),new THREE.MeshLambertMaterial({color:COLORS[i%COLORS.length],transparent:true,opacity:.65}));
     m.position.set((Math.random()-.5)*5000,300+Math.random()*1600,(Math.random()-.5)*3800);
     m.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
     m.userData.spin=.0012+Math.random()*.0025;
@@ -652,7 +855,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
     camera.position.set(Math.sin(theta)*R,h,Math.cos(theta)*R);
     camera.lookAt(0,60,0);
   }
-
   function resize(){
     const w=cv.clientWidth,h=cv.clientHeight;
     if(!w||!h)return;
@@ -661,7 +863,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   }
   addEventListener('resize',resize);resize();
 
-  /* drop-in loop animation (GSAP) */
   if(hasGSAP&&!reduceMotion){
     const tl=gsap.timeline({repeat:-1,repeatDelay:2.2});
     boxes.forEach((b,i)=>{
@@ -688,7 +889,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   placeCamera();
   requestAnimationFrame(loop);
 
-  /* scroll parallax: camera pulls back & up while hero scrolls away */
   if(hasGSAP&&typeof ScrollTrigger!=='undefined'&&!reduceMotion){
     gsap.to(group.position,{y:-500,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
     gsap.to(group.rotation,{y:.6,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
@@ -702,7 +902,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   const scene=new THREE.Scene();
-  // light blue gradient matching the app vehicle background
   const bg=document.createElement('canvas');bg.width=2;bg.height=256;
   const bc=bg.getContext('2d'),gg=bc.createLinearGradient(0,0,0,256);
   gg.addColorStop(0,'#dce8f2');gg.addColorStop(1,'#a8c2d6');
@@ -714,55 +913,42 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   const sun=new THREE.DirectionalLight(0xffffff,1.3);
   sun.position.set(5000,10000,6000);scene.add(sun);
 
-  // naczepa Mega 13.6m dimensions (mm)
   const VL=13600,VW=2480,VH=3000;
 
-  // floor — tan/wood colour matching the app
   const flr=new THREE.Mesh(new THREE.PlaneGeometry(VW,VL),new THREE.MeshLambertMaterial({color:0xc8b87a}));
   flr.rotation.x=-Math.PI/2;scene.add(flr);
 
-  // naczepa frame outline (white wireframe like the app)
   const outMesh=new THREE.LineSegments(
     new THREE.EdgesGeometry(new THREE.BoxGeometry(VW,VH,VL)),
     new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.45}));
   outMesh.position.y=VH/2;scene.add(outMesh);
 
-  // shared pallet board materials — exact colours from _vPalBoardBoxes
-  const pm1=new THREE.MeshLambertMaterial({color:0xc8a86a}); // top deck boards
-  const pm2=new THREE.MeshLambertMaterial({color:0xb8965a}); // cross-boards & stringers
-  const pm3=new THREE.MeshLambertMaterial({color:0x9a6e38}); // support blocks
+  const pm1=new THREE.MeshLambertMaterial({color:0xc8a86a});
+  const pm2=new THREE.MeshLambertMaterial({color:0xb8965a});
+  const pm3=new THREE.MeshLambertMaterial({color:0x9a6e38});
+  const PAL_H=144;
 
-  const PAL_H=144; // pallet height (mm)
-
-  // addPallet mirrors _vPalBoardBoxes: ox/oz = min-x / min-z corner (world coords)
   function addPallet(ox,oz,palW,palD){
     const bw=Math.max(1,Math.floor(palW/6));
-    // 6 top deck boards
     for(let i=0;i<6;i++){
       const w=bw-2,m=new THREE.Mesh(new THREE.BoxGeometry(w,22,palD),pm1);
       m.position.set(ox+i*bw+w/2,PAL_H-11,oz+palD/2);scene.add(m);
     }
-    // 3 bottom cross-boards
     [0,palD/2-50,palD-100].forEach(dz=>{
       const m=new THREE.Mesh(new THREE.BoxGeometry(palW,20,100),pm2);
       m.position.set(ox+palW/2,10,oz+dz+50);scene.add(m);
     });
-    // 9 support blocks
     [0,palW/2-50,palW-100].forEach(dx=>[0,palD/2-50,palD-100].forEach(dz=>{
       const m=new THREE.Mesh(new THREE.BoxGeometry(100,72,100),pm3);
       m.position.set(ox+dx+50,56,oz+dz+50);scene.add(m);
     }));
-    // 3 top stringers
     [0,palD/2-40,palD-80].forEach(dz=>{
       const m=new THREE.Mesh(new THREE.BoxGeometry(palW,20,80),pm2);
       m.position.set(ox+palW/2,102,oz+dz+40);scene.add(m);
     });
   }
 
-  // EU pallet 1200×800: 2 columns centred in VW=2480 with 40 mm side gap
-  const PAL_W=1200,PAL_D=800,SG=(VW-2*PAL_W)/2; // SG=40mm
-
-  // 3 colour groups along trailer length: blue (tallest), green (medium), red (shorter)
+  const PAL_W=1200,PAL_D=800,SG=(VW-2*PAL_W)/2;
   const GROUP_COLOR=[0x3b82f6,0x10b981,0xef4444];
   const GROUP_LAYERS=[3,2,1];
   const BOX_H=300;
@@ -787,8 +973,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
     }
   }
 
-  // camera defaults matching vCam.naczepa in the app: theta=0.35, phi=−0.30
-  // (ph positive = camera above because of how place() uses Math.sin(ph))
   let th=.35,ph=.30,zoom=1,drag=null;
   function place(){
     const R=16000/zoom;
@@ -834,10 +1018,8 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
   if(!hasGSAP){document.querySelectorAll('.rv').forEach(el=>el.style.opacity=1);return;}
   if(reduceMotion){gsap.set('.rv',{opacity:1});gsap.set('#nav',{y:0});return;}
 
-  // nav slide-in
   gsap.to('#nav',{y:0,duration:.7,ease:'power3.out',delay:.15});
 
-  // hero entrance (set initial state immediately to avoid flash)
   gsap.set('#heroTitle .word',{yPercent:110,opacity:0});
   gsap.timeline({delay:.25})
     .to('#heroBadge',{opacity:1,duration:.55,ease:'power2.out'})
@@ -846,7 +1028,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
     .to('#heroActions',{opacity:1,duration:.6,ease:'power2.out'},'-=.4')
     .to('#heroHint',{opacity:1,duration:.6},'-=.45');
 
-  // generic reveal for sections (steps/feats have their own stagger below)
   gsap.utils.toArray('.rv').forEach(el=>{
     if(['heroBadge','heroSub','heroActions','heroHint'].includes(el.id))return;
     if(el.classList.contains('step')||el.classList.contains('feat'))return;
@@ -856,7 +1037,6 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
     });
   });
 
-  // stat counters
   document.querySelectorAll('[data-count]').forEach(el=>{
     const target=+el.dataset.count;
     const o={v:0};
@@ -865,12 +1045,10 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
       onUpdate:()=>el.textContent=Math.round(o.v)});
   });
 
-  // step cards stagger
   gsap.fromTo('.step',{opacity:0,y:48},{
     opacity:1,y:0,duration:.7,stagger:.14,ease:'power3.out',
     scrollTrigger:{trigger:'.steps',start:'top 85%',once:true}
   });
-  // feature cards stagger
   gsap.fromTo('.feat',{opacity:0,y:40},{
     opacity:1,y:0,duration:.6,stagger:.08,ease:'power3.out',
     scrollTrigger:{trigger:'.feats',start:'top 85%',once:true}
@@ -880,8 +1058,8 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
 /* smooth anchor scroll */
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
-    const t=document.querySelector(a.getAttribute('href'));
-    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
+    const tgt=document.querySelector(a.getAttribute('href'));
+    if(tgt){e.preventDefault();tgt.scrollIntoView({behavior:'smooth'});}
   });
 });
 
@@ -893,18 +1071,19 @@ async function sendContact() {
   const ok = document.getElementById('ctxOk');
   const btn = document.getElementById('ctxBtn');
   err.style.display = 'none'; ok.style.display = 'none';
-  if (!name || !email || !msg) { err.textContent = 'Uzupełnij wszystkie pola.'; err.style.display = 'block'; return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Nieprawidłowy adres e-mail.'; err.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = 'Wysyłanie…';
+  if (!name || !email || !msg) { err.textContent = t('contact_err_fields'); err.style.display = 'block'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = t('contact_err_email'); err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = t('contact_sending');
   try {
     const res = await fetch('/api/contact', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,email,msg}) });
-    if (!res.ok) { const d=await res.json(); err.textContent=d.error||'Błąd wysyłania.'; err.style.display='block'; return; }
+    if (!res.ok) { const d=await res.json(); err.textContent=d.error||t('contact_err_send'); err.style.display='block'; return; }
+    ok.textContent = t('contact_ok');
     ok.style.display = 'block';
     document.getElementById('ctxName').value = '';
     document.getElementById('ctxEmail').value = '';
     document.getElementById('ctxMsg').value = '';
-  } catch { err.textContent = 'Błąd połączenia. Spróbuj ponownie.'; err.style.display = 'block'; }
-  btn.disabled = false; btn.textContent = 'Wyślij wiadomość';
+  } catch { err.textContent = t('contact_err_conn'); err.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = t('contact_btn');
 }
 </script>
 </body>
