@@ -506,6 +506,9 @@ async function doRegister(btn){
   showErr('regErr','');
   document.getElementById('regSuccess').style.display='none';
   if(!first||!last||!email||!password){showErr('regErr','Uzupełnij wszystkie pola.');return;}
+  if(password.length<8){showErr('regErr','Hasło musi mieć co najmniej 8 znaków.');return;}
+  if(!/[A-Z]/.test(password)){showErr('regErr','Hasło musi zawierać co najmniej jedną wielką literę.');return;}
+  if(!/[!@#$%^&*()\-_=+\[\]{};:\'",.<>/?\\|]/.test(password)){showErr('regErr','Hasło musi zawierać co najmniej jeden znak specjalny.');return;}
   const orig=btn.textContent;btn.textContent='Tworzenie konta…';btn.disabled=true;
   try{
     const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({name:`${first} ${last}`,email,password})});

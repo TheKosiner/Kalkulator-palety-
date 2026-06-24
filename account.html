@@ -209,6 +209,9 @@ async function changePassword() {
   const newPassword = newEl.value;
   const currentPassword = currentEl ? currentEl.value : '';
   if (!newPassword) { errEl.textContent = 'Podaj nowe hasło.'; errEl.style.display = 'block'; return; }
+  if (newPassword.length < 8) { errEl.textContent = 'Hasło musi mieć co najmniej 8 znaków.'; errEl.style.display = 'block'; return; }
+  if (!/[A-Z]/.test(newPassword)) { errEl.textContent = 'Hasło musi zawierać co najmniej jedną wielką literę.'; errEl.style.display = 'block'; return; }
+  if (!/[!@#$%^&*()\-_=+\[\]{};:\'",.<>/?\\|]/.test(newPassword)) { errEl.textContent = 'Hasło musi zawierać co najmniej jeden znak specjalny.'; errEl.style.display = 'block'; return; }
   const orig = btn.textContent; btn.textContent = 'Zapisywanie…'; btn.disabled = true;
   try {
     const res = await fetch('/api/auth/change-password', {
