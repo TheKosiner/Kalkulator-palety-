@@ -414,7 +414,15 @@
     <div class="fg"><label>E-mail</label><input id="loginEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
     <div class="fg"><label>Hasło</label><input id="loginPassword" type="password" placeholder="Twoje hasło" autocomplete="current-password"/></div>
     <div id="loginErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
+    <div id="loginVerifyMsg" style="display:none;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:8px">
+      Sprawdź skrzynkę i kliknij link weryfikacyjny. <a href="#" id="resendLink" style="color:#fbbf24;font-weight:700;text-decoration:underline">Wyślij ponownie</a>
+    </div>
     <button class="m-submit" id="loginSubmit" onclick="doLogin(this)">Zaloguj się</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0"><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div><span style="color:#56688a;font-size:.78rem">lub</span><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div></div>
+    <a href="/api/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#eef2f8;font-size:.88rem;font-weight:600;text-decoration:none;background:rgba(255,255,255,.05)">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Kontynuuj przez Google
+    </a>
     <div class="m-foot">Nie masz konta? <a href="#" onclick="switchModal('loginModal','signupModal');return false">Zarejestruj się</a></div>
   </div>
 </div>
@@ -430,7 +438,15 @@
     <div class="fg"><label>E-mail</label><input id="regEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
     <div class="fg"><label>Hasło</label><input id="regPassword" type="password" placeholder="Min. 8 znaków" autocomplete="new-password"/></div>
     <div id="regErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
+    <div id="regSuccess" style="display:none;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399;border-radius:8px;padding:12px 14px;font-size:.84rem;text-align:center">
+      ✓ Konto utworzone! Sprawdź skrzynkę e-mail i kliknij link weryfikacyjny.
+    </div>
     <button class="m-submit" id="regSubmit" onclick="doRegister(this)">Utwórz konto i zacznij próbę</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:10px 0"><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div><span style="color:#56688a;font-size:.78rem">lub</span><div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div></div>
+    <a href="/api/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#eef2f8;font-size:.88rem;font-weight:600;text-decoration:none;background:rgba(255,255,255,.05)">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Kontynuuj przez Google
+    </a>
     <div class="m-foot">Masz już konto? <a href="#" onclick="switchModal('signupModal','loginModal');return false">Zaloguj się</a></div>
   </div>
 </div>
@@ -451,16 +467,32 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('loginMo
 
 function showErr(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.style.display=msg?'block':'none';}}
 
+let _pendingVerifyEmail = '';
+
 async function doLogin(btn){
   const email=(document.getElementById('loginEmail')?.value||'').trim();
   const password=document.getElementById('loginPassword')?.value||'';
   showErr('loginErr','');
+  document.getElementById('loginVerifyMsg').style.display='none';
   if(!email||!password){showErr('loginErr','Uzupełnij wszystkie pola.');return;}
   const orig=btn.textContent;btn.textContent='Logowanie…';btn.disabled=true;
   try{
     const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email,password})});
     const data=await res.json();
-    if(!res.ok){showErr('loginErr',data.error||'Błąd logowania.');return;}
+    if(!res.ok){
+      if(data.needsVerification){
+        _pendingVerifyEmail=data.email||email;
+        document.getElementById('loginVerifyMsg').style.display='block';
+        document.getElementById('resendLink').onclick=async(e)=>{
+          e.preventDefault();
+          document.getElementById('resendLink').textContent='Wysłano!';
+          await fetch('/api/auth/resend-verification',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:_pendingVerifyEmail})});
+        };
+      } else {
+        showErr('loginErr',data.error||'Błąd logowania.');
+      }
+      return;
+    }
     location.href='app.html';
   }catch{showErr('loginErr','Błąd połączenia. Spróbuj ponownie.');}
   finally{btn.textContent=orig;btn.disabled=false;}
@@ -472,20 +504,31 @@ async function doRegister(btn){
   const email=(document.getElementById('regEmail')?.value||'').trim();
   const password=document.getElementById('regPassword')?.value||'';
   showErr('regErr','');
+  document.getElementById('regSuccess').style.display='none';
   if(!first||!last||!email||!password){showErr('regErr','Uzupełnij wszystkie pola.');return;}
   const orig=btn.textContent;btn.textContent='Tworzenie konta…';btn.disabled=true;
   try{
     const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({name:`${first} ${last}`,email,password})});
     const data=await res.json();
     if(!res.ok){showErr('regErr',data.error||'Błąd rejestracji.');return;}
-    location.href='app.html';
+    if(data.needsVerification){
+      document.getElementById('regSuccess').style.display='block';
+      document.getElementById('regSubmit').style.display='none';
+    } else {
+      location.href='app.html';
+    }
   }catch{showErr('regErr','Błąd połączenia. Spróbuj ponownie.');}
   finally{btn.textContent=orig;btn.disabled=false;}
 }
 
-// Auto-open login modal if redirected with ?login=1
-if(new URLSearchParams(location.search).get('login')==='1')
-  setTimeout(()=>openModal('login'),300);
+// Auto-open login modal
+const _sp=new URLSearchParams(location.search);
+if(_sp.get('login')==='1') setTimeout(()=>openModal('login'),300);
+if(_sp.get('login')==='1'&&_sp.get('verify')==='1'){
+  setTimeout(()=>{
+    document.getElementById('loginVerifyMsg').style.display='block';
+  },400);
+}
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const hasGSAP = typeof gsap !== 'undefined';
