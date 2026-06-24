@@ -553,152 +553,114 @@ const hasGSAP = typeof gsap !== 'undefined';
 const hasTHREE = typeof THREE !== 'undefined';
 if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollTrigger);
 
-/* ════════ HERO three.js scene ════════ */
+/* ════════ HERO three.js scene — trailer loading ════════ */
 (function(){
   const cv=document.getElementById('heroCanvas');
   if(!cv||!hasTHREE)return;
 
-  // opaque renderer — objects need a real background to show contrast
   const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   const scene=new THREE.Scene();
 
-  // subtle dark gradient background matching the page theme
+  // dark gradient matching hero section
   const bgCv=document.createElement('canvas');bgCv.width=1;bgCv.height=256;
   const bgCtx=bgCv.getContext('2d'),bgGrad=bgCtx.createLinearGradient(0,0,0,256);
   bgGrad.addColorStop(0,'#070c18');bgGrad.addColorStop(1,'#0c1628');
   bgCtx.fillStyle=bgGrad;bgCtx.fillRect(0,0,1,256);
   scene.background=new THREE.CanvasTexture(bgCv);
+  scene.fog=new THREE.FogExp2(0x070c18,.000028);
 
-  scene.fog=new THREE.FogExp2(0x070c18,.000055);
-  const camera=new THREE.PerspectiveCamera(42,1,10,20000);
+  const camera=new THREE.PerspectiveCamera(40,1,10,80000);
 
-  scene.add(new THREE.AmbientLight(0xcce0ff,1.1));
-  const sun=new THREE.DirectionalLight(0xffffff,2.0);
-  sun.position.set(1800,3200,1400);scene.add(sun);
-  const rim=new THREE.DirectionalLight(0x4f9bff,.9);
-  rim.position.set(-2000,800,-1600);scene.add(rim);
+  scene.add(new THREE.AmbientLight(0xcce0ff,.9));
+  const sun=new THREE.DirectionalLight(0xffffff,1.6);
+  sun.position.set(5000,10000,6000);scene.add(sun);
+  const rim=new THREE.DirectionalLight(0x4f9bff,.5);
+  rim.position.set(-4000,2000,-5000);scene.add(rim);
 
-  // floor grid
-  const grid=new THREE.GridHelper(12000,40,0x3a5275,0x1e2d42);
-  grid.position.y=0;scene.add(grid);
+  // trailer dimensions (mm)
+  const VL=13600,VW=2480,VH=3000;
 
-  const group=new THREE.Group();scene.add(group);
+  // floor — tan/wood colour
+  const flr=new THREE.Mesh(new THREE.PlaneGeometry(VW,VL),new THREE.MeshLambertMaterial({color:0xc8b87a}));
+  flr.rotation.x=-Math.PI/2;scene.add(flr);
 
-  // Euro pallet — 5 deck planks with clear 50mm gaps, running full 1200mm width
-  function palletMesh(){
-    const g=new THREE.Group();
-    const m1=new THREE.MeshLambertMaterial({color:0xc8a86a}); // deck planks
-    const m2=new THREE.MeshLambertMaterial({color:0xb8965a}); // stringers
-    const m3=new THREE.MeshLambertMaterial({color:0x9a6e38}); // blocks
+  // trailer wireframe outline
+  const outMesh=new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(VW,VH,VL)),
+    new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.35}));
+  outMesh.position.y=VH/2;scene.add(outMesh);
 
-    // 5 deck planks: 1200mm long (x), 120mm wide (z), 50mm gaps — covers full 800mm depth
-    // z-centers: -340, -170, 0, +170, +340
-    [-340,-170,0,170,340].forEach(z=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(1200,22,120),m1);
-      m.position.set(0,133,z);g.add(m);
+  const pm1=new THREE.MeshLambertMaterial({color:0xc8a86a});
+  const pm2=new THREE.MeshLambertMaterial({color:0xb8965a});
+  const pm3=new THREE.MeshLambertMaterial({color:0x9a6e38});
+  const PAL_H=144,PAL_W=1200,PAL_D=800;
+  const SG=(VW-2*PAL_W)/2; // 40mm side gap
+
+  function addPallet(ox,oz){
+    const bw=Math.max(1,Math.floor(PAL_W/6));
+    for(let i=0;i<6;i++){
+      const w=bw-2,m=new THREE.Mesh(new THREE.BoxGeometry(w,22,PAL_D),pm1);
+      m.position.set(ox+i*bw+w/2,PAL_H-11,oz+PAL_D/2);scene.add(m);
+    }
+    [0,PAL_D/2-50,PAL_D-100].forEach(dz=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(PAL_W,20,100),pm2);
+      m.position.set(ox+PAL_W/2,10,oz+dz+50);scene.add(m);
     });
-    // 3 bottom stringers (running full 800mm depth, z-direction) at x=-500,0,+500
-    [-500,0,500].forEach(x=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(100,20,800),m2);
-      m.position.set(x,10,0);g.add(m);
-    });
-    // 9 support blocks 3×3
-    [-500,0,500].forEach(x=>[-340,0,340].forEach(z=>{
-      const b=new THREE.Mesh(new THREE.BoxGeometry(100,72,100),m3);
-      b.position.set(x,56,z);g.add(b);
+    [0,PAL_W/2-50,PAL_W-100].forEach(dx=>[0,PAL_D/2-50,PAL_D-100].forEach(dz=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(100,72,100),pm3);
+      m.position.set(ox+dx+50,56,oz+dz+50);scene.add(m);
     }));
-    // 3 top stringers (same z-direction, hidden under planks, connect blocks to deck)
-    [-500,0,500].forEach(x=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(100,20,800),m2);
-      m.position.set(x,102,0);g.add(m);
+    [0,PAL_D/2-40,PAL_D-80].forEach(dz=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(PAL_W,20,80),pm2);
+      m.position.set(ox+PAL_W/2,102,oz+dz+40);scene.add(m);
     });
-    return g;
   }
-  group.add(palletMesh());
 
-  // cartons — 2×2 × 3 layers
-  const COLORS=[0xe74c3c,0xe67e22,0x27ae60,0x3b82f6,0x9b59b6,0x16a085];
-  const boxes=[];
-  const BW=560,BD=380,BH=310;
-  for(let layer=0;layer<3;layer++)
-    for(let iz=0;iz<2;iz++)
-      for(let ix=0;ix<2;ix++){
-        const mat=new THREE.MeshLambertMaterial({color:COLORS[layer*2+iz],transparent:true});
-        const m=new THREE.Mesh(new THREE.BoxGeometry(BW,BH,BD),mat);
-        const tx=-290+ix*580,ty=144+BH/2+layer*BH,tz=-195+iz*390;
-        m.position.set(tx,ty,tz);
-        m.userData.target={x:tx,y:ty,z:tz};
-        const edge=new THREE.LineSegments(
-          new THREE.EdgesGeometry(m.geometry),
-          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.3}));
-        m.add(edge);
-        group.add(m);boxes.push(m);
+  // 3 colour groups: blue (rows 0-3 tallest), green (4-7 medium), red (8-11 shorter)
+  const GROUP_COLOR=[0x3b82f6,0x10b981,0xef4444];
+  const GROUP_LAYERS=[3,2,1];
+  const BOX_H=300;
+
+  for(let row=0;row<12;row++){
+    const gi=Math.floor(row/4);
+    const color=GROUP_COLOR[gi];
+    const nLy=GROUP_LAYERS[gi];
+    const oz=-VL/2+row*PAL_D;
+    for(let col=0;col<2;col++){
+      const ox=-VW/2+SG+col*PAL_W;
+      addPallet(ox,oz);
+      const mat=new THREE.MeshLambertMaterial({color});
+      const eMat=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.18});
+      for(let ly=0;ly<nLy;ly++){
+        const geo=new THREE.BoxGeometry(PAL_W-60,BOX_H,PAL_D-60);
+        const m=new THREE.Mesh(geo,mat);
+        m.position.set(ox+PAL_W/2,PAL_H+ly*BOX_H+BOX_H/2,oz+PAL_D/2);scene.add(m);
+        const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo),eMat);
+        e.position.copy(m.position);scene.add(e);
       }
-
-  // floating decorative boxes
-  const floaters=[];
-  for(let i=0;i<10;i++){
-    const s=80+Math.random()*180;
-    const m=new THREE.Mesh(
-      new THREE.BoxGeometry(s,s,s),
-      new THREE.MeshLambertMaterial({color:COLORS[i%COLORS.length],transparent:true,opacity:.65}));
-    m.position.set((Math.random()-.5)*5000,300+Math.random()*1600,(Math.random()-.5)*3800);
-    m.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
-    m.userData.spin=.0012+Math.random()*.0025;
-    m.userData.baseY=m.position.y;
-    m.userData.ph=Math.random()*Math.PI*2;
-    scene.add(m);floaters.push(m);
+    }
   }
 
-  let theta=.62;
-  function placeCamera(){
-    // pull back on narrow (portrait) screens so the stack stays behind the text
-    const R=4200*Math.max(1,1+(1-Math.min(1,camera.aspect))*1.4),h=1200;
-    camera.position.set(Math.sin(theta)*R,h,Math.cos(theta)*R);
-    camera.lookAt(0,60,0);
+  let th=.45,ph=.28;
+  function place(){
+    const R=18000;
+    camera.position.set(Math.sin(th)*Math.cos(ph)*R,Math.sin(ph)*R+VH*.3,Math.cos(th)*Math.cos(ph)*R);
+    camera.lookAt(0,VH*.3,0);
   }
-
   function resize(){
     const w=cv.clientWidth,h=cv.clientHeight;
     if(!w||!h)return;
-    renderer.setSize(w,h,false);
-    camera.aspect=w/h;camera.updateProjectionMatrix();
+    renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
   }
   addEventListener('resize',resize);resize();
 
-  /* drop-in loop animation (GSAP) */
-  if(hasGSAP&&!reduceMotion){
-    const tl=gsap.timeline({repeat:-1,repeatDelay:2.2});
-    boxes.forEach((b,i)=>{
-      const t=b.userData.target;
-      tl.fromTo(b.position,{y:t.y+2400},{y:t.y,duration:.7,ease:'bounce.out'},i*.14);
-      tl.fromTo(b.material,{opacity:0},{opacity:1,duration:.25,ease:'power1.out'},i*.14);
-    });
-    tl.to({},{duration:2.5});
-    tl.to(boxes.map(b=>b.material),{opacity:0,duration:.5,stagger:.04,ease:'power1.in'});
-  }
-
-  let t0=performance.now();
-  function loop(now){
-    const dt=Math.min(50,now-t0);t0=now;
-    if(!reduceMotion)theta+=dt*.000115;
-    placeCamera();
-    floaters.forEach(f=>{
-      f.rotation.x+=f.userData.spin;f.rotation.y+=f.userData.spin*1.3;
-      f.position.y=f.userData.baseY+Math.sin(now*.0006+f.userData.ph)*60;
-    });
-    renderer.render(scene,camera);
+  function loop(){
+    if(!reduceMotion)th+=.0012;
+    place();renderer.render(scene,camera);
     requestAnimationFrame(loop);
   }
-  placeCamera();
-  requestAnimationFrame(loop);
-
-  /* scroll parallax: camera pulls back & up while hero scrolls away */
-  if(hasGSAP&&typeof ScrollTrigger!=='undefined'&&!reduceMotion){
-    gsap.to(group.position,{y:-500,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
-    gsap.to(group.rotation,{y:.6,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
-  }
+  place();requestAnimationFrame(loop);
 })();
 
 /* ════════ SHOWCASE naczepa scene ════════ */
