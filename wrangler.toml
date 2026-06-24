@@ -9,6 +9,7 @@ routes = [
 
 [[send_email]]
 name = "EMAIL"
+allowed_destination_addresses = ["thekosiner@gmail.com"]
 
 [[d1_databases]]
 binding = "DB"
