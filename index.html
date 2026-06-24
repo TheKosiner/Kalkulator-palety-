@@ -373,6 +373,25 @@
   </div>
 </section>
 
+<!-- ═══ KONTAKT ═══ -->
+<section class="section" id="kontakt" style="background:var(--bg-2);border-top:1px solid var(--border)">
+  <div class="section-inner" style="max-width:560px">
+    <h2 class="rv" style="text-align:center;margin-bottom:8px">Kontakt</h2>
+    <p class="rv" style="text-align:center;color:var(--text-2);margin-bottom:32px">Masz pytanie lub potrzebujesz pomocy? Napisz do nas.</p>
+    <div class="rv" style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px 24px">
+      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px">Imię i nazwisko</label>
+        <input id="ctxName" type="text" placeholder="Jan Kowalski" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
+      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px">Adres e-mail</label>
+        <input id="ctxEmail" type="email" placeholder="jan@firma.pl" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
+      <div style="margin-bottom:18px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px">Wiadomość</label>
+        <textarea id="ctxMsg" rows="5" placeholder="Opisz swoje pytanie..." style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea></div>
+      <div id="ctxErr" style="color:#f87171;font-size:.82rem;margin-bottom:10px;display:none"></div>
+      <div id="ctxOk" style="color:#4ade80;font-size:.82rem;margin-bottom:10px;display:none">Wiadomość wysłana! Odpiszemy wkrótce.</div>
+      <button id="ctxBtn" onclick="sendContact()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:600;cursor:pointer">Wyślij wiadomość</button>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ CTA ═══ -->
 <section class="cta">
   <h2 class="rv">Przestań zgadywać.<br>Zacznij planować.</h2>
@@ -395,7 +414,7 @@
         <a href="#" onclick="openModal('signup');return false">Rejestracja</a><a href="#" onclick="openModal('login');return false">Logowanie</a><a href="#cennik">Subskrypcja</a>
       </div>
       <div class="foot-col"><h4>Pomoc</h4>
-        <a href="#">Dokumentacja</a><a href="#">FAQ</a><a href="#">Kontakt</a>
+        <a href="#">Dokumentacja</a><a href="#">FAQ</a><a href="#kontakt">Kontakt</a>
       </div>
     </div>
     <div class="foot-bottom">
@@ -873,6 +892,28 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
     if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
   });
 });
+
+async function sendContact() {
+  const name = document.getElementById('ctxName').value.trim();
+  const email = document.getElementById('ctxEmail').value.trim();
+  const msg = document.getElementById('ctxMsg').value.trim();
+  const err = document.getElementById('ctxErr');
+  const ok = document.getElementById('ctxOk');
+  const btn = document.getElementById('ctxBtn');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!name || !email || !msg) { err.textContent = 'Uzupełnij wszystkie pola.'; err.style.display = 'block'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Nieprawidłowy adres e-mail.'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Wysyłanie…';
+  try {
+    const res = await fetch('/api/contact', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name,email,msg}) });
+    if (!res.ok) { const d=await res.json(); err.textContent=d.error||'Błąd wysyłania.'; err.style.display='block'; return; }
+    ok.style.display = 'block';
+    document.getElementById('ctxName').value = '';
+    document.getElementById('ctxEmail').value = '';
+    document.getElementById('ctxMsg').value = '';
+  } catch { err.textContent = 'Błąd połączenia. Spróbuj ponownie.'; err.style.display = 'block'; }
+  btn.disabled = false; btn.textContent = 'Wyślij wiadomość';
+}
 </script>
 </body>
 </html>
