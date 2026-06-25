@@ -200,7 +200,7 @@ function apiLogout() {
 async function apiMe(request, env) {
   const user = await getUser(request, env);
   if (!user) return jsonRes({ error:'Niezalogowany.' }, 401);
-  return jsonRes({ name:user.name, email:user.email, emailVerified: user.email_verified !== 0, subscription: subInfo(user) });
+  return jsonRes({ id:user.id, name:user.name, email:user.email, emailVerified: user.email_verified !== 0, subscription: subInfo(user) });
 }
 
 async function apiVerifyEmail(request, env) {
