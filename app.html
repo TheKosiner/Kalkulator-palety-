@@ -753,6 +753,7 @@ try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s
 // ═══════════════════════════════════════════════════════
 const SETTINGS = { nav:'standard', units:'metric', lang:'pl' };
 try{const _ss=JSON.parse(localStorage.getItem('appSettings'));if(_ss){if(_ss.nav)SETTINGS.nav=_ss.nav;if(_ss.units)SETTINGS.units=_ss.units;if(_ss.lang)SETTINGS.lang=_ss.lang;}}catch(e){}
+try{const _l=localStorage.getItem('lang');if(_l==='pl'||_l==='en')SETTINGS.lang=_l;}catch(e){}
 function _saveSettings(){try{localStorage.setItem('appSettings',JSON.stringify(SETTINGS));}catch(e){}}
 
 // Orbit drag multipliers based on navigation style.
@@ -939,7 +940,7 @@ function openSettings(){
 function closeSettings(){document.getElementById('settingsModal').classList.add('hidden');}
 function setNavStyle(v){SETTINGS.nav=v;_saveSettings();_markActive('setNav',v);}
 function setUnits(v){SETTINGS.units=v;_saveSettings();_markActive('setUnits',v);refreshAllDisplays();}
-function setLang(v){SETTINGS.lang=v;_saveSettings();_markActive('setLang',v);applyI18n();refreshAllDisplays();}
+function setLang(v){SETTINGS.lang=v;_saveSettings();try{localStorage.setItem('lang',v);}catch(e){} _markActive('setLang',v);applyI18n();refreshAllDisplays();}
 window.openSettings=openSettings;window.closeSettings=closeSettings;
 window.setNavStyle=setNavStyle;window.setUnits=setUnits;window.setLang=setLang;
 

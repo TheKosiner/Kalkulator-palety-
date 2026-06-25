@@ -19,7 +19,6 @@
     nav{height:62px;display:flex;align-items:center;gap:14px;padding:0 24px;border-bottom:1px solid var(--border);background:rgba(7,13,26,.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:10}
     .nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:.95rem;flex:1}
     .nav-logo img{height:26px;width:auto;object-fit:contain}
-    .nav-logo b{color:var(--accent-h)}
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:var(--r);font-size:.86rem;font-weight:700;cursor:pointer;transition:all .18s;border:none;font-family:inherit}
     .btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 16px var(--accent-glow)}
     .btn-primary:hover:not(:disabled){background:var(--accent-h);transform:translateY(-1px)}
@@ -57,30 +56,146 @@
 <body>
 <nav>
   <div class="nav-logo"><img src="logo-full.png" alt="Pallet3D"/></div>
-  <a href="app.html"><button class="btn btn-outline" style="padding:8px 16px;font-size:.82rem">Kalkulator →</button></a>
-  <a href="/"><button class="btn btn-ghost">Strona główna</button></a>
+  <a href="app.html"><button id="navCalc" class="btn btn-outline" style="padding:8px 16px;font-size:.82rem">Kalkulator →</button></a>
+  <a href="/"><button id="navHome" class="btn btn-ghost">Strona główna</button></a>
 </nav>
 
 <main>
   <div class="card" id="card">
     <div class="loading">
       <div class="spinner sp"></div>
-      Ładowanie danych konta…
+      <span id="loadingText">Ładowanie danych konta…</span>
     </div>
   </div>
 </main>
 
 <script>
+const LANG = localStorage.getItem('lang') === 'en' ? 'en' : 'pl';
+document.documentElement.lang = LANG;
+
+const AT = {
+  pl: {
+    nav_calc: 'Kalkulator →',
+    nav_home: 'Strona główna',
+    loading: 'Ładowanie danych konta…',
+    err_conn: 'Błąd połączenia. Odśwież stronę.',
+    badge_trial: 'Okres próbny',
+    badge_expired: 'Wygasła',
+    badge_active: 'Aktywna',
+    badge_past_due: 'Zaległość',
+    badge_inactive: 'Nieaktywna',
+    alert_success: '✓ Subskrypcja aktywowana — możesz korzystać z kalkulatora!',
+    alert_expired: '⚠ Twój dostęp wygasł. Aktywuj subskrypcję, aby kontynuować.',
+    card_title: 'Twoje konto',
+    card_sub: 'Zarządzaj subskrypcją i rozliczeniami',
+    label_name: 'Imię i nazwisko',
+    label_email: 'E-mail',
+    label_sub: 'Subskrypcja',
+    label_status: 'Status',
+    btn_open_calc: 'Otwórz kalkulator →',
+    btn_portal: 'Zarządzaj fakturowaniem i płatnościami',
+    btn_logout: 'Wyloguj się',
+    pw_section: 'Zmień hasło',
+    pw_current: 'Aktualne hasło',
+    pw_new: 'Nowe hasło',
+    pw_ph_current: '••••••••',
+    pw_ph_new: 'Min. 8 znaków',
+    pw_ok: '✓ Hasło zostało zmienione.',
+    pw_save: 'Zapisz nowe hasło',
+    pw_err_empty: 'Podaj nowe hasło.',
+    pw_err_len: 'Hasło musi mieć co najmniej 8 znaków.',
+    pw_err_upper: 'Hasło musi zawierać co najmniej jedną wielką literę.',
+    pw_err_special: 'Hasło musi zawierać co najmniej jeden znak specjalny.',
+    pw_saving: 'Zapisywanie…',
+    pw_err_conn: 'Błąd połączenia.',
+    pw_err_default: 'Błąd.',
+    sub_redirecting: 'Przekierowanie do płatności…',
+    sub_err_try: 'Spróbuj ponownie.',
+    sub_err_conn: 'Błąd połączenia.',
+    portal_opening: 'Otwieranie portalu…',
+    portal_err_try: 'Spróbuj ponownie.',
+    portal_err_conn: 'Błąd połączenia.',
+    err_prefix: 'Błąd: ',
+  },
+  en: {
+    nav_calc: 'Calculator →',
+    nav_home: 'Home',
+    loading: 'Loading account data…',
+    err_conn: 'Connection error. Refresh the page.',
+    badge_trial: 'Free trial',
+    badge_expired: 'Expired',
+    badge_active: 'Active',
+    badge_past_due: 'Past due',
+    badge_inactive: 'Inactive',
+    alert_success: '✓ Subscription activated — you can use the calculator!',
+    alert_expired: '⚠ Your access has expired. Activate a subscription to continue.',
+    card_title: 'Your account',
+    card_sub: 'Manage your subscription and billing',
+    label_name: 'Full name',
+    label_email: 'E-mail',
+    label_sub: 'Subscription',
+    label_status: 'Status',
+    btn_open_calc: 'Open calculator →',
+    btn_portal: 'Manage billing and payments',
+    btn_logout: 'Log out',
+    pw_section: 'Change password',
+    pw_current: 'Current password',
+    pw_new: 'New password',
+    pw_ph_current: '••••••••',
+    pw_ph_new: 'Min. 8 characters',
+    pw_ok: '✓ Password changed.',
+    pw_save: 'Save new password',
+    pw_err_empty: 'Please enter a new password.',
+    pw_err_len: 'Password must be at least 8 characters.',
+    pw_err_upper: 'Password must contain at least one uppercase letter.',
+    pw_err_special: 'Password must contain at least one special character.',
+    pw_saving: 'Saving…',
+    pw_err_conn: 'Connection error.',
+    pw_err_default: 'Error.',
+    sub_redirecting: 'Redirecting to payment…',
+    sub_err_try: 'Try again.',
+    sub_err_conn: 'Connection error.',
+    portal_opening: 'Opening portal…',
+    portal_err_try: 'Try again.',
+    portal_err_conn: 'Connection error.',
+    err_prefix: 'Error: ',
+  }
+};
+
+function at(key) { return ((AT[LANG] || AT.pl)[key]) ?? AT.pl[key] ?? key; }
+
+function pluralDays(n) {
+  if (LANG === 'en') return n === 1 ? '1 day' : `${n} days`;
+  if (n === 1) return '1 dzień';
+  return `${n} dni`;
+}
+
+function localSubscribePrice() {
+  const loc = (navigator.language || '').toLowerCase();
+  if (loc.startsWith('pl') || !loc) return LANG === 'pl' ? '50 zł / mies.' : '50 zł / mo.';
+  if (loc.startsWith('en-gb')) return '~£10 / mo.';
+  if (loc.startsWith('en-au')) return '~A$20 / mo.';
+  if (loc.startsWith('en-ca')) return '~C$18 / mo.';
+  if (loc.startsWith('en')) return '~$13 / mo.';
+  if (loc.startsWith('cs')) return '~300 Kč / měs.';
+  if (loc.startsWith('hu')) return '~5 000 Ft / hó';
+  const eur = ['de','fr','it','es','nl','pt','fi','sk','at','be','lu','gr','ie','ee','lv','lt','hr','si','cy','mt'];
+  if (eur.some(l => loc.startsWith(l))) return '~€12 / mo.';
+  const sek = ['sv','no','da'];
+  if (sek.some(l => loc.startsWith(l))) return '~130 kr / mo.';
+  return LANG === 'pl' ? '50 zł / mies.' : '50 zł / mo.';
+}
+
+// Apply nav translations
+document.getElementById('navCalc').textContent = at('nav_calc');
+document.getElementById('navHome').textContent = at('nav_home');
+const _loadingText = document.getElementById('loadingText');
+if (_loadingText) _loadingText.textContent = at('loading');
+
 const params = new URLSearchParams(location.search);
 
 function esc(s) {
   return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-}
-
-function pluralDni(n) {
-  if (n === 1) return '1 dzień';
-  if (n >= 2 && n <= 4) return `${n} dni`;
-  return `${n} dni`;
 }
 
 async function loadAccount() {
@@ -91,77 +206,85 @@ async function loadAccount() {
     if (res.status === 401) { location.href = '/?login=1'; return; }
     user = await res.json();
   } catch {
-    card.innerHTML = '<p style="color:var(--red);text-align:center;padding:40px 0">Błąd połączenia. Odśwież stronę.</p>';
+    card.innerHTML = `<p style="color:var(--red);text-align:center;padding:40px 0">${at('err_conn')}</p>`;
     return;
   }
 
   const sub = user.subscription;
+  const dateLocale = LANG === 'en' ? 'en-US' : 'pl-PL';
 
   let badgeHtml, statusLine;
   if (sub.status === 'trial') {
     if (sub.active) {
-      badgeHtml = `<span class="badge b-trial"><span class="bdot"></span>Okres próbny</span>`;
-      statusLine = `Pozostało <strong>${pluralDni(sub.daysLeft)}</strong> bezpłatnego okresu próbnego`;
+      badgeHtml = `<span class="badge b-trial"><span class="bdot"></span>${at('badge_trial')}</span>`;
+      statusLine = LANG === 'en'
+        ? `<strong>${pluralDays(sub.daysLeft)}</strong> left of free trial`
+        : `Pozostało <strong>${pluralDays(sub.daysLeft)}</strong> bezpłatnego okresu próbnego`;
     } else {
-      badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>Wygasła</span>`;
-      statusLine = 'Okres próbny zakończony — wybierz subskrypcję';
+      badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>${at('badge_expired')}</span>`;
+      statusLine = LANG === 'en' ? 'Trial ended — choose a subscription' : 'Okres próbny zakończony — wybierz subskrypcję';
     }
   } else if (sub.status === 'active') {
-    badgeHtml = `<span class="badge b-active"><span class="bdot"></span>Aktywna</span>`;
-    const d = sub.endsAt ? new Date(sub.endsAt * 1000).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric'}) : '—';
-    statusLine = `Opłacona do <strong>${d}</strong>`;
+    badgeHtml = `<span class="badge b-active"><span class="bdot"></span>${at('badge_active')}</span>`;
+    const d = sub.endsAt ? new Date(sub.endsAt * 1000).toLocaleDateString(dateLocale, {day:'numeric',month:'long',year:'numeric'}) : '—';
+    statusLine = LANG === 'en' ? `Paid until <strong>${d}</strong>` : `Opłacona do <strong>${d}</strong>`;
   } else if (sub.status === 'past_due') {
-    badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>Zaległość</span>`;
-    statusLine = 'Płatność nie powiodła się — zaktualizuj dane karty';
+    badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>${at('badge_past_due')}</span>`;
+    statusLine = LANG === 'en' ? 'Payment failed — update your card details' : 'Płatność nie powiodła się — zaktualizuj dane karty';
   } else {
-    badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>Nieaktywna</span>`;
-    statusLine = 'Subskrypcja nieaktywna';
+    badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>${at('badge_inactive')}</span>`;
+    statusLine = LANG === 'en' ? 'Subscription inactive' : 'Subskrypcja nieaktywna';
   }
 
   const successAlert = params.get('success') === '1'
-    ? `<div class="alert alert-success">✓ Subskrypcja aktywowana — możesz korzystać z kalkulatora!</div>` : '';
+    ? `<div class="alert alert-success">${at('alert_success')}</div>` : '';
   const expiredAlert = params.get('expired') === '1'
-    ? `<div class="alert alert-warn">⚠ Twój dostęp wygasł. Aktywuj subskrypcję, aby kontynuować.</div>` : '';
+    ? `<div class="alert alert-warn">${at('alert_expired')}</div>` : '';
 
   const showSubscribe = sub.status !== 'active' || !sub.active;
   const showPortal = !!user.subscription?.status && sub.status !== 'trial';
 
+  const subscribePrice = localSubscribePrice();
+  const btnSubscribeText = LANG === 'pl'
+    ? `Aktywuj subskrypcję — ${subscribePrice}`
+    : `Activate subscription — ${subscribePrice}`;
+
   card.innerHTML = `
     ${successAlert}${expiredAlert}
-    <div class="card-title">Twoje konto</div>
-    <p class="card-sub">Zarządzaj subskrypcją i rozliczeniami</p>
+    <div class="card-title">${at('card_title')}</div>
+    <p class="card-sub">${at('card_sub')}</p>
     <div class="info-row">
-      <span class="info-label">Imię i nazwisko</span>
+      <span class="info-label">${at('label_name')}</span>
       <span class="info-value">${esc(user.name)}</span>
     </div>
     <div class="info-row">
-      <span class="info-label">E-mail</span>
+      <span class="info-label">${at('label_email')}</span>
       <span class="info-value">${esc(user.email)}</span>
     </div>
     <div class="info-row">
-      <span class="info-label">Subskrypcja</span>
+      <span class="info-label">${at('label_sub')}</span>
       <span class="info-value">${badgeHtml}</span>
     </div>
     <div class="info-row" style="border-bottom:none">
-      <span class="info-label">Status</span>
+      <span class="info-label">${at('label_status')}</span>
       <span class="info-value" style="font-size:.84rem;color:var(--text-2)">${statusLine}</span>
     </div>
     <div class="actions">
       ${sub.active && sub.status === 'active'
-        ? `<a href="app.html"><button class="btn btn-primary" style="width:100%">Otwórz kalkulator →</button></a>` : ''}
+        ? `<a href="app.html"><button class="btn btn-primary" style="width:100%">${at('btn_open_calc')}</button></a>` : ''}
       ${showSubscribe
-        ? `<button class="btn btn-primary" id="subBtn" onclick="subscribe()" style="width:100%">Aktywuj subskrypcję — 50 zł / mies.</button>` : ''}
+        ? `<button class="btn btn-primary" id="subBtn" onclick="subscribe()" style="width:100%">${btnSubscribeText}</button>` : ''}
       ${showPortal
-        ? `<button class="btn btn-outline" id="portalBtn" onclick="managePortal()" style="width:100%">Zarządzaj fakturowaniem i płatnościami</button>` : ''}
-      <button class="btn btn-ghost" onclick="doLogout()" style="width:100%">Wyloguj się</button>
+        ? `<button class="btn btn-outline" id="portalBtn" onclick="managePortal()" style="width:100%">${at('btn_portal')}</button>` : ''}
+      <button class="btn btn-ghost" onclick="doLogout()" style="width:100%">${at('btn_logout')}</button>
     </div>
     <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--border)">
-      <div style="font-size:.85rem;font-weight:700;color:var(--text-2);margin-bottom:14px">Zmień hasło</div>
-      ${user.password_hash !== '' ? `<div style="margin-bottom:10px"><label style="font-size:.79rem;color:var(--text-3);display:block;margin-bottom:4px">Aktualne hasło</label><input id="pwCurrent" type="password" placeholder="••••••••" style="width:100%;padding:9px 12px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.88rem;outline:none;box-sizing:border-box"/></div>` : ''}
-      <div style="margin-bottom:10px"><label style="font-size:.79rem;color:var(--text-3);display:block;margin-bottom:4px">Nowe hasło</label><input id="pwNew" type="password" placeholder="Min. 8 znaków" style="width:100%;padding:9px 12px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.88rem;outline:none;box-sizing:border-box"/></div>
+      <div style="font-size:.85rem;font-weight:700;color:var(--text-2);margin-bottom:14px">${at('pw_section')}</div>
+      ${user.password_hash !== '' ? `<div style="margin-bottom:10px"><label style="font-size:.79rem;color:var(--text-3);display:block;margin-bottom:4px">${at('pw_current')}</label><input id="pwCurrent" type="password" placeholder="${at('pw_ph_current')}" style="width:100%;padding:9px 12px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.88rem;outline:none;box-sizing:border-box"/></div>` : ''}
+      <div style="margin-bottom:10px"><label style="font-size:.79rem;color:var(--text-3);display:block;margin-bottom:4px">${at('pw_new')}</label><input id="pwNew" type="password" placeholder="${at('pw_ph_new')}" style="width:100%;padding:9px 12px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.88rem;outline:none;box-sizing:border-box"/></div>
       <div id="pwErr" style="color:var(--red);font-size:.8rem;margin-bottom:8px;display:none"></div>
-      <div id="pwOk" style="color:var(--green);font-size:.8rem;margin-bottom:8px;display:none">✓ Hasło zostało zmienione.</div>
-      <button class="btn btn-outline" id="pwBtn" onclick="changePassword()" style="width:100%">Zapisz nowe hasło</button>
+      <div id="pwOk" style="color:var(--green);font-size:.8rem;margin-bottom:8px;display:none">${at('pw_ok')}</div>
+      <button class="btn btn-outline" id="pwBtn" onclick="changePassword()" style="width:100%">${at('pw_save')}</button>
     </div>
   `;
 }
@@ -170,14 +293,14 @@ async function subscribe() {
   const btn = document.getElementById('subBtn');
   if (!btn) return;
   const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner"></span> Przekierowanie do płatności…';
+  btn.innerHTML = `<span class="spinner"></span> ${at('sub_redirecting')}`;
   btn.disabled = true;
   try {
     const res = await fetch('/api/stripe/checkout', { method: 'POST', credentials: 'include' });
     const data = await res.json();
     if (data.url) { location.href = data.url; return; }
-    alert('Błąd: ' + (data.error || 'Spróbuj ponownie.'));
-  } catch { alert('Błąd połączenia.'); }
+    alert(at('err_prefix') + (data.error || at('sub_err_try')));
+  } catch { alert(at('sub_err_conn')); }
   btn.innerHTML = orig;
   btn.disabled = false;
 }
@@ -186,14 +309,14 @@ async function managePortal() {
   const btn = document.getElementById('portalBtn');
   if (!btn) return;
   const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner"></span> Otwieranie portalu…';
+  btn.innerHTML = `<span class="spinner"></span> ${at('portal_opening')}`;
   btn.disabled = true;
   try {
     const res = await fetch('/api/billing/portal', { credentials: 'include' });
     const data = await res.json();
     if (data.url) { location.href = data.url; return; }
-    alert('Błąd: ' + (data.error || 'Spróbuj ponownie.'));
-  } catch { alert('Błąd połączenia.'); }
+    alert(at('err_prefix') + (data.error || at('portal_err_try')));
+  } catch { alert(at('portal_err_conn')); }
   btn.innerHTML = orig;
   btn.disabled = false;
 }
@@ -208,11 +331,11 @@ async function changePassword() {
   errEl.style.display = 'none'; okEl.style.display = 'none';
   const newPassword = newEl.value;
   const currentPassword = currentEl ? currentEl.value : '';
-  if (!newPassword) { errEl.textContent = 'Podaj nowe hasło.'; errEl.style.display = 'block'; return; }
-  if (newPassword.length < 8) { errEl.textContent = 'Hasło musi mieć co najmniej 8 znaków.'; errEl.style.display = 'block'; return; }
-  if (!/[A-Z]/.test(newPassword)) { errEl.textContent = 'Hasło musi zawierać co najmniej jedną wielką literę.'; errEl.style.display = 'block'; return; }
-  if (!/[!@#$%^&*()\-_=+\[\]{};:\'",.<>/?\\|]/.test(newPassword)) { errEl.textContent = 'Hasło musi zawierać co najmniej jeden znak specjalny.'; errEl.style.display = 'block'; return; }
-  const orig = btn.textContent; btn.textContent = 'Zapisywanie…'; btn.disabled = true;
+  if (!newPassword) { errEl.textContent = at('pw_err_empty'); errEl.style.display = 'block'; return; }
+  if (newPassword.length < 8) { errEl.textContent = at('pw_err_len'); errEl.style.display = 'block'; return; }
+  if (!/[A-Z]/.test(newPassword)) { errEl.textContent = at('pw_err_upper'); errEl.style.display = 'block'; return; }
+  if (!/[!@#$%^&*()\-_=+\[\]{};:\'",.<>/?\\|]/.test(newPassword)) { errEl.textContent = at('pw_err_special'); errEl.style.display = 'block'; return; }
+  const orig = btn.textContent; btn.textContent = at('pw_saving'); btn.disabled = true;
   try {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST', credentials: 'include',
@@ -220,10 +343,10 @@ async function changePassword() {
       body: JSON.stringify({ currentPassword, newPassword })
     });
     const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error || 'Błąd.'; errEl.style.display = 'block'; return; }
+    if (!res.ok) { errEl.textContent = data.error || at('pw_err_default'); errEl.style.display = 'block'; return; }
     okEl.style.display = 'block';
     newEl.value = ''; if (currentEl) currentEl.value = '';
-  } catch { errEl.textContent = 'Błąd połączenia.'; errEl.style.display = 'block'; }
+  } catch { errEl.textContent = at('pw_err_conn'); errEl.style.display = 'block'; }
   btn.textContent = orig; btn.disabled = false;
 }
 
