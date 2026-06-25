@@ -4284,11 +4284,19 @@ function _vSurfAt(type,x,z,w,d,exclIdx){
   return s;
 }
 // can an item of height h sit at footprint (x,z,w,d)?
-// items rest on the surface returned by _vSurfAt — allows stacking pallets on pallets
+//  · cartons stack on the surface (can go on top of pallets) — height check only
+//  · pallets stay at floor level — 2D footprint must not overlap any other pallet
 function _vFits(type,x,z,w,d,h,isCarton,exclIdx){
-  const vs=vehicleState[type];
+  const vs=vehicleState[type],pls=vs.result?.placements||[];
   if(!vs||x<-0.5||z<-0.5||x+w>vs.W+0.5||z+d>vs.L+0.5)return false;
-  return _vSurfAt(type,x,z,w,d,exclIdx)+h<=vs.H+0.5;
+  if(isCarton){
+    return _vSurfAt(type,x,z,w,d,exclIdx)+h<=vs.H+0.5;
+  }
+  for(let i=0;i<pls.length;i++){
+    if(i===exclIdx)continue;
+    if(_vRectsOverlap(x,z,w,d,pls[i].x,pls[i].z,pls[i].palW,pls[i].palD))return false;
+  }
+  return true;
 }
 // snap a dragged item (cursor centre cx,cz) to nearest wall / item face.
 // returns {x,z,y} where y is the resting height. Never overlaps another item.
@@ -4297,7 +4305,7 @@ function _vSnapPos(type,cx,cz,w,d,h,isCarton,exclIdx){
   const clampX=v=>Math.max(0,Math.min(vs.W-w,v));
   const clampZ=v=>Math.max(0,Math.min(vs.L-d,v));
   const wx=clampX(cx-w/2), wz=clampZ(cz-d/2);
-  const SNAP=350; // mm attraction radius — same feel as pallet snapping
+  const SNAP=600; // mm attraction radius — larger for vehicle-scale items
   const cands=[];
   const addC=(x,z)=>{const xc=clampX(x),zc=clampZ(z); if(_vFits(type,xc,zc,w,d,h,isCarton,exclIdx))cands.push({x:xc,z:zc});};
   // walls (one axis fixed, other follows cursor)
@@ -4477,7 +4485,10 @@ function _initVehicleCanvas(type){
     const pp=vehicleState[type].result?.placements?.[vSel[type]];
     if(!pp){drawVehicle3D(type);return;}
     const h=(pp.totalH||0)-(pp.baseY||0);
-    const pt=_vSmartPoint(type,e.clientX,e.clientY,pp.palW,pp.palD,vSel[type]);
+    // pallets stay floor-level (floor projection); cartons can land on pallet tops (smart projection)
+    const pt=pp.isCarton
+      ?_vSmartPoint(type,e.clientX,e.clientY,pp.palW,pp.palD,vSel[type])
+      :_vFloorPoint(type,e.clientX,e.clientY);
     if(pt){vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
     drawVehicle3D(type);
   }
@@ -4518,7 +4529,9 @@ function _initVehicleCanvas(type){
       const pp=vehicleState[type].result?.placements?.[vSel[type]];
       if(pp){
         const h=(pp.totalH||0)-(pp.baseY||0);
-        const pt=_vSmartPoint(type,tc.clientX,tc.clientY,pp.palW,pp.palD,vSel[type]);
+        const pt=pp.isCarton
+          ?_vSmartPoint(type,tc.clientX,tc.clientY,pp.palW,pp.palD,vSel[type])
+          :_vFloorPoint(type,tc.clientX,tc.clientY);
         if(pt){vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
       }
       drawVehicle3D(type);return;
