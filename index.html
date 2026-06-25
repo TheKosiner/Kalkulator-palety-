@@ -1121,11 +1121,10 @@ function setLang(lang) {
 }
 
 function detectLocalPrice(){
-  // Currency map by country code
+  // Currency by country code
   const CC={
     PL:{sym:'zł',amount:'50',before:false},
     CZ:{sym:'Kč',amount:'300',before:false},
-    SK:{sym:'€',amount:'12',before:false},
     HU:{sym:'Ft',amount:'5 000',before:false},
     RO:{sym:'lei',amount:'60',before:false},
     SE:{sym:'kr',amount:'140',before:false},
@@ -1136,18 +1135,19 @@ function detectLocalPrice(){
     CA:{sym:'C$',amount:'18',before:true},
     NZ:{sym:'NZ$',amount:'22',before:true},
     US:{sym:'$',amount:'13',before:true},
-    // eurozone
+    // eurozone + euro-adjacent
     DE:{sym:'€',amount:'12',before:false},FR:{sym:'€',amount:'12',before:false},
     NL:{sym:'€',amount:'12',before:false},BE:{sym:'€',amount:'12',before:false},
     AT:{sym:'€',amount:'12',before:false},ES:{sym:'€',amount:'12',before:false},
     PT:{sym:'€',amount:'12',before:false},IT:{sym:'€',amount:'12',before:false},
     IE:{sym:'€',amount:'12',before:false},FI:{sym:'€',amount:'12',before:false},
-    LT:{sym:'€',amount:'12',before:false},LV:{sym:'€',amount:'12',before:false},
-    EE:{sym:'€',amount:'12',before:false},GR:{sym:'€',amount:'12',before:false},
-    SI:{sym:'€',amount:'12',before:false},HR:{sym:'€',amount:'12',before:false},
-    LU:{sym:'€',amount:'12',before:false},MT:{sym:'€',amount:'12',before:false},
+    SK:{sym:'€',amount:'12',before:false},SI:{sym:'€',amount:'12',before:false},
+    HR:{sym:'€',amount:'12',before:false},LT:{sym:'€',amount:'12',before:false},
+    LV:{sym:'€',amount:'12',before:false},EE:{sym:'€',amount:'12',before:false},
+    GR:{sym:'€',amount:'12',before:false},LU:{sym:'€',amount:'12',before:false},
+    MT:{sym:'€',amount:'12',before:false},
   };
-  // Timezone → country (covers most users accurately, no API needed)
+  // 1. Try timezone (most accurate, no API needed)
   const TZ={
     'Europe/Warsaw':'PL','Europe/Prague':'CZ','Europe/Bratislava':'SK',
     'Europe/Budapest':'HU','Europe/Bucharest':'RO','Europe/Sofia':'BG',
@@ -1169,22 +1169,22 @@ function detectLocalPrice(){
     'Pacific/Auckland':'NZ',
   };
   let cc='';
-  try{ cc=TZ[Intl.DateTimeFormat().resolvedOptions().timeZone]||''; }catch(e){}
-  // Fallback to navigator.language if timezone didn't resolve
+  try{cc=TZ[Intl.DateTimeFormat().resolvedOptions().timeZone]||'';}catch(e){}
+  // 2. Fallback: navigator.language
   if(!cc){
     const loc=(navigator.language||'').toLowerCase();
-    if(loc==='pl'||loc.startsWith('pl-'))cc='PL';
-    else if(loc==='cs'||loc.startsWith('cs-'))cc='CZ';
-    else if(loc==='sk'||loc.startsWith('sk-'))cc='SK';
-    else if(loc==='hu'||loc.startsWith('hu-'))cc='HU';
-    else if(loc==='ro'||loc.startsWith('ro-'))cc='RO';
-    else if(loc==='sv'||loc.startsWith('sv-'))cc='SE';
+    if(loc.startsWith('pl'))cc='PL';
+    else if(loc.startsWith('cs'))cc='CZ';
+    else if(loc.startsWith('sk'))cc='SK';
+    else if(loc.startsWith('hu'))cc='HU';
+    else if(loc.startsWith('ro'))cc='RO';
+    else if(loc.startsWith('sv'))cc='SE';
     else if(loc.startsWith('no')||loc.startsWith('nb')||loc.startsWith('nn'))cc='NO';
-    else if(loc==='da'||loc.startsWith('da-'))cc='DK';
-    else if(loc==='en-gb')cc='GB';
-    else if(loc==='en-au')cc='AU';
-    else if(loc==='en-ca')cc='CA';
-    else if(loc==='en-nz')cc='NZ';
+    else if(loc.startsWith('da'))cc='DK';
+    else if(loc==='en-gb'||loc.startsWith('en-gb'))cc='GB';
+    else if(loc.startsWith('en-au'))cc='AU';
+    else if(loc.startsWith('en-ca'))cc='CA';
+    else if(loc.startsWith('en-nz'))cc='NZ';
     else if(loc.startsWith('en-us')||loc==='en')cc='US';
     else if(loc.startsWith('de'))cc='DE';
     else if(loc.startsWith('fr'))cc='FR';
