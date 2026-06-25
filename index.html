@@ -366,7 +366,7 @@
     <div class="price-wrap">
       <div class="price rv">
         <div class="price-badge" data-i18n="price_badge">PEŁEN DOSTĘP</div>
-        <div class="price-amount"><sup>zł</sup>50<sub data-i18n="price_period">/mies.</sub></div>
+        <div class="price-amount" id="priceDisplay"><sup>zł</sup>50<sub data-i18n="price_period">/mies.</sub></div>
         <p class="price-desc" data-i18n="price_desc">Jedno konto — wszystkie funkcje kalkulatora bez ograniczeń.</p>
         <ul>
           <li data-i18n="price_li1">Kalkulator palet, naczep i kontenerów</li>
@@ -428,18 +428,11 @@
         <a href="#cennik" data-i18n="foot_f_sub">Subskrypcja</a>
       </div>
       <div class="foot-col"><h4 data-i18n="foot_help">Pomoc</h4>
-        <a href="#" data-i18n="foot_f_docs">Dokumentacja</a>
-        <a href="#" data-i18n="foot_f_faq">FAQ</a>
         <a href="#kontakt" data-i18n="foot_f_contact">Kontakt</a>
       </div>
     </div>
     <div class="foot-bottom">
       <div data-i18n="foot_copy">© 2026 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
-      <div>
-        <a href="#" data-i18n="foot_tos">Regulamin</a>
-        <a href="#" data-i18n="foot_priv">Polityka prywatności</a>
-        <a href="#" data-i18n="foot_cookies">Cookies</a>
-      </div>
     </div>
   </div>
 </footer>
@@ -669,6 +662,7 @@ function applyI18n(lang) {
     document.getElementById('lBtn-'+l)?.classList.toggle('active', l===lang);
     document.getElementById('mmBtn-'+l)?.classList.toggle('active', l===lang);
   });
+  updatePriceDisplay();
   localStorage.setItem('lang', lang);
 }
 
@@ -677,6 +671,54 @@ function setLang(lang) {
   // re-init GSAP word spans after innerHTML replacement
   if(typeof gsap !== 'undefined') {
     gsap.set('#heroTitle .word', {yPercent:0, opacity:1});
+  }
+}
+
+function detectLocalPrice(){
+  const loc=(navigator.language||'').toLowerCase();
+  const MAP=[
+    ['en-us',{sym:'$',amount:'13',before:true}],
+    ['en-gb',{sym:'£',amount:'10',before:true}],
+    ['en-au',{sym:'A$',amount:'20',before:true}],
+    ['en-ca',{sym:'C$',amount:'18',before:true}],
+    ['en',   {sym:'$',amount:'13',before:true}],
+    ['de',{sym:'€',amount:'12',before:false}],
+    ['fr',{sym:'€',amount:'12',before:false}],
+    ['it',{sym:'€',amount:'12',before:false}],
+    ['es',{sym:'€',amount:'12',before:false}],
+    ['nl',{sym:'€',amount:'12',before:false}],
+    ['pt',{sym:'€',amount:'12',before:false}],
+    ['fi',{sym:'€',amount:'12',before:false}],
+    ['sk',{sym:'€',amount:'12',before:false}],
+    ['cs',{sym:'Kč',amount:'300',before:false}],
+    ['hu',{sym:'Ft',amount:'5 000',before:false}],
+    ['ro',{sym:'lei',amount:'60',before:false}],
+    ['sv',{sym:'kr',amount:'140',before:false}],
+    ['no',{sym:'kr',amount:'145',before:false}],
+    ['da',{sym:'kr',amount:'90',before:false}],
+  ];
+  for(const [p,info] of MAP){
+    if(loc===p||loc.startsWith(p+'-'))return info;
+  }
+  return {sym:'zł',amount:'50',before:false,exact:true};
+}
+
+function updatePriceDisplay(){
+  const p=detectLocalPrice();
+  const period=t('price_period');
+  const approx=p.exact?'':'~';
+  const el=document.getElementById('priceDisplay');
+  if(el){
+    el.innerHTML=p.before
+      ?`<sup>${approx}${p.sym}</sup>${p.amount}<sub>${period}</sub>`
+      :`${approx}${p.amount}<sup>${p.sym}</sup><sub>${period}</sub>`;
+  }
+  const subEl=document.querySelector('[data-i18n="signup_sub"]');
+  if(subEl){
+    const ps=p.exact?'50 zł':(p.before?`~${p.sym}${p.amount}`:`~${p.amount} ${p.sym}`);
+    subEl.textContent=_lang==='pl'
+      ?`14 dni za darmo, potem ${ps} / mies. Anuluj kiedy chcesz.`
+      :`14 days free, then ${ps}/mo. Cancel any time.`;
   }
 }
 
