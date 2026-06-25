@@ -1121,38 +1121,86 @@ function setLang(lang) {
 }
 
 function detectLocalPrice(){
-  const loc=(navigator.language||'').toLowerCase();
-  const MAP=[
-    ['en-us',{sym:'$',amount:'13',before:true}],
-    ['en-gb',{sym:'£',amount:'10',before:true}],
-    ['en-au',{sym:'A$',amount:'20',before:true}],
-    ['en-ca',{sym:'C$',amount:'18',before:true}],
-    ['en',   {sym:'$',amount:'13',before:true}],
-    ['de',{sym:'€',amount:'12',before:false}],
-    ['fr',{sym:'€',amount:'12',before:false}],
-    ['it',{sym:'€',amount:'12',before:false}],
-    ['es',{sym:'€',amount:'12',before:false}],
-    ['nl',{sym:'€',amount:'12',before:false}],
-    ['pt',{sym:'€',amount:'12',before:false}],
-    ['fi',{sym:'€',amount:'12',before:false}],
-    ['sk',{sym:'€',amount:'12',before:false}],
-    ['cs',{sym:'Kč',amount:'300',before:false}],
-    ['hu',{sym:'Ft',amount:'5 000',before:false}],
-    ['ro',{sym:'lei',amount:'60',before:false}],
-    ['sv',{sym:'kr',amount:'140',before:false}],
-    ['no',{sym:'kr',amount:'145',before:false}],
-    ['da',{sym:'kr',amount:'90',before:false}],
-  ];
-  for(const [p,info] of MAP){
-    if(loc===p||loc.startsWith(p+'-'))return info;
+  // Currency by country code
+  const CC={
+    PL:{sym:'zł',amount:'50',before:false},
+    CZ:{sym:'Kč',amount:'300',before:false},
+    HU:{sym:'Ft',amount:'5 000',before:false},
+    RO:{sym:'lei',amount:'60',before:false},
+    SE:{sym:'kr',amount:'140',before:false},
+    NO:{sym:'kr',amount:'145',before:false},
+    DK:{sym:'kr',amount:'90',before:false},
+    GB:{sym:'£',amount:'10',before:true},
+    AU:{sym:'A$',amount:'20',before:true},
+    CA:{sym:'C$',amount:'18',before:true},
+    NZ:{sym:'NZ$',amount:'22',before:true},
+    US:{sym:'$',amount:'13',before:true},
+    // eurozone + euro-adjacent
+    DE:{sym:'€',amount:'12',before:false},FR:{sym:'€',amount:'12',before:false},
+    NL:{sym:'€',amount:'12',before:false},BE:{sym:'€',amount:'12',before:false},
+    AT:{sym:'€',amount:'12',before:false},ES:{sym:'€',amount:'12',before:false},
+    PT:{sym:'€',amount:'12',before:false},IT:{sym:'€',amount:'12',before:false},
+    IE:{sym:'€',amount:'12',before:false},FI:{sym:'€',amount:'12',before:false},
+    SK:{sym:'€',amount:'12',before:false},SI:{sym:'€',amount:'12',before:false},
+    HR:{sym:'€',amount:'12',before:false},LT:{sym:'€',amount:'12',before:false},
+    LV:{sym:'€',amount:'12',before:false},EE:{sym:'€',amount:'12',before:false},
+    GR:{sym:'€',amount:'12',before:false},LU:{sym:'€',amount:'12',before:false},
+    MT:{sym:'€',amount:'12',before:false},
+  };
+  // 1. Try timezone (most accurate, no API needed)
+  const TZ={
+    'Europe/Warsaw':'PL','Europe/Prague':'CZ','Europe/Bratislava':'SK',
+    'Europe/Budapest':'HU','Europe/Bucharest':'RO','Europe/Sofia':'BG',
+    'Europe/Stockholm':'SE','Europe/Oslo':'NO','Europe/Copenhagen':'DK',
+    'Europe/London':'GB','Europe/Dublin':'IE',
+    'Europe/Berlin':'DE','Europe/Vienna':'AT','Europe/Zurich':'CH',
+    'Europe/Paris':'FR','Europe/Amsterdam':'NL','Europe/Brussels':'BE',
+    'Europe/Madrid':'ES','Europe/Lisbon':'PT','Europe/Rome':'IT',
+    'Europe/Helsinki':'FI','Europe/Tallinn':'EE','Europe/Riga':'LV',
+    'Europe/Vilnius':'LT','Europe/Athens':'GR','Europe/Ljubljana':'SI',
+    'Europe/Zagreb':'HR','Europe/Luxembourg':'LU','Europe/Malta':'MT',
+    'America/New_York':'US','America/Chicago':'US','America/Denver':'US',
+    'America/Los_Angeles':'US','America/Phoenix':'US','America/Anchorage':'US',
+    'Pacific/Honolulu':'US',
+    'America/Toronto':'CA','America/Vancouver':'CA','America/Edmonton':'CA',
+    'America/Winnipeg':'CA','America/Halifax':'CA','America/St_Johns':'CA',
+    'Australia/Sydney':'AU','Australia/Melbourne':'AU','Australia/Brisbane':'AU',
+    'Australia/Perth':'AU','Australia/Adelaide':'AU','Australia/Darwin':'AU',
+    'Pacific/Auckland':'NZ',
+  };
+  let cc='';
+  try{cc=TZ[Intl.DateTimeFormat().resolvedOptions().timeZone]||'';}catch(e){}
+  // 2. Fallback: navigator.language
+  if(!cc){
+    const loc=(navigator.language||'').toLowerCase();
+    if(loc.startsWith('pl'))cc='PL';
+    else if(loc.startsWith('cs'))cc='CZ';
+    else if(loc.startsWith('sk'))cc='SK';
+    else if(loc.startsWith('hu'))cc='HU';
+    else if(loc.startsWith('ro'))cc='RO';
+    else if(loc.startsWith('sv'))cc='SE';
+    else if(loc.startsWith('no')||loc.startsWith('nb')||loc.startsWith('nn'))cc='NO';
+    else if(loc.startsWith('da'))cc='DK';
+    else if(loc==='en-gb'||loc.startsWith('en-gb'))cc='GB';
+    else if(loc.startsWith('en-au'))cc='AU';
+    else if(loc.startsWith('en-ca'))cc='CA';
+    else if(loc.startsWith('en-nz'))cc='NZ';
+    else if(loc.startsWith('en-us')||loc==='en')cc='US';
+    else if(loc.startsWith('de'))cc='DE';
+    else if(loc.startsWith('fr'))cc='FR';
+    else if(loc.startsWith('nl'))cc='NL';
+    else if(loc.startsWith('es'))cc='ES';
+    else if(loc.startsWith('pt'))cc='PT';
+    else if(loc.startsWith('it'))cc='IT';
+    else if(loc.startsWith('fi'))cc='FI';
   }
-  return {sym:'€',amount:'12',before:false};
+  return CC[cc]||{sym:'€',amount:'12',before:false};
 }
 
 function updatePriceDisplay(){
   const p=detectLocalPrice();
   const period=t('price_period');
-  const approx=p.exact?'':'~';
+  const approx='~';
   const el=document.getElementById('priceDisplay');
   if(el){
     el.innerHTML=p.before
