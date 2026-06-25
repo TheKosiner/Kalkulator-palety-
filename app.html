@@ -319,7 +319,7 @@
 <body>
 
 <header>
-  <h1><img src="logo-full.png" alt="Pallet3D"/></h1>
+  <h1><a href="https://pallet3d.com" style="display:inline-block;line-height:0;text-decoration:none"><img src="logo-full.png" alt="Pallet3D"/></a></h1>
   <span class="sub" id="palSub">Europaleta 1200×800 mm</span>
   <div class="main-tabs">
     <button class="main-tab active" id="mtab_paleta" onclick="switchMainTab('paleta')" data-i18n="tab_pallet">Paleta</button>
@@ -4284,12 +4284,15 @@ function _vSurfAt(type,x,z,w,d,exclIdx){
   return s;
 }
 // can an item of height h sit at footprint (x,z,w,d)?
+function _vStackOk(type){
+  return !!document.getElementById((type==='naczepa'?'nacz':'kont')+'StackPallets')?.checked;
+}
 //  · cartons stack on the surface (can go on top of pallets) — height check only
-//  · pallets stay at floor level — 2D footprint must not overlap any other pallet
+//  · pallets: 2D footprint check unless stacking checkbox enabled, then surface height check
 function _vFits(type,x,z,w,d,h,isCarton,exclIdx){
   const vs=vehicleState[type],pls=vs.result?.placements||[];
   if(!vs||x<-0.5||z<-0.5||x+w>vs.W+0.5||z+d>vs.L+0.5)return false;
-  if(isCarton){
+  if(isCarton||_vStackOk(type)){
     return _vSurfAt(type,x,z,w,d,exclIdx)+h<=vs.H+0.5;
   }
   for(let i=0;i<pls.length;i++){
@@ -4485,8 +4488,8 @@ function _initVehicleCanvas(type){
     const pp=vehicleState[type].result?.placements?.[vSel[type]];
     if(!pp){drawVehicle3D(type);return;}
     const h=(pp.totalH||0)-(pp.baseY||0);
-    // pallets stay floor-level (floor projection); cartons can land on pallet tops (smart projection)
-    const pt=pp.isCarton
+    // cartons and pallets (when stacking enabled) project to the surface top; otherwise floor
+    const pt=(pp.isCarton||_vStackOk(type))
       ?_vSmartPoint(type,e.clientX,e.clientY,pp.palW,pp.palD,vSel[type])
       :_vFloorPoint(type,e.clientX,e.clientY);
     if(pt){vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
@@ -4529,7 +4532,7 @@ function _initVehicleCanvas(type){
       const pp=vehicleState[type].result?.placements?.[vSel[type]];
       if(pp){
         const h=(pp.totalH||0)-(pp.baseY||0);
-        const pt=pp.isCarton
+        const pt=(pp.isCarton||_vStackOk(type))
           ?_vSmartPoint(type,tc.clientX,tc.clientY,pp.palW,pp.palD,vSel[type])
           :_vFloorPoint(type,tc.clientX,tc.clientY);
         if(pt){vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
