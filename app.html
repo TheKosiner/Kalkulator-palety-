@@ -4180,7 +4180,7 @@ function drawVehicle3D(type){
             let px,pz,pw2,pd;
             if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw2=pkg.d;pd=pkg.w;}
             else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw2=pkg.w;pd=pkg.d;}
-            const absy=(pp.baseY||0)+pkg.y;
+            const absy=pp.isCarton?pkg.y:(pp.baseY||0)+pkg.y;
             add(pkg.shape==='cylinder'
               ?makeCylinder3D(px,absy,pz,pw2,pkg.h,pkg.color)
               :makeBox3D(px,absy,pz,pw2,pkg.h,pd,pkg.color));
