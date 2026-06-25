@@ -4169,7 +4169,7 @@ function drawVehicle3D(type){
         const pkgList=pp.placements||(pp.palId?savedPallets.find(sp=>sp.id===pp.palId)?.placements:null);
         // Skip the wooden pallet base for loose carton stacks
         if(!pp.isCarton){
-          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD).forEach(b=>add(makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color)));
+          _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD,pp.baseY||0).forEach(b=>add(makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color)));
           // Extra bases for stacked pallets (one base per stacked level)
           (pp.extraBases||[]).forEach(yOff=>{
             _vPalBoardBoxes(pp.x,pp.z,pp.palW,pp.palD,yOff).forEach(b=>add(makeBox3D(b.x,b.y,b.z,b.w,b.h,b.d,b.color)));
@@ -4180,13 +4180,15 @@ function drawVehicle3D(type){
             let px,pz,pw2,pd;
             if(pp.rotated){px=pp.x+pkg.z;pz=pp.z+pkg.x;pw2=pkg.d;pd=pkg.w;}
             else{px=pp.x+pkg.x;pz=pp.z+pkg.z;pw2=pkg.w;pd=pkg.d;}
+            const absy=(pp.baseY||0)+pkg.y;
             add(pkg.shape==='cylinder'
-              ?makeCylinder3D(px,pkg.y,pz,pw2,pkg.h,pkg.color)
-              :makeBox3D(px,pkg.y,pz,pw2,pkg.h,pd,pkg.color));
+              ?makeCylinder3D(px,absy,pz,pw2,pkg.h,pkg.color)
+              :makeBox3D(px,absy,pz,pw2,pkg.h,pd,pkg.color));
           });
         } else {
-          add(makeBox3D(pp.x,0,pp.z,pp.palW,PH,pp.palD,'#9a6e38'));
-          if(pp.totalH>PH)add(makeBox3D(pp.x,PH,pp.z,pp.palW,pp.totalH-PH,pp.palD,pp.color));
+          const by=pp.baseY||0;
+          add(makeBox3D(pp.x,by,pp.z,pp.palW,PH,pp.palD,'#9a6e38'));
+          if(pp.totalH>by+PH)add(makeBox3D(pp.x,by+PH,pp.z,pp.palW,pp.totalH-by-PH,pp.palD,pp.color));
         }
         tv.placeMeshes[i]=pmList;
         // invisible hit box spanning this item's actual vertical extent (so each
@@ -4254,6 +4256,18 @@ function _vFloorPoint(type,clientX,clientY){
   const pt=new THREE.Vector3();
   return _vRay.ray.intersectPlane(plane,pt)?pt:null;
 }
+// raycast first to floor, then re-project to the resting surface height at that footprint
+// so cursor over an elevated pallet correctly snaps to its top surface
+function _vSmartPoint(type,clientX,clientY,w,d,exclIdx){
+  const tv=t3v[type];if(!tv)return null;
+  _vRay.setFromCamera(_vNDC(type,clientX,clientY),tv.camera);
+  const fp=new THREE.Vector3();
+  if(!_vRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),fp))return null;
+  const surf=_vSurfAt(type,fp.x,fp.z,w,d,exclIdx);
+  if(surf<1)return fp;
+  const sp=new THREE.Vector3();
+  return _vRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-surf),sp)?sp:fp;
+}
 // 2D footprint overlap
 function _vRectsOverlap(x1,z1,w1,d1,x2,z2,w2,d2){
   return x1<x2+w2-0.5 && x1+w1>x2+0.5 && z1<z2+d2-0.5 && z1+d1>z2+0.5;
@@ -4270,19 +4284,11 @@ function _vSurfAt(type,x,z,w,d,exclIdx){
   return s;
 }
 // can an item of height h sit at footprint (x,z,w,d)?
-//  · cartons rest on the surface and stack → never overlap, only need to fit under the roof
-//  · pallets stay on the floor → must not share footprint with anything
+// items rest on the surface returned by _vSurfAt — allows stacking pallets on pallets
 function _vFits(type,x,z,w,d,h,isCarton,exclIdx){
-  const vs=vehicleState[type],pls=vs.result?.placements||[];
-  if(x<-0.5||z<-0.5||x+w>vs.W+0.5||z+d>vs.L+0.5)return false;
-  if(isCarton){
-    return _vSurfAt(type,x,z,w,d,exclIdx)+h<=vs.H+0.5;
-  }
-  for(let i=0;i<pls.length;i++){
-    if(i===exclIdx)continue;
-    if(_vRectsOverlap(x,z,w,d,pls[i].x,pls[i].z,pls[i].palW,pls[i].palD))return false;
-  }
-  return true;
+  const vs=vehicleState[type];
+  if(!vs||x<-0.5||z<-0.5||x+w>vs.W+0.5||z+d>vs.L+0.5)return false;
+  return _vSurfAt(type,x,z,w,d,exclIdx)+h<=vs.H+0.5;
 }
 // snap a dragged item (cursor centre cx,cz) to nearest wall / item face.
 // returns {x,z,y} where y is the resting height. Never overlaps another item.
@@ -4306,7 +4312,7 @@ function _vSnapPos(type,cx,cz,w,d,h,isCarton,exclIdx){
     addC(pp.x,zA); addC(pp.x+pp.palW-w,zA);     // edge-aligned
     addC(xA,pp.z); addC(xA,pp.z+pp.palD-d);
   });
-  const fin=(x,z)=>({x,z,y:isCarton?_vSurfAt(type,x,z,w,d,exclIdx):0});
+  const fin=(x,z)=>({x,z,y:_vSurfAt(type,x,z,w,d,exclIdx)});
   // nearest snap candidate within the attraction radius
   let best=null,bestD=Infinity;
   for(const c of cands){const dd=Math.hypot(c.x-wx,c.z-wz); if(dd<bestD){bestD=dd;best=c;}}
@@ -4352,7 +4358,18 @@ window.vehDeselect=vehDeselect;
 window.vbpDrag=function(){
   const type=vActiveType, placements=vehicleState[type].result?.placements, idx=vSel[type];
   if(!placements||idx<0)return;
-  const pp=placements[idx];
+  let pp=placements[idx];
+  // Split auto-stacked entry (extraBases) so each pallet level is independently movable
+  if(!pp.isCarton&&pp.extraBases?.length){
+    const splitH=pp.extraBases[0];
+    const pkgs=pp.placements||[];
+    const entry1={...pp,totalH:splitH,placements:pkgs.filter(pkg=>(pkg.y||0)<splitH),extraBases:[]};
+    const entry2={...pp,baseY:splitH,totalH:pp.totalH,placements:pkgs.filter(pkg=>(pkg.y||0)>=splitH).map(pkg=>({...pkg,y:(pkg.y||0)-splitH})),extraBases:pp.extraBases.slice(1)};
+    placements.splice(idx,1,entry1,entry2);
+    _vInvalidate(type);
+    vSel[type]=idx+1;
+    pp=placements[idx+1];
+  }
   vDrag[type]=true; vGhost[type]={x:pp.x,z:pp.z};
   document.getElementById('vehBoxPanel').style.display='none';
   document.getElementById('vehHint').style.display='block';
@@ -4363,6 +4380,7 @@ window.vbpRotate=function(){
   if(!placements||idx<0)return;
   const pp=placements[idx];
   const cx=pp.x+pp.palW/2, cz=pp.z+pp.palD/2; // keep centre fixed
+  const ox=pp.x,oz=pp.z,oldW=pp.palW,oldD=pp.palD;
   const h=(pp.totalH||0)-(pp.baseY||0);
   [pp.palW,pp.palD]=[pp.palD,pp.palW];
   if(!pp.isCarton)pp.rotated=!pp.rotated; // cartons carry rotation in their sub-item dims
@@ -4374,6 +4392,13 @@ window.vbpRotate=function(){
     pp.baseY=ny; pp.totalH=ny+h;
     const si=pp.placements&&pp.placements[0];
     if(si){si.x=0;si.z=0;si.y=ny;si.w=pp.palW;si.d=pp.palD;si.h=h;}
+  } else {
+    // move elevated cartons that were resting on this pallet
+    const dx=s.x-ox,dz=s.z-oz;
+    placements.forEach((p2,j)=>{
+      if(j===idx||!p2.isCarton||(p2.baseY||0)<0.5)return;
+      if(_vRectsOverlap(ox,oz,oldW,oldD,p2.x,p2.z,p2.palW,p2.palD)){p2.x+=dx;p2.z+=dz;}
+    });
   }
   _vInvalidate(type); _vRefreshStats(type); _vShowPanel(type); drawVehicle3D(type);
 };
@@ -4385,7 +4410,7 @@ window.vbpRemove=function(){
   document.getElementById('vehBoxPanel').style.display='none';
   _vInvalidate(type); _vRefreshStats(type); drawVehicle3D(type);
 };
-// commit a drag-move: place item at ghost position (guaranteed non-overlapping)
+// commit a drag-move: place item at ghost position, update baseY and move elevated dependents
 function _vDrop(type){
   const vs=vehicleState[type], placements=vs.result?.placements, idx=vSel[type], g=vGhost[type];
   if(placements&&idx>=0&&g){
@@ -4394,10 +4419,25 @@ function _vDrop(type){
     let s=g;
     if(!_vFits(type,g.x,g.z,pp.palW,pp.palD,h,!!pp.isCarton,idx))
       s=_vSnapPos(type,g.x+pp.palW/2,g.z+pp.palD/2,pp.palW,pp.palD,h,!!pp.isCarton,idx);
+    const ox=pp.x,oz=pp.z,oldBaseY=pp.baseY||0;
     pp.x=s.x; pp.z=s.z;
-    if(pp.isCarton){
-      const ny=s.y||0;
-      pp.baseY=ny; pp.totalH=ny+h;
+    const ny=s.y??0;
+    const dBaseY=ny-oldBaseY;
+    pp.baseY=ny; pp.totalH=ny+h;
+    if(!pp.isCarton){
+      // move all elevated items (cartons or stacked pallets) that were resting on this pallet
+      const dx=s.x-ox,dz=s.z-oz;
+      placements.forEach((p2,j)=>{
+        if(j===idx||(p2.baseY||0)<0.5)return;
+        if(_vRectsOverlap(ox,oz,pp.palW,pp.palD,p2.x,p2.z,p2.palW,p2.palD)){
+          p2.x+=dx; p2.z+=dz;
+          p2.baseY=(p2.baseY||0)+dBaseY;
+          p2.totalH=(p2.totalH||0)+dBaseY;
+          const si=p2.placements&&p2.placements[0];
+          if(si&&p2.isCarton)si.y=p2.baseY;
+        }
+      });
+    } else {
       const si=pp.placements&&pp.placements[0];
       if(si){si.x=0;si.z=0;si.y=ny;si.w=pp.palW;si.d=pp.palD;si.h=h;}
     }
@@ -4434,10 +4474,11 @@ function _initVehicleCanvas(type){
   cv.addEventListener('contextmenu',e=>e.preventDefault());
   // ghost positioning while in move mode — fires regardless of button held
   function _updateGhost(e){
-    const pt=_vFloorPoint(type,e.clientX,e.clientY);
-    if(pt){const pp=vehicleState[type].result.placements[vSel[type]];
-      const h=(pp.totalH||0)-(pp.baseY||0);
-      vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
+    const pp=vehicleState[type].result?.placements?.[vSel[type]];
+    if(!pp){drawVehicle3D(type);return;}
+    const h=(pp.totalH||0)-(pp.baseY||0);
+    const pt=_vSmartPoint(type,e.clientX,e.clientY,pp.palW,pp.palD,vSel[type]);
+    if(pt){vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
     drawVehicle3D(type);
   }
   window.addEventListener('mousemove',e=>{
@@ -4473,10 +4514,13 @@ function _initVehicleCanvas(type){
   cv.addEventListener('touchmove',e=>{
     e.preventDefault();
     if(vDrag[type]&&vSel[type]>=0&&e.touches.length===1){
-      const t=e.touches[0],pt=_vFloorPoint(type,t.clientX,t.clientY);
-      if(pt){const pp=vehicleState[type].result.placements[vSel[type]];
+      const tc=e.touches[0];
+      const pp=vehicleState[type].result?.placements?.[vSel[type]];
+      if(pp){
         const h=(pp.totalH||0)-(pp.baseY||0);
-        vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
+        const pt=_vSmartPoint(type,tc.clientX,tc.clientY,pp.palW,pp.palD,vSel[type]);
+        if(pt){vGhost[type]=_vSnapPos(type,pt.x,pt.z,pp.palW,pp.palD,h,!!pp.isCarton,vSel[type]);}
+      }
       drawVehicle3D(type);return;
     }
     if(e.touches.length===2){
