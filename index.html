@@ -380,7 +380,7 @@
     <div class="price-wrap">
       <div class="price rv">
         <div class="price-badge" data-i18n="price_badge">PEŁEN DOSTĘP</div>
-        <div class="price-amount" id="priceDisplay"><sup>zł</sup>50<sub data-i18n="price_period">/mies.</sub></div>
+        <div class="price-amount" id="priceDisplay">12<sup>€</sup><sub data-i18n="price_period">/mies.</sub></div>
         <p class="price-desc" data-i18n="price_desc">Jedno konto — wszystkie funkcje kalkulatora bez ograniczeń.</p>
         <ul>
           <li data-i18n="price_li1">Kalkulator palet, naczep i kontenerów</li>
@@ -1146,7 +1146,7 @@ function detectLocalPrice(){
   for(const [p,info] of MAP){
     if(loc===p||loc.startsWith(p+'-'))return info;
   }
-  return {sym:'zł',amount:'50',before:false,exact:true};
+  return {sym:'€',amount:'12',before:false};
 }
 
 function updatePriceDisplay(){
@@ -1161,7 +1161,7 @@ function updatePriceDisplay(){
   }
   const subEl=document.querySelector('[data-i18n="signup_sub"]');
   if(subEl){
-    const ps=p.exact?'50 zł':(p.before?`~${p.sym}${p.amount}`:`~${p.amount} ${p.sym}`);
+    const ps=p.before?`~${p.sym}${p.amount}`:`~${p.amount} ${p.sym}`;
     const TEMPLATES={
       pl:`14 dni za darmo, potem ${ps} / mies. Anuluj kiedy chcesz.`,
       en:`14 days free, then ${ps}/mo. Cancel any time.`,
