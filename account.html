@@ -70,7 +70,16 @@
 </main>
 
 <script>
-const LANG = localStorage.getItem('lang') === 'en' ? 'en' : 'pl';
+// Add language codes here when expanding AT with new translations
+const SUPPORTED_LANGS = ['en', 'pl'];
+
+function detectLang() {
+  const saved = localStorage.getItem('lang');
+  if (saved && SUPPORTED_LANGS.includes(saved)) return saved;
+  const nav = (navigator.language || '').toLowerCase();
+  return SUPPORTED_LANGS.find(l => nav === l || nav.startsWith(l + '-')) || 'en';
+}
+const LANG = detectLang();
 document.documentElement.lang = LANG;
 
 const AT = {
@@ -162,17 +171,16 @@ const AT = {
   }
 };
 
-function at(key) { return ((AT[LANG] || AT.pl)[key]) ?? AT.pl[key] ?? key; }
+function at(key) { return ((AT[LANG] || AT.en)[key]) ?? AT.en[key] ?? key; }
 
 function pluralDays(n) {
-  if (LANG === 'en') return n === 1 ? '1 day' : `${n} days`;
-  if (n === 1) return '1 dzień';
-  return `${n} dni`;
+  if (LANG === 'pl') return n === 1 ? '1 dzień' : `${n} dni`;
+  return n === 1 ? '1 day' : `${n} days`; // EN default for unknown langs
 }
 
 function localSubscribePrice() {
   const loc = (navigator.language || '').toLowerCase();
-  if (loc.startsWith('pl') || !loc) return LANG === 'pl' ? '50 zł / mies.' : '50 zł / mo.';
+  if (loc.startsWith('pl') || !loc) return LANG === 'pl' ? '50 zł / mies.' : '50 zł / mo.'; // PLN exact
   if (loc.startsWith('en-gb')) return '~£10 / mo.';
   if (loc.startsWith('en-au')) return '~A$20 / mo.';
   if (loc.startsWith('en-ca')) return '~C$18 / mo.';
@@ -183,7 +191,7 @@ function localSubscribePrice() {
   if (eur.some(l => loc.startsWith(l))) return '~€12 / mo.';
   const sek = ['sv','no','da'];
   if (sek.some(l => loc.startsWith(l))) return '~130 kr / mo.';
-  return LANG === 'pl' ? '50 zł / mies.' : '50 zł / mo.';
+  return '50 zł / mo.'; // unknown locale — show PLN, Stripe converts at checkout
 }
 
 // Apply nav translations
@@ -211,29 +219,29 @@ async function loadAccount() {
   }
 
   const sub = user.subscription;
-  const dateLocale = LANG === 'en' ? 'en-US' : 'pl-PL';
+  const dateLocale = LANG === 'pl' ? 'pl-PL' : 'en-US';
 
   let badgeHtml, statusLine;
   if (sub.status === 'trial') {
     if (sub.active) {
       badgeHtml = `<span class="badge b-trial"><span class="bdot"></span>${at('badge_trial')}</span>`;
-      statusLine = LANG === 'en'
-        ? `<strong>${pluralDays(sub.daysLeft)}</strong> left of free trial`
-        : `Pozostało <strong>${pluralDays(sub.daysLeft)}</strong> bezpłatnego okresu próbnego`;
+      statusLine = LANG === 'pl'
+        ? `Pozostało <strong>${pluralDays(sub.daysLeft)}</strong> bezpłatnego okresu próbnego`
+        : `<strong>${pluralDays(sub.daysLeft)}</strong> left of free trial`;
     } else {
       badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>${at('badge_expired')}</span>`;
-      statusLine = LANG === 'en' ? 'Trial ended — choose a subscription' : 'Okres próbny zakończony — wybierz subskrypcję';
+      statusLine = LANG === 'pl' ? 'Okres próbny zakończony — wybierz subskrypcję' : 'Trial ended — choose a subscription';
     }
   } else if (sub.status === 'active') {
     badgeHtml = `<span class="badge b-active"><span class="bdot"></span>${at('badge_active')}</span>`;
     const d = sub.endsAt ? new Date(sub.endsAt * 1000).toLocaleDateString(dateLocale, {day:'numeric',month:'long',year:'numeric'}) : '—';
-    statusLine = LANG === 'en' ? `Paid until <strong>${d}</strong>` : `Opłacona do <strong>${d}</strong>`;
+    statusLine = LANG === 'pl' ? `Opłacona do <strong>${d}</strong>` : `Paid until <strong>${d}</strong>`;
   } else if (sub.status === 'past_due') {
     badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>${at('badge_past_due')}</span>`;
-    statusLine = LANG === 'en' ? 'Payment failed — update your card details' : 'Płatność nie powiodła się — zaktualizuj dane karty';
+    statusLine = LANG === 'pl' ? 'Płatność nie powiodła się — zaktualizuj dane karty' : 'Payment failed — update your card details';
   } else {
     badgeHtml = `<span class="badge b-expired"><span class="bdot"></span>${at('badge_inactive')}</span>`;
-    statusLine = LANG === 'en' ? 'Subscription inactive' : 'Subskrypcja nieaktywna';
+    statusLine = LANG === 'pl' ? 'Subskrypcja nieaktywna' : 'Subscription inactive';
   }
 
   const successAlert = params.get('success') === '1'

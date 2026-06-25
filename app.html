@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -751,9 +751,9 @@ try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s
 // ═══════════════════════════════════════════════════════
 // SETTINGS (navigation, units, language)
 // ═══════════════════════════════════════════════════════
-const SETTINGS = { nav:'standard', units:'metric', lang:'pl' };
+const SETTINGS = { nav:'standard', units:'metric', lang:'en' };
 try{const _ss=JSON.parse(localStorage.getItem('appSettings'));if(_ss){if(_ss.nav)SETTINGS.nav=_ss.nav;if(_ss.units)SETTINGS.units=_ss.units;if(_ss.lang)SETTINGS.lang=_ss.lang;}}catch(e){}
-try{const _l=localStorage.getItem('lang');if(_l==='pl'||_l==='en')SETTINGS.lang=_l;}catch(e){}
+try{const _l=localStorage.getItem('lang');if(_l&&Object.prototype.hasOwnProperty.call(I18N,_l))SETTINGS.lang=_l;}catch(e){}
 function _saveSettings(){try{localStorage.setItem('appSettings',JSON.stringify(SETTINGS));}catch(e){}}
 
 // Orbit drag multipliers based on navigation style.
@@ -902,7 +902,7 @@ const I18N = {
     mbtn_restore:'Restore default boxes',
   }
 };
-function t(key){return (I18N[SETTINGS.lang]&&I18N[SETTINGS.lang][key])||I18N.pl[key]||key;}
+function t(key){return (I18N[SETTINGS.lang]&&I18N[SETTINGS.lang][key])||I18N.en[key]||key;}
 
 function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{

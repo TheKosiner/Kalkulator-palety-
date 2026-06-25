@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kalkulator Palety 3D — Inteligentna logistyka załadunku</title>
-  <meta name="description" content="Planuj załadunek palet, naczep i kontenerów w 3D. Algorytm optymalnego upakowania dla firm logistycznych."/>
+  <title>Pallet3D — Smart loading logistics</title>
+  <meta name="description" content="Plan pallet, trailer and container loading in 3D. Optimal packing algorithm for logistics companies."/>
   <link rel="icon" type="image/png" href="favicon.png"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -635,9 +635,9 @@ const T = {
   }
 };
 
-let _lang = 'pl';
+let _lang = 'en';
 
-function t(k){ return (T[_lang]||T.pl)[k] || (T.pl[k]) || k; }
+function t(k){ return (T[_lang]||T.en)[k] || T.en[k] || k; }
 
 function applyI18n(lang) {
   _lang = lang;
@@ -722,12 +722,14 @@ function updatePriceDisplay(){
   }
 }
 
-// detect: saved preference → browser language → default pl
+// detect: saved preference → browser language → default en
 (function(){
+  const SUPPORTED = Object.keys(T); // ['pl','en'] — extend T to add more languages
   const saved = localStorage.getItem('lang');
-  const nav = (navigator.language||navigator.userLanguage||'pl').toLowerCase();
-  const detected = saved ? saved : (nav.startsWith('pl') ? 'pl' : 'en');
-  applyI18n(detected);
+  if (saved && SUPPORTED.includes(saved)) { applyI18n(saved); return; }
+  const nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  const match = SUPPORTED.find(l => nav === l || nav.startsWith(l + '-'));
+  applyI18n(match || 'en');
 })();
 
 /* ════════ helpers ════════ */
