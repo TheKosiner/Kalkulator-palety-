@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kalkulator Palety 3D — Inteligentna logistyka załadunku</title>
-  <meta name="description" content="Planuj załadunek palet, naczep i kontenerów w 3D. Algorytm optymalnego upakowania dla firm logistycznych."/>
+  <title>Pallet3D — Smart loading logistics</title>
+  <meta name="description" content="Plan pallet, trailer and container loading in 3D. Optimal packing algorithm for logistics companies."/>
   <link rel="icon" type="image/png" href="favicon.png"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -39,10 +39,9 @@
     .btn-primary:hover{background:var(--accent-h);box-shadow:0 4px 24px rgba(96,165,250,.4);transform:translateY(-1px)}
     .nav-burger{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;padding:4px 10px}
     /* language switcher */
-    .lang-sw{display:flex;align-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border-2);border-radius:8px;padding:3px;gap:2px}
-    .lang-sw button{background:none;border:none;color:var(--text-3);font-size:.75rem;font-weight:700;cursor:pointer;padding:4px 9px;border-radius:5px;transition:all .15s;letter-spacing:.06em}
-    .lang-sw button.active{background:var(--accent);color:#fff}
-    .lang-sw button:not(.active):hover{color:var(--text-2)}
+    .lang-sw{display:flex;align-items:center}
+    .lang-sw select{background:rgba(255,255,255,.06);border:1px solid var(--border-2);border-radius:8px;color:var(--text-2);font-size:.75rem;font-weight:700;cursor:pointer;padding:5px 8px;letter-spacing:.04em;font-family:inherit;outline:none;transition:border-color .15s}
+    .lang-sw select:hover,.lang-sw select:focus{border-color:var(--accent);color:var(--text)}
 
     /* mobile menu */
     .mobile-menu{position:fixed;inset:0;z-index:300;background:rgba(7,13,26,.97);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -50,9 +49,8 @@
     .mobile-menu a{font-size:1.4rem;font-weight:700;color:var(--text-2)}
     .mobile-menu a:active{color:var(--accent-h)}
     .mobile-menu .mm-close{position:absolute;top:18px;right:24px;font-size:2rem;background:none;border:none;color:var(--text-2);cursor:pointer}
-    .mm-lang{display:flex;gap:8px;margin-top:10px}
-    .mm-lang button{background:rgba(255,255,255,.07);border:1px solid var(--border-2);color:var(--text-2);font-size:.9rem;font-weight:700;padding:8px 22px;border-radius:8px;cursor:pointer;transition:all .15s;letter-spacing:.06em}
-    .mm-lang button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .mm-lang{display:flex;margin-top:10px}
+    .mm-lang select{background:rgba(255,255,255,.06);border:1px solid var(--border-2);border-radius:8px;color:var(--text-2);font-size:.85rem;font-weight:700;cursor:pointer;padding:8px 12px;font-family:inherit;outline:none;width:100%}
 
     /* ─── HERO ─── */
     .hero{position:relative;min-height:115svh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;padding:118px 24px 0}
@@ -233,9 +231,17 @@
     <a href="#kontakt" data-i18n="nav_contact">Kontakt</a>
   </div>
   <div class="nav-actions">
-    <div class="lang-sw" id="langSw">
-      <button id="lBtn-pl" onclick="setLang('pl')">PL</button>
-      <button id="lBtn-en" onclick="setLang('en')">EN</button>
+    <div class="lang-sw">
+      <select id="langSelect" onchange="setLang(this.value)" aria-label="Language">
+        <option value="en">EN</option>
+        <option value="pl">PL</option>
+        <option value="de">DE</option>
+        <option value="fr">FR</option>
+        <option value="nl">NL</option>
+        <option value="cs">CS</option>
+        <option value="ro">RO</option>
+        <option value="es">ES</option>
+      </select>
     </div>
     <button class="btn-ghost" onclick="openModal('login')" data-i18n="nav_login">Zaloguj się</button>
     <button class="btn-primary" onclick="openModal('signup')" data-i18n="nav_signup">Załóż konto</button>
@@ -253,8 +259,16 @@
   <a href="#kontakt" onclick="mmClose()" data-i18n="nav_contact">Kontakt</a>
   <button class="btn-primary" style="padding:14px 38px;font-size:1rem" onclick="mmClose();openModal('signup')" data-i18n="nav_signup">Załóż konto</button>
   <div class="mm-lang">
-    <button id="mmBtn-pl" onclick="setLang('pl')">PL</button>
-    <button id="mmBtn-en" onclick="setLang('en')">EN</button>
+    <select id="mmLangSelect" onchange="setLang(this.value)" aria-label="Language">
+      <option value="en">English</option>
+      <option value="pl">Polski</option>
+      <option value="de">Deutsch</option>
+      <option value="fr">Français</option>
+      <option value="nl">Nederlands</option>
+      <option value="cs">Čeština</option>
+      <option value="ro">Română</option>
+      <option value="es">Español</option>
+    </select>
   </div>
 </div>
 
@@ -366,7 +380,7 @@
     <div class="price-wrap">
       <div class="price rv">
         <div class="price-badge" data-i18n="price_badge">PEŁEN DOSTĘP</div>
-        <div class="price-amount"><sup>zł</sup>50<sub data-i18n="price_period">/mies.</sub></div>
+        <div class="price-amount" id="priceDisplay"><sup>zł</sup>50<sub data-i18n="price_period">/mies.</sub></div>
         <p class="price-desc" data-i18n="price_desc">Jedno konto — wszystkie funkcje kalkulatora bez ograniczeń.</p>
         <ul>
           <li data-i18n="price_li1">Kalkulator palet, naczep i kontenerów</li>
@@ -428,18 +442,11 @@
         <a href="#cennik" data-i18n="foot_f_sub">Subskrypcja</a>
       </div>
       <div class="foot-col"><h4 data-i18n="foot_help">Pomoc</h4>
-        <a href="#" data-i18n="foot_f_docs">Dokumentacja</a>
-        <a href="#" data-i18n="foot_f_faq">FAQ</a>
         <a href="#kontakt" data-i18n="foot_f_contact">Kontakt</a>
       </div>
     </div>
     <div class="foot-bottom">
       <div data-i18n="foot_copy">© 2026 Kalkulator Palety 3D. Wszelkie prawa zastrzeżone.</div>
-      <div>
-        <a href="#" data-i18n="foot_tos">Regulamin</a>
-        <a href="#" data-i18n="foot_priv">Polityka prywatności</a>
-        <a href="#" data-i18n="foot_cookies">Cookies</a>
-      </div>
     </div>
   </div>
 </footer>
@@ -639,12 +646,444 @@ const T = {
     signup_err_special:'Password must contain at least one special character.',
     signup_err_conn:'Connection error. Please try again.', signup_err_default:'Registration error.',
     or:'or',
+  },
+  de: {
+    page_title:'Paletten3D — Intelligente Ladungslogistik',
+    page_desc:'Paletten-, Trailer- und Containerbeladung in 3D planen. Optimaler Packalgorithmus für Logistikunternehmen.',
+    nav_how:'So funktioniert es', nav_features:'Funktionen', nav_vehicles:'Trailer & Container', nav_pricing:'Preise', nav_contact:'Kontakt',
+    nav_login:'Anmelden', nav_signup:'Konto erstellen',
+    hero_badge:'3D-Visualisierung von Paletten, Trailern und Containern',
+    hero_h1:'<span class="word">Ladungslogistik</span><br><span class="word accent">geplant</span> <span class="word accent">in 3D</span>',
+    hero_sub:'Der optimale Packalgorithmus ordnet Kartons auf Paletten und Paletten in Trailern und Containern an — unter Berücksichtigung von Gewicht, Stapeln und Einzelpaketen. Ergebnis sofort in interaktivem 3D.',
+    hero_btn_open:'Rechner öffnen →', hero_btn_signup:'Konto erstellen',
+    hero_hint:'Läuft im Browser · Keine Installation · PC, Tablet und Telefon',
+    stat_browser:'im Browser — ohne Installation',
+    how_tag:'So funktioniert es',
+    how_h2:'Vom Karton zum vollen Container<br>in drei Schritten',
+    how_sub:'Keine Tabellen, kein Raten. Sie definieren die Ladung — den Rest übernimmt der Algorithmus.',
+    step1_h:'Ladung definieren', step1_p:'Kartons und Rollen mit Abmessungen, Gewicht und Etikettenfarbe hinzufügen. Tragende Fläche wählen, Abstände festlegen. Eigene Typen werden in Ihrem Konto gespeichert.',
+    step2_h:'Algorithmus ordnet an', step2_p:'Der 3D-Heightmap-Algorithmus wählt Ausrichtungen und Platzierungen: Schwerste unten, flache Schichten, nichts schwebt. Gemischter und manueller Modus inklusive.',
+    step3_h:'Fahrzeug beladen', step3_p:'Fertige Paletten im Trailer oder Container platzieren. Palettenstapelung, lose Kartons füllen Lücken, Höhenoptionen — alles in interaktivem 3D.',
+    feat_tag:'Funktionen', feat_h2:'Alles, was Ihr<br>Logistikteam braucht',
+    feat1_h:'Echtzeit-3D-Visualisierung', feat1_p:'Volle Kamerasteuerung: Drehen, Zoomen, Schwenken — Maus und Touch. Jeder Karton, jede Palette und jedes Fahrzeug maßstabsgetreu.',
+    feat2_h:'Gewichtsbasiertes Stapeln', feat2_p:'Schwerste Pakete kommen in die untersten Schichten, schwerste Paletten auf den Fahrzeugboden. Leichtere Paletten fahren oben auf.',
+    feat3_h:'Palettenstapelung', feat3_p:'Optionales Stapeln von Paletten übereinander unter Einhaltung der Fahrzeughöhe und passenden Grundflächen.',
+    feat4_h:'Heightmap-Packalgorithmus', feat4_p:'Kartons können nebeneinander stehen, nicht nur in gleichmäßigen Schichten. Volle Stützgarantie — nichts hängt in der Luft.',
+    feat5_h:'Trailer & Container', feat5_p:'Vorlagen für Mega 13,6m, 40′ HC und eigene Maße. Lose Kartons füllen automatisch Lücken zwischen Paletten.',
+    feat6_h:'Manueller Modus', feat6_p:'Volle Kontrolle: Kartons per Klick auf die Palette setzen, einzelne Stücke entfernen, Änderungen rückgängig machen.',
+    show_tag:'Fahrzeugbeladung', show_h2:'Von der Palette direkt<br>zum Trailer',
+    show_sub:'Gespeicherte Paletten werden zu Bausteinen, die der Algorithmus im Laderaum platziert — und Sie sehen genau, was wohin geht.',
+    check1_h:'Zweispurige Containerbeladung', check1_p:'Schmale und breite Palettenausrichtungen in zwei parallelen Spuren minimieren Breitenverlust.',
+    check2_h:'Lose Kartons füllen den Raum', check2_p:'Lose Pakete füllen Lücken neben Paletten und können bei Platz oben aufgeladen werden.',
+    check3_h:'Füllstatistiken', check3_p:'Anzahl Paletten und Kartons, prozentualer Bodenanteil und Liste was nicht passte.',
+    show_bar_title:'Paletten3D — Mega 13,6m Trailer',
+    price_tag:'Preise', price_h2:'Ein Plan. Voller Zugang.',
+    price_sub:'Keine Limits, keine versteckten Gebühren. Ein Abonnement für Ihr Logistikteam.',
+    price_badge:'VOLLER ZUGANG', price_period:'/Mon.',
+    price_desc:'Ein Konto — alle Rechnerfunktionen ohne Einschränkungen.',
+    price_li1:'Paletten-, Trailer- und Containerrechner', price_li2:'Eigene Kartons und Gewichte im Konto gespeichert',
+    price_li3:'Palettenstapelung und lose Kartons', price_li4:'Automatischer, gemischter und manueller Modus', price_li5:'Technischer Support',
+    price_btn:'Konto erstellen und loslegen', price_note:'Nettopreis + MwSt · Jederzeit kündbar',
+    contact_h2:'Kontakt', contact_sub:'Haben Sie eine Frage oder brauchen Sie Hilfe? Schreiben Sie uns.',
+    contact_name:'Vollständiger Name', contact_name_ph:'Max Mustermann',
+    contact_email_lbl:'E-Mail-Adresse', contact_email_ph:'max@firma.de',
+    contact_msg_lbl:'Nachricht', contact_msg_ph:'Beschreiben Sie Ihre Frage...',
+    contact_ok:'Nachricht gesendet! Wir antworten in Kürze.', contact_btn:'Nachricht senden',
+    contact_err_fields:'Bitte alle Felder ausfüllen.', contact_err_email:'Ungültige E-Mail-Adresse.',
+    contact_err_send:'Sendefehler.', contact_err_conn:'Verbindungsfehler. Bitte erneut versuchen.',
+    contact_sending:'Wird gesendet…',
+    cta_h2:'Hören Sie auf zu raten.<br>Beginnen Sie zu planen.',
+    cta_p:'Erstellen Sie ein Konto und testen Sie alle Funktionen 14 Tage kostenlos.',
+    cta_btn:'Konto erstellen →',
+    foot_desc:'Professionelles Werkzeug zur Optimierung der Paletten-, Trailer- und Containerbeladung. Schnell, präzise, visuell.',
+    foot_product:'Produkt', foot_f_how:'So funktioniert es', foot_f_feat:'Funktionen', foot_f_price:'Preise', foot_f_open:'Rechner öffnen',
+    foot_account:'Konto', foot_f_reg:'Registrieren', foot_f_login:'Anmelden', foot_f_sub:'Abonnement',
+    foot_help:'Hilfe', foot_f_docs:'Dokumentation', foot_f_faq:'FAQ', foot_f_contact:'Kontakt',
+    foot_copy:'© 2026 Paletten3D. Alle Rechte vorbehalten.',
+    foot_tos:'AGB', foot_priv:'Datenschutz', foot_cookies:'Cookies',
+    login_title:'Anmelden', login_sub:'Willkommen zurück! Geben Sie Ihre Zugangsdaten ein.',
+    login_email:'E-Mail', login_pass:'Passwort', login_pass_ph:'Ihr Passwort',
+    login_btn:'Anmelden', login_loading:'Anmeldung…', login_google:'Mit Google fortfahren',
+    login_no_acc:'Kein Konto?', login_reg:'Registrieren',
+    login_verify_msg:'Prüfen Sie Ihren Posteingang und klicken Sie auf den Bestätigungslink.', login_resend:'Erneut senden',
+    login_err_fields:'Bitte alle Felder ausfüllen.', login_err_conn:'Verbindungsfehler. Bitte erneut versuchen.', login_err_default:'Anmeldefehler.',
+    signup_title:'Konto erstellen', signup_sub:'14 Tage kostenlos, dann ~€12/Mon. Jederzeit kündbar.',
+    signup_first:'Vorname', signup_last:'Nachname', signup_first_ph:'Max', signup_last_ph:'Mustermann',
+    signup_email:'E-Mail', signup_pass:'Passwort', signup_pass_ph:'Mind. 8 Zeichen',
+    signup_btn:'Konto erstellen und Testphase starten', signup_loading:'Konto wird erstellt…', signup_google:'Mit Google fortfahren',
+    signup_has_acc:'Bereits ein Konto?', signup_login:'Anmelden',
+    signup_success:'✓ Konto erstellt! Prüfen Sie Ihre E-Mail und klicken Sie auf den Bestätigungslink.',
+    signup_err_fields:'Bitte alle Felder ausfüllen.', signup_err_len:'Passwort muss mindestens 8 Zeichen haben.',
+    signup_err_upper:'Passwort muss mindestens einen Großbuchstaben enthalten.',
+    signup_err_special:'Passwort muss mindestens ein Sonderzeichen enthalten.',
+    signup_err_conn:'Verbindungsfehler. Bitte erneut versuchen.', signup_err_default:'Registrierungsfehler.',
+    or:'oder',
+  },
+  fr: {
+    page_title:'Palette3D — Logistique de chargement intelligente',
+    page_desc:'Planifiez le chargement de palettes, remorques et conteneurs en 3D. Algorithme de remplissage optimal pour les entreprises logistiques.',
+    nav_how:'Comment ça marche', nav_features:'Fonctionnalités', nav_vehicles:'Remorques & conteneurs', nav_pricing:'Tarifs', nav_contact:'Contact',
+    nav_login:'Se connecter', nav_signup:'Créer un compte',
+    hero_badge:'Visualisation 3D de palettes, remorques et conteneurs',
+    hero_h1:'<span class="word">Logistique de chargement</span><br><span class="word accent">planifiée</span> <span class="word accent">en 3D</span>',
+    hero_sub:'L\'algorithme de remplissage optimal dispose les cartons sur les palettes et les palettes dans les remorques et conteneurs — en tenant compte du poids, de l\'empilement et des colis isolés. Résultat instantané en 3D interactif.',
+    hero_btn_open:'Ouvrir le calculateur →', hero_btn_signup:'Créer un compte',
+    hero_hint:'Fonctionne dans le navigateur · Sans installation · PC, tablette et téléphone',
+    stat_browser:'dans le navigateur — sans installation',
+    how_tag:'Comment ça marche',
+    how_h2:'Du carton au conteneur complet<br>en trois étapes',
+    how_sub:'Pas de tableurs, pas de devinettes. Vous définissez la cargaison — l\'algorithme s\'occupe du reste.',
+    step1_h:'Définir la cargaison', step1_p:'Ajoutez des cartons et rouleaux avec dimensions, poids et couleur d\'étiquette. Choisissez la face porteuse, définissez les marges. Les types personnalisés sont sauvegardés sur votre compte.',
+    step2_h:'L\'algorithme arrange', step2_p:'L\'algorithme 3D heightmap sélectionne les orientations et placements : les plus lourds en bas, couches plates, rien en suspension. Mode mixte et manuel inclus.',
+    step3_h:'Charger le véhicule', step3_p:'Placez les palettes finies dans la remorque ou le conteneur. Empilement de palettes, cartons isolés comblant les espaces, options de hauteur — tout en 3D interactif.',
+    feat_tag:'Fonctionnalités', feat_h2:'Tout ce dont votre<br>équipe logistique a besoin',
+    feat1_h:'Visualisation 3D en temps réel', feat1_p:'Contrôle complet de la caméra : rotation, zoom, panoramique — souris et tactile. Chaque carton, palette et véhicule rendu à l\'échelle.',
+    feat2_h:'Empilement selon le poids', feat2_p:'Les colis les plus lourds vont dans les couches inférieures, les palettes les plus lourdes sur le plancher du véhicule.',
+    feat3_h:'Empilement de palettes', feat3_p:'Empilement optionnel de palettes les unes sur les autres, respectant la limite de hauteur du véhicule.',
+    feat4_h:'Algorithme de remplissage heightmap', feat4_p:'Les cartons peuvent se placer côte à côte, pas seulement en couches régulières. Garantie de support complet.',
+    feat5_h:'Remorques & conteneurs', feat5_p:'Préréglages Mega 13,6m, 40′ HC et dimensions personnalisées. Les cartons isolés remplissent automatiquement les espaces entre palettes.',
+    feat6_h:'Mode manuel', feat6_p:'Contrôle total : placez des cartons en cliquant sur la palette, supprimez des pièces individuelles, annulez les modifications.',
+    show_tag:'Chargement de véhicules', show_h2:'De la palette directement<br>à la remorque',
+    show_sub:'Les palettes sauvegardées deviennent des blocs que l\'algorithme place dans l\'espace de chargement — et vous voyez exactement ce qui va où.',
+    check1_h:'Remplissage de conteneur à deux voies', check1_p:'Orientations de palettes étroites et larges en deux voies parallèles minimisent la perte de largeur.',
+    check2_h:'Les cartons isolés remplissent l\'espace', check2_p:'Les colis isolés remplissent les espaces à côté des palettes et peuvent être chargés dessus si l\'espace le permet.',
+    check3_h:'Statistiques de remplissage', check3_p:'Nombre de palettes et cartons, pourcentage de plancher occupé et liste de ce qui ne rentre pas.',
+    show_bar_title:'Palette3D — Remorque Mega 13,6m',
+    price_tag:'Tarifs', price_h2:'Un plan. Accès complet.',
+    price_sub:'Sans limites, sans frais cachés. Un abonnement pour votre équipe logistique.',
+    price_badge:'ACCÈS COMPLET', price_period:'/mois',
+    price_desc:'Un compte — toutes les fonctionnalités du calculateur sans restrictions.',
+    price_li1:'Calculateur de palettes, remorques et conteneurs', price_li2:'Cartons et poids personnalisés sauvegardés sur votre compte',
+    price_li3:'Empilement de palettes et cartons isolés', price_li4:'Modes automatique, mixte et manuel', price_li5:'Support technique',
+    price_btn:'Créer un compte et commencer', price_note:'Prix HT + TVA · Résiliez à tout moment',
+    contact_h2:'Contact', contact_sub:'Vous avez une question ou besoin d\'aide ? Écrivez-nous.',
+    contact_name:'Nom complet', contact_name_ph:'Jean Dupont',
+    contact_email_lbl:'Adresse e-mail', contact_email_ph:'jean@entreprise.fr',
+    contact_msg_lbl:'Message', contact_msg_ph:'Décrivez votre question...',
+    contact_ok:'Message envoyé ! Nous répondrons bientôt.', contact_btn:'Envoyer le message',
+    contact_err_fields:'Veuillez remplir tous les champs.', contact_err_email:'Adresse e-mail invalide.',
+    contact_err_send:'Erreur d\'envoi.', contact_err_conn:'Erreur de connexion. Veuillez réessayer.',
+    contact_sending:'Envoi en cours…',
+    cta_h2:'Arrêtez de deviner.<br>Commencez à planifier.',
+    cta_p:'Créez un compte et testez toutes les fonctionnalités gratuitement pendant 14 jours.',
+    cta_btn:'Créer un compte →',
+    foot_desc:'Outil professionnel pour optimiser le chargement de palettes, remorques et conteneurs. Rapide, précis, visuel.',
+    foot_product:'Produit', foot_f_how:'Comment ça marche', foot_f_feat:'Fonctionnalités', foot_f_price:'Tarifs', foot_f_open:'Ouvrir le calculateur',
+    foot_account:'Compte', foot_f_reg:'Inscription', foot_f_login:'Connexion', foot_f_sub:'Abonnement',
+    foot_help:'Aide', foot_f_docs:'Documentation', foot_f_faq:'FAQ', foot_f_contact:'Contact',
+    foot_copy:'© 2026 Palette3D. Tous droits réservés.',
+    foot_tos:'CGU', foot_priv:'Politique de confidentialité', foot_cookies:'Cookies',
+    login_title:'Se connecter', login_sub:'Bon retour ! Entrez vos identifiants.',
+    login_email:'E-mail', login_pass:'Mot de passe', login_pass_ph:'Votre mot de passe',
+    login_btn:'Se connecter', login_loading:'Connexion…', login_google:'Continuer avec Google',
+    login_no_acc:'Pas de compte ?', login_reg:'S\'inscrire',
+    login_verify_msg:'Vérifiez votre boîte de réception et cliquez sur le lien de vérification.', login_resend:'Renvoyer',
+    login_err_fields:'Veuillez remplir tous les champs.', login_err_conn:'Erreur de connexion. Veuillez réessayer.', login_err_default:'Erreur de connexion.',
+    signup_title:'Créer un compte', signup_sub:'14 jours gratuits, puis ~€12/mois. Résiliez à tout moment.',
+    signup_first:'Prénom', signup_last:'Nom', signup_first_ph:'Jean', signup_last_ph:'Dupont',
+    signup_email:'E-mail', signup_pass:'Mot de passe', signup_pass_ph:'Min. 8 caractères',
+    signup_btn:'Créer un compte et commencer l\'essai', signup_loading:'Création du compte…', signup_google:'Continuer avec Google',
+    signup_has_acc:'Déjà un compte ?', signup_login:'Se connecter',
+    signup_success:'✓ Compte créé ! Vérifiez votre e-mail et cliquez sur le lien de vérification.',
+    signup_err_fields:'Veuillez remplir tous les champs.', signup_err_len:'Le mot de passe doit comporter au moins 8 caractères.',
+    signup_err_upper:'Le mot de passe doit contenir au moins une lettre majuscule.',
+    signup_err_special:'Le mot de passe doit contenir au moins un caractère spécial.',
+    signup_err_conn:'Erreur de connexion. Veuillez réessayer.', signup_err_default:'Erreur d\'inscription.',
+    or:'ou',
+  },
+  nl: {
+    page_title:'Pallet3D — Slimme laadlogistiek',
+    page_desc:'Plan pallet-, trailer- en containerbelading in 3D. Optimaal pakalgoritme voor logistieke bedrijven.',
+    nav_how:'Hoe het werkt', nav_features:'Functies', nav_vehicles:'Trailers & containers', nav_pricing:'Prijzen', nav_contact:'Contact',
+    nav_login:'Inloggen', nav_signup:'Account aanmaken',
+    hero_badge:'3D-visualisatie van pallets, trailers en containers',
+    hero_h1:'<span class="word">Laadlogistiek</span><br><span class="word accent">gepland</span> <span class="word accent">in 3D</span>',
+    hero_sub:'Het optimale pakalgoritme rangschikt dozen op pallets en pallets in trailers en containers — rekening houdend met gewicht, stapelen en losse pakketten. Resultaat direct in interactieve 3D.',
+    hero_btn_open:'Rekenmachine openen →', hero_btn_signup:'Account aanmaken',
+    hero_hint:'Werkt in de browser · Geen installatie · PC, tablet en telefoon',
+    stat_browser:'in de browser — zonder installatie',
+    how_tag:'Hoe het werkt',
+    how_h2:'Van doos naar volle container<br>in drie stappen',
+    how_sub:'Geen spreadsheets, geen gissen. U definieert de lading — het algoritme doet de rest.',
+    step1_h:'Lading definiëren', step1_p:'Voeg dozen en rollen toe met afmetingen, gewicht en etiketkleur. Kies het draagvlak, stel marges in. Aangepaste typen worden opgeslagen op uw account.',
+    step2_h:'Algoritme rangschikt', step2_p:'Het 3D heightmap-algoritme selecteert oriëntaties en plaatsing: zwaarste onderaan, vlakke lagen, niets zweeft. Gemengde en handmatige modus inbegrepen.',
+    step3_h:'Voertuig laden', step3_p:'Plaats voltooide pallets in de trailer of container. Palletstapeling, losse dozen vullen gaten, hoogteopties — alles in interactieve 3D.',
+    feat_tag:'Functies', feat_h2:'Alles wat uw<br>logistiek team nodig heeft',
+    feat1_h:'Realtime 3D-visualisatie', feat1_p:'Volledige camerabesturing: draaien, zoomen, pannen — muis en aanraking. Elke doos, pallet en voertuig op schaal weergegeven.',
+    feat2_h:'Gewichtsgebaseerd stapelen', feat2_p:'Zwaarste pakketten gaan naar de onderste lagen, zwaarste pallets naar de voertuigvloer.',
+    feat3_h:'Palletstapeling', feat3_p:'Optioneel stapelen van pallets op elkaar, met respect voor de voertuighoogte en passende basisafmetingen.',
+    feat4_h:'Heightmap pakalgoritme', feat4_p:'Dozen kunnen naast elkaar staan, niet alleen in gelijke lagen. Volledige steungarantie — niets hangt in de lucht.',
+    feat5_h:'Trailers & containers', feat5_p:'Presets voor Mega 13,6m, 40′ HC en aangepaste afmetingen. Losse dozen vullen automatisch gaten tussen pallets.',
+    feat6_h:'Handmatige modus', feat6_p:'Volledige controle: dozen plaatsen door op de pallet te klikken, individuele stukken verwijderen, wijzigingen ongedaan maken.',
+    show_tag:'Voertuigbelading', show_h2:'Van pallet direct<br>naar de trailer',
+    show_sub:'Opgeslagen pallets worden bouwstenen die het algoritme in de laadruimte plaatst — en u ziet precies wat waar naartoe gaat.',
+    check1_h:'Tweerijige containerbelading', check1_p:'Smalle en brede palletoriëntaties in twee parallelle rijstroken minimaliseren breedteverlies.',
+    check2_h:'Losse dozen vullen de ruimte', check2_p:'Losse pakketten vullen gaten naast pallets en kunnen bovenop worden geladen als er ruimte is.',
+    check3_h:'Vulstatistieken', check3_p:'Aantal pallets en dozen, percentage bezette vloer en lijst van wat niet paste.',
+    show_bar_title:'Pallet3D — Mega 13,6m Trailer',
+    price_tag:'Prijzen', price_h2:'Één plan. Volledige toegang.',
+    price_sub:'Geen limieten, geen verborgen kosten. Eén abonnement voor uw logistiek team.',
+    price_badge:'VOLLEDIGE TOEGANG', price_period:'/mnd.',
+    price_desc:'Eén account — alle rekeninaarfuncties zonder beperkingen.',
+    price_li1:'Pallet-, trailer- en containerrekenmachine', price_li2:'Aangepaste dozen en gewichten opgeslagen op uw account',
+    price_li3:'Palletstapeling en losse dozen', price_li4:'Automatische, gemengde en handmatige modi', price_li5:'Technische ondersteuning',
+    price_btn:'Account aanmaken en aan de slag', price_note:'Nettoprijs + btw · Op elk moment opzegbaar',
+    contact_h2:'Contact', contact_sub:'Heeft u een vraag of hulp nodig? Schrijf ons.',
+    contact_name:'Volledige naam', contact_name_ph:'Jan de Vries',
+    contact_email_lbl:'E-mailadres', contact_email_ph:'jan@bedrijf.nl',
+    contact_msg_lbl:'Bericht', contact_msg_ph:'Beschrijf uw vraag...',
+    contact_ok:'Bericht verzonden! We antwoorden snel.', contact_btn:'Bericht verzenden',
+    contact_err_fields:'Vul alle velden in.', contact_err_email:'Ongeldig e-mailadres.',
+    contact_err_send:'Verzendfout.', contact_err_conn:'Verbindingsfout. Probeer het opnieuw.',
+    contact_sending:'Verzenden…',
+    cta_h2:'Stop met gissen.<br>Begin met plannen.',
+    cta_p:'Maak een account aan en test alle functies 14 dagen gratis.',
+    cta_btn:'Account aanmaken →',
+    foot_desc:'Professioneel hulpmiddel voor het optimaliseren van pallet-, trailer- en containerbelading. Snel, nauwkeurig, visueel.',
+    foot_product:'Product', foot_f_how:'Hoe het werkt', foot_f_feat:'Functies', foot_f_price:'Prijzen', foot_f_open:'Rekenmachine openen',
+    foot_account:'Account', foot_f_reg:'Registreren', foot_f_login:'Inloggen', foot_f_sub:'Abonnement',
+    foot_help:'Hulp', foot_f_docs:'Documentatie', foot_f_faq:'FAQ', foot_f_contact:'Contact',
+    foot_copy:'© 2026 Pallet3D. Alle rechten voorbehouden.',
+    foot_tos:'Gebruiksvoorwaarden', foot_priv:'Privacybeleid', foot_cookies:'Cookies',
+    login_title:'Inloggen', login_sub:'Welkom terug! Voer uw gegevens in.',
+    login_email:'E-mail', login_pass:'Wachtwoord', login_pass_ph:'Uw wachtwoord',
+    login_btn:'Inloggen', login_loading:'Inloggen…', login_google:'Doorgaan met Google',
+    login_no_acc:'Geen account?', login_reg:'Registreren',
+    login_verify_msg:'Controleer uw inbox en klik op de verificatielink.', login_resend:'Opnieuw verzenden',
+    login_err_fields:'Vul alle velden in.', login_err_conn:'Verbindingsfout. Probeer het opnieuw.', login_err_default:'Inlogfout.',
+    signup_title:'Account aanmaken', signup_sub:'14 dagen gratis, dan ~€12/mnd. Op elk moment opzegbaar.',
+    signup_first:'Voornaam', signup_last:'Achternaam', signup_first_ph:'Jan', signup_last_ph:'de Vries',
+    signup_email:'E-mail', signup_pass:'Wachtwoord', signup_pass_ph:'Min. 8 tekens',
+    signup_btn:'Account aanmaken en proefperiode starten', signup_loading:'Account aanmaken…', signup_google:'Doorgaan met Google',
+    signup_has_acc:'Al een account?', signup_login:'Inloggen',
+    signup_success:'✓ Account aangemaakt! Controleer uw e-mail en klik op de verificatielink.',
+    signup_err_fields:'Vul alle velden in.', signup_err_len:'Wachtwoord moet minimaal 8 tekens bevatten.',
+    signup_err_upper:'Wachtwoord moet minimaal één hoofdletter bevatten.',
+    signup_err_special:'Wachtwoord moet minimaal één speciaal teken bevatten.',
+    signup_err_conn:'Verbindingsfout. Probeer het opnieuw.', signup_err_default:'Registratiefout.',
+    or:'of',
+  },
+  cs: {
+    page_title:'Paleta3D — Chytrá logistika nakládky',
+    page_desc:'Plánujte nakládku palet, návěsů a kontejnerů v 3D. Optimální algoritmus balení pro logistické firmy.',
+    nav_how:'Jak to funguje', nav_features:'Funkce', nav_vehicles:'Návěsy a kontejnery', nav_pricing:'Ceník', nav_contact:'Kontakt',
+    nav_login:'Přihlásit se', nav_signup:'Vytvořit účet',
+    hero_badge:'3D vizualizace palet, návěsů a kontejnerů',
+    hero_h1:'<span class="word">Logistika nakládky</span><br><span class="word accent">naplánovaná</span> <span class="word accent">ve 3D</span>',
+    hero_sub:'Optimální algoritmus balení rozmísťuje kartony na paletách a palety v návěsech a kontejnerech — s ohledem na váhu, stohování a volné balíky. Výsledek okamžitě v interaktivním 3D.',
+    hero_btn_open:'Otevřít kalkulačku →', hero_btn_signup:'Vytvořit účet',
+    hero_hint:'Funguje v prohlížeči · Bez instalace · PC, tablet a telefon',
+    stat_browser:'v prohlížeči — bez instalace',
+    how_tag:'Jak to funguje',
+    how_h2:'Od kartonu po plný kontejner<br>ve třech krocích',
+    how_sub:'Žádné tabulky, žádné hádání. Definujete náklad — zbytek obstará algoritmus.',
+    step1_h:'Definovat náklad', step1_p:'Přidejte kartony a role s rozměry, hmotností a barvou štítku. Zvolte nosnou plochu, nastavte okraje. Vlastní typy se ukládají na váš účet.',
+    step2_h:'Algoritmus rozmísťuje', step2_p:'3D heightmap algoritmus vybírá orientace a umístění: nejtěžší dolů, ploché vrstvy, nic netlačí. Smíšený a ruční režim v ceně.',
+    step3_h:'Naložit vozidlo', step3_p:'Hotové palety umístěte do návěsu nebo kontejneru. Stohování palet, volné kartony vyplňují mezery, výškové možnosti — vše v interaktivním 3D.',
+    feat_tag:'Funkce', feat_h2:'Vše, co váš<br>logistický tým potřebuje',
+    feat1_h:'3D vizualizace v reálném čase', feat1_p:'Plná kontrola kamery: otáčení, zoom, panorama — myš a dotyk. Každý karton, paleta a vozidlo v měřítku.',
+    feat2_h:'Stohování podle hmotnosti', feat2_p:'Nejtěžší balíky jdou do spodních vrstev, nejtěžší palety na podlahu vozidla.',
+    feat3_h:'Stohování palet', feat3_p:'Volitelné stohování palet na sebe s respektováním výškového limitu vozidla.',
+    feat4_h:'Heightmap algoritmus balení', feat4_p:'Kartony mohou stát vedle sebe, nejen v rovnoměrných vrstvách. Záruka plné opory.',
+    feat5_h:'Návěsy a kontejnery', feat5_p:'Předvolby Mega 13,6m, 40′ HC a vlastní rozměry. Volné kartony automaticky zaplňují mezery mezi paletami.',
+    feat6_h:'Ruční režim', feat6_p:'Plná kontrola: pokládejte kartony kliknutím na paletu, odstraňujte jednotlivé kusy, zpět změny.',
+    show_tag:'Nakládka vozidel', show_h2:'Z palety přímo<br>do návěsu',
+    show_sub:'Uložené palety se stávají stavebními bloky, které algoritmus umísťuje v nákladovém prostoru — a vy vidíte přesně, co a kam pojede.',
+    check1_h:'Dvoupásmové plnění kontejneru', check1_p:'Úzké a široké orientace palet ve dvou paralelních pásech minimalizují ztrátu šířky.',
+    check2_h:'Volné kartony vyplňují prostor', check2_p:'Volné balíky vyplňují mezery vedle palet a mohou být naloženy nahoře, pokud je místo.',
+    check3_h:'Statistiky zaplnění', check3_p:'Počet palet a kartonů, procento zabrané podlahy a seznam toho, co se nevešlo.',
+    show_bar_title:'Paleta3D — Návěs Mega 13,6m',
+    price_tag:'Ceník', price_h2:'Jeden plán. Plný přístup.',
+    price_sub:'Bez limitů, bez skrytých poplatků. Jedno předplatné pro váš logistický tým.',
+    price_badge:'PLNÝ PŘÍSTUP', price_period:'/měs.',
+    price_desc:'Jeden účet — všechny funkce kalkulačky bez omezení.',
+    price_li1:'Kalkulačka palet, návěsů a kontejnerů', price_li2:'Vlastní kartony a hmotnosti uložené na vašem účtu',
+    price_li3:'Stohování palet a volné kartony', price_li4:'Automatický, smíšený a ruční režim', price_li5:'Technická podpora',
+    price_btn:'Vytvořit účet a začít', price_note:'Cena bez DPH + DPH · Zrušte kdykoli',
+    contact_h2:'Kontakt', contact_sub:'Máte otázku nebo potřebujete pomoc? Napište nám.',
+    contact_name:'Celé jméno', contact_name_ph:'Jan Novák',
+    contact_email_lbl:'E-mailová adresa', contact_email_ph:'jan@firma.cz',
+    contact_msg_lbl:'Zpráva', contact_msg_ph:'Popište svůj dotaz...',
+    contact_ok:'Zpráva odeslána! Brzy odpovíme.', contact_btn:'Odeslat zprávu',
+    contact_err_fields:'Vyplňte prosím všechna pole.', contact_err_email:'Neplatná e-mailová adresa.',
+    contact_err_send:'Chyba odeslání.', contact_err_conn:'Chyba připojení. Zkuste to prosím znovu.',
+    contact_sending:'Odesílání…',
+    cta_h2:'Přestaňte hádat.<br>Začněte plánovat.',
+    cta_p:'Vytvořte účet a testujte všechny funkce 14 dní zdarma.',
+    cta_btn:'Vytvořit účet →',
+    foot_desc:'Profesionální nástroj pro optimalizaci nakládky palet, návěsů a kontejnerů. Rychle, přesně, vizuálně.',
+    foot_product:'Produkt', foot_f_how:'Jak to funguje', foot_f_feat:'Funkce', foot_f_price:'Ceník', foot_f_open:'Otevřít kalkulačku',
+    foot_account:'Účet', foot_f_reg:'Registrace', foot_f_login:'Přihlášení', foot_f_sub:'Předplatné',
+    foot_help:'Pomoc', foot_f_docs:'Dokumentace', foot_f_faq:'FAQ', foot_f_contact:'Kontakt',
+    foot_copy:'© 2026 Paleta3D. Všechna práva vyhrazena.',
+    foot_tos:'Podmínky', foot_priv:'Zásady ochrany osobních údajů', foot_cookies:'Cookies',
+    login_title:'Přihlásit se', login_sub:'Vítejte zpět! Zadejte své přihlašovací údaje.',
+    login_email:'E-mail', login_pass:'Heslo', login_pass_ph:'Vaše heslo',
+    login_btn:'Přihlásit se', login_loading:'Přihlašování…', login_google:'Pokračovat přes Google',
+    login_no_acc:'Nemáte účet?', login_reg:'Zaregistrovat se',
+    login_verify_msg:'Zkontrolujte svou doručenou poštu a klikněte na ověřovací odkaz.', login_resend:'Odeslat znovu',
+    login_err_fields:'Vyplňte prosím všechna pole.', login_err_conn:'Chyba připojení. Zkuste to prosím znovu.', login_err_default:'Chyba přihlášení.',
+    signup_title:'Vytvořit účet', signup_sub:'14 dní zdarma, poté ~300 Kč/měs. Zrušte kdykoli.',
+    signup_first:'Jméno', signup_last:'Příjmení', signup_first_ph:'Jan', signup_last_ph:'Novák',
+    signup_email:'E-mail', signup_pass:'Heslo', signup_pass_ph:'Min. 8 znaků',
+    signup_btn:'Vytvořit účet a zahájit zkušební dobu', signup_loading:'Vytváření účtu…', signup_google:'Pokračovat přes Google',
+    signup_has_acc:'Již máte účet?', signup_login:'Přihlásit se',
+    signup_success:'✓ Účet vytvořen! Zkontrolujte svůj e-mail a klikněte na ověřovací odkaz.',
+    signup_err_fields:'Vyplňte prosím všechna pole.', signup_err_len:'Heslo musí mít alespoň 8 znaků.',
+    signup_err_upper:'Heslo musí obsahovat alespoň jedno velké písmeno.',
+    signup_err_special:'Heslo musí obsahovat alespoň jeden speciální znak.',
+    signup_err_conn:'Chyba připojení. Zkuste to prosím znovu.', signup_err_default:'Chyba registrace.',
+    or:'nebo',
+  },
+  ro: {
+    page_title:'Palet3D — Logistică inteligentă de încărcare',
+    page_desc:'Planificați încărcarea paletelor, remorcilor și containerelor în 3D. Algoritm optim de ambalare pentru companii de logistică.',
+    nav_how:'Cum funcționează', nav_features:'Funcții', nav_vehicles:'Remorci și containere', nav_pricing:'Prețuri', nav_contact:'Contact',
+    nav_login:'Autentificare', nav_signup:'Creați cont',
+    hero_badge:'Vizualizare 3D a paletelor, remorcilor și containerelor',
+    hero_h1:'<span class="word">Logistica de încărcare</span><br><span class="word accent">planificată</span> <span class="word accent">în 3D</span>',
+    hero_sub:'Algoritmul optim de ambalare aranjează cutiile pe paleți și paleții în remorci și containere — ținând cont de greutate, stivuire și colete libere. Rezultatul apare instantaneu în 3D interactiv.',
+    hero_btn_open:'Deschideți calculatorul →', hero_btn_signup:'Creați cont',
+    hero_hint:'Funcționează în browser · Fără instalare · PC, tabletă și telefon',
+    stat_browser:'în browser — fără instalare',
+    how_tag:'Cum funcționează',
+    how_h2:'De la cutie la container plin<br>în trei pași',
+    how_sub:'Fără foi de calcul, fără ghiceli. Definiți încărcătura — algoritmul se ocupă de rest.',
+    step1_h:'Definiți încărcătura', step1_p:'Adăugați cutii și role cu dimensiuni, greutate și culoarea etichetei. Alegeți fața portantă, setați marjele. Tipurile personalizate sunt salvate în contul dvs.',
+    step2_h:'Algoritmul aranjează', step2_p:'Algoritmul 3D heightmap selectează orientările și plasamentele: cele mai grele jos, straturi plate, nimic nu plutește. Mod mixt și manual inclus.',
+    step3_h:'Încărcați vehiculul', step3_p:'Plasați paleții finalizați în remorcă sau container. Stivuirea paleților, cutii libere umplând golurile, opțiuni de înălțime — totul în 3D interactiv.',
+    feat_tag:'Funcții', feat_h2:'Tot ce are nevoie<br>echipa dvs. de logistică',
+    feat1_h:'Vizualizare 3D în timp real', feat1_p:'Control complet al camerei: rotire, zoom, panoramă — mouse și atingere. Fiecare cutie, palet și vehicul redat la scară.',
+    feat2_h:'Stivuire pe baza greutății', feat2_p:'Coletele cele mai grele merg în straturile inferioare, paleții cei mai grei pe podeaua vehiculului.',
+    feat3_h:'Stivuirea paleților', feat3_p:'Stivuire opțională a paleților unul peste altul, respectând limita de înălțime a vehiculului.',
+    feat4_h:'Algoritm de ambalare heightmap', feat4_p:'Cutiile pot sta alăturate, nu doar în straturi uniforme. Garanție de suport complet.',
+    feat5_h:'Remorci și containere', feat5_p:'Presetări Mega 13,6m, 40′ HC și dimensiuni personalizate. Cutiile libere umplând automat golurile dintre paleți.',
+    feat6_h:'Mod manual', feat6_p:'Control total: plasați cutii făcând clic pe palet, eliminați piese individuale, anulați modificările.',
+    show_tag:'Încărcarea vehiculelor', show_h2:'De la palet direct<br>la remorcă',
+    show_sub:'Paleții salvați devin blocuri de construcție pe care algoritmul le plasează în spațiul de marfă — și vedeți exact ce merge unde.',
+    check1_h:'Umplerea containerului în două benzi', check1_p:'Orientările înguste și largi ale paleților în două benzi paralele minimizează pierderea de lățime.',
+    check2_h:'Cutiile libere umplând spațiul', check2_p:'Coletele libere umplu golurile lângă paleți și pot fi încărcate deasupra dacă există spațiu.',
+    check3_h:'Statistici de umplere', check3_p:'Numărul de paleți și cutii, procentul de podea ocupat și o listă cu ceea ce nu a încăput.',
+    show_bar_title:'Palet3D — Remorcă Mega 13,6m',
+    price_tag:'Prețuri', price_h2:'Un plan. Acces complet.',
+    price_sub:'Fără limite, fără taxe ascunse. Un abonament pentru echipa dvs. de logistică.',
+    price_badge:'ACCES COMPLET', price_period:'/lună',
+    price_desc:'Un cont — toate funcțiile calculatorului fără restricții.',
+    price_li1:'Calculator de paleți, remorci și containere', price_li2:'Cutii și greutăți personalizate salvate în contul dvs.',
+    price_li3:'Stivuirea paleților și cutii libere', price_li4:'Moduri automat, mixt și manual', price_li5:'Suport tehnic',
+    price_btn:'Creați cont și începeți', price_note:'Preț net + TVA · Anulați oricând',
+    contact_h2:'Contact', contact_sub:'Aveți o întrebare sau aveți nevoie de ajutor? Scrieți-ne.',
+    contact_name:'Nume complet', contact_name_ph:'Ion Popescu',
+    contact_email_lbl:'Adresă de e-mail', contact_email_ph:'ion@firma.ro',
+    contact_msg_lbl:'Mesaj', contact_msg_ph:'Descrieți întrebarea dvs....',
+    contact_ok:'Mesaj trimis! Vom răspunde în curând.', contact_btn:'Trimiteți mesajul',
+    contact_err_fields:'Vă rugăm să completați toate câmpurile.', contact_err_email:'Adresă de e-mail invalidă.',
+    contact_err_send:'Eroare la trimitere.', contact_err_conn:'Eroare de conexiune. Vă rugăm să încercați din nou.',
+    contact_sending:'Se trimite…',
+    cta_h2:'Opriți-vă din ghicit.<br>Începeți să planificați.',
+    cta_p:'Creați un cont și testați toate funcțiile gratuit timp de 14 zile.',
+    cta_btn:'Creați cont →',
+    foot_desc:'Instrument profesional pentru optimizarea încărcării paletelor, remorcilor și containerelor. Rapid, precis, vizual.',
+    foot_product:'Produs', foot_f_how:'Cum funcționează', foot_f_feat:'Funcții', foot_f_price:'Prețuri', foot_f_open:'Deschideți calculatorul',
+    foot_account:'Cont', foot_f_reg:'Înregistrare', foot_f_login:'Autentificare', foot_f_sub:'Abonament',
+    foot_help:'Ajutor', foot_f_docs:'Documentație', foot_f_faq:'FAQ', foot_f_contact:'Contact',
+    foot_copy:'© 2026 Palet3D. Toate drepturile rezervate.',
+    foot_tos:'Termeni', foot_priv:'Politică de confidențialitate', foot_cookies:'Cookies',
+    login_title:'Autentificare', login_sub:'Bun venit înapoi! Introduceți datele dvs.',
+    login_email:'E-mail', login_pass:'Parolă', login_pass_ph:'Parola dvs.',
+    login_btn:'Autentificare', login_loading:'Se autentifică…', login_google:'Continuați cu Google',
+    login_no_acc:'Nu aveți cont?', login_reg:'Înregistrați-vă',
+    login_verify_msg:'Verificați-vă căsuța poștală și faceți clic pe linkul de verificare.', login_resend:'Retrimite',
+    login_err_fields:'Vă rugăm să completați toate câmpurile.', login_err_conn:'Eroare de conexiune. Vă rugăm să încercați din nou.', login_err_default:'Eroare de autentificare.',
+    signup_title:'Creați cont', signup_sub:'14 zile gratuit, apoi ~60 lei/lună. Anulați oricând.',
+    signup_first:'Prenume', signup_last:'Nume', signup_first_ph:'Ion', signup_last_ph:'Popescu',
+    signup_email:'E-mail', signup_pass:'Parolă', signup_pass_ph:'Min. 8 caractere',
+    signup_btn:'Creați cont și începeți perioada de probă', signup_loading:'Se creează contul…', signup_google:'Continuați cu Google',
+    signup_has_acc:'Aveți deja un cont?', signup_login:'Autentificare',
+    signup_success:'✓ Cont creat! Verificați e-mailul și faceți clic pe linkul de verificare.',
+    signup_err_fields:'Vă rugăm să completați toate câmpurile.', signup_err_len:'Parola trebuie să aibă cel puțin 8 caractere.',
+    signup_err_upper:'Parola trebuie să conțină cel puțin o literă mare.',
+    signup_err_special:'Parola trebuie să conțină cel puțin un caracter special.',
+    signup_err_conn:'Eroare de conexiune. Vă rugăm să încercați din nou.', signup_err_default:'Eroare de înregistrare.',
+    or:'sau',
+  },
+  es: {
+    page_title:'Paleta3D — Logística de carga inteligente',
+    page_desc:'Planifique la carga de palés, remolques y contenedores en 3D. Algoritmo de embalaje óptimo para empresas de logística.',
+    nav_how:'Cómo funciona', nav_features:'Funciones', nav_vehicles:'Remolques y contenedores', nav_pricing:'Precios', nav_contact:'Contacto',
+    nav_login:'Iniciar sesión', nav_signup:'Crear cuenta',
+    hero_badge:'Visualización 3D de palés, remolques y contenedores',
+    hero_h1:'<span class="word">Logística de carga</span><br><span class="word accent">planificada</span> <span class="word accent">en 3D</span>',
+    hero_sub:'El algoritmo de embalaje óptimo coloca cajas en palés y palés en remolques y contenedores — teniendo en cuenta el peso, el apilamiento y los paquetes sueltos. Resultado instantáneo en 3D interactivo.',
+    hero_btn_open:'Abrir calculadora →', hero_btn_signup:'Crear cuenta',
+    hero_hint:'Funciona en el navegador · Sin instalación · PC, tablet y teléfono',
+    stat_browser:'en el navegador — sin instalación',
+    how_tag:'Cómo funciona',
+    how_h2:'De la caja al contenedor completo<br>en tres pasos',
+    how_sub:'Sin hojas de cálculo, sin adivinar. Usted define la carga — el algoritmo hace el resto.',
+    step1_h:'Definir la carga', step1_p:'Añada cajas y rollos con dimensiones, peso y color de etiqueta. Elija la cara de carga, establezca márgenes. Los tipos personalizados se guardan en su cuenta.',
+    step2_h:'El algoritmo organiza', step2_p:'El algoritmo 3D heightmap selecciona orientaciones y colocaciones: los más pesados abajo, capas planas, nada flotando. Modo mixto y manual incluido.',
+    step3_h:'Cargar el vehículo', step3_p:'Coloque los palés terminados en el remolque o contenedor. Apilamiento de palés, cajas sueltas llenando huecos, opciones de altura — todo en 3D interactivo.',
+    feat_tag:'Funciones', feat_h2:'Todo lo que su<br>equipo de logística necesita',
+    feat1_h:'Visualización 3D en tiempo real', feat1_p:'Control completo de cámara: rotar, zoom, panorámica — ratón y táctil. Cada caja, palé y vehículo renderizado a escala.',
+    feat2_h:'Apilamiento por peso', feat2_p:'Los paquetes más pesados van a las capas inferiores, los palés más pesados al suelo del vehículo.',
+    feat3_h:'Apilamiento de palés', feat3_p:'Apilamiento opcional de palés uno encima de otro, respetando el límite de altura del vehículo.',
+    feat4_h:'Algoritmo de embalaje heightmap', feat4_p:'Las cajas pueden estar una al lado de la otra, no solo en capas iguales. Garantía de soporte total.',
+    feat5_h:'Remolques y contenedores', feat5_p:'Preajustes Mega 13,6m, 40′ HC y dimensiones personalizadas. Las cajas sueltas llenan automáticamente los huecos entre palés.',
+    feat6_h:'Modo manual', feat6_p:'Control total: coloque cajas haciendo clic en el palé, elimine piezas individuales, deshaga cambios.',
+    show_tag:'Carga de vehículos', show_h2:'Del palé directamente<br>al remolque',
+    show_sub:'Los palés guardados se convierten en bloques de construcción que el algoritmo coloca en el espacio de carga — y usted ve exactamente qué va dónde.',
+    check1_h:'Carga de contenedor en dos carriles', check1_p:'Las orientaciones de palés estrechas y anchas en dos carriles paralelos minimizan la pérdida de ancho.',
+    check2_h:'Las cajas sueltas llenan el espacio', check2_p:'Los paquetes sueltos llenan huecos junto a los palés y pueden cargarse encima si hay espacio.',
+    check3_h:'Estadísticas de llenado', check3_p:'Número de palés y cajas, porcentaje de suelo ocupado y lista de lo que no cupo.',
+    show_bar_title:'Paleta3D — Remolque Mega 13,6m',
+    price_tag:'Precios', price_h2:'Un plan. Acceso completo.',
+    price_sub:'Sin límites, sin cargos ocultos. Una suscripción para su equipo de logística.',
+    price_badge:'ACCESO COMPLETO', price_period:'/mes',
+    price_desc:'Una cuenta — todas las funciones de la calculadora sin restricciones.',
+    price_li1:'Calculadora de palés, remolques y contenedores', price_li2:'Cajas y pesos personalizados guardados en su cuenta',
+    price_li3:'Apilamiento de palés y cajas sueltas', price_li4:'Modos automático, mixto y manual', price_li5:'Soporte técnico',
+    price_btn:'Crear cuenta y comenzar', price_note:'Precio neto + IVA · Cancele en cualquier momento',
+    contact_h2:'Contacto', contact_sub:'¿Tiene una pregunta o necesita ayuda? Escríbanos.',
+    contact_name:'Nombre completo', contact_name_ph:'Juan García',
+    contact_email_lbl:'Dirección de e-mail', contact_email_ph:'juan@empresa.es',
+    contact_msg_lbl:'Mensaje', contact_msg_ph:'Describa su pregunta...',
+    contact_ok:'¡Mensaje enviado! Le responderemos pronto.', contact_btn:'Enviar mensaje',
+    contact_err_fields:'Por favor complete todos los campos.', contact_err_email:'Dirección de e-mail inválida.',
+    contact_err_send:'Error de envío.', contact_err_conn:'Error de conexión. Por favor inténtelo de nuevo.',
+    contact_sending:'Enviando…',
+    cta_h2:'Deje de adivinar.<br>Empiece a planificar.',
+    cta_p:'Cree una cuenta y pruebe todas las funciones gratis durante 14 días.',
+    cta_btn:'Crear cuenta →',
+    foot_desc:'Herramienta profesional para optimizar la carga de palés, remolques y contenedores. Rápido, preciso, visual.',
+    foot_product:'Producto', foot_f_how:'Cómo funciona', foot_f_feat:'Funciones', foot_f_price:'Precios', foot_f_open:'Abrir calculadora',
+    foot_account:'Cuenta', foot_f_reg:'Registro', foot_f_login:'Iniciar sesión', foot_f_sub:'Suscripción',
+    foot_help:'Ayuda', foot_f_docs:'Documentación', foot_f_faq:'FAQ', foot_f_contact:'Contacto',
+    foot_copy:'© 2026 Paleta3D. Todos los derechos reservados.',
+    foot_tos:'Términos', foot_priv:'Política de privacidad', foot_cookies:'Cookies',
+    login_title:'Iniciar sesión', login_sub:'¡Bienvenido de nuevo! Introduzca sus credenciales.',
+    login_email:'E-mail', login_pass:'Contraseña', login_pass_ph:'Su contraseña',
+    login_btn:'Iniciar sesión', login_loading:'Iniciando sesión…', login_google:'Continuar con Google',
+    login_no_acc:'¿No tiene cuenta?', login_reg:'Registrarse',
+    login_verify_msg:'Compruebe su bandeja de entrada y haga clic en el enlace de verificación.', login_resend:'Reenviar',
+    login_err_fields:'Por favor complete todos los campos.', login_err_conn:'Error de conexión. Por favor inténtelo de nuevo.', login_err_default:'Error de inicio de sesión.',
+    signup_title:'Crear cuenta', signup_sub:'14 días gratis, luego ~€12/mes. Cancele en cualquier momento.',
+    signup_first:'Nombre', signup_last:'Apellidos', signup_first_ph:'Juan', signup_last_ph:'García',
+    signup_email:'E-mail', signup_pass:'Contraseña', signup_pass_ph:'Mín. 8 caracteres',
+    signup_btn:'Crear cuenta e iniciar prueba', signup_loading:'Creando cuenta…', signup_google:'Continuar con Google',
+    signup_has_acc:'¿Ya tiene una cuenta?', signup_login:'Iniciar sesión',
+    signup_success:'✓ ¡Cuenta creada! Compruebe su e-mail y haga clic en el enlace de verificación.',
+    signup_err_fields:'Por favor complete todos los campos.', signup_err_len:'La contraseña debe tener al menos 8 caracteres.',
+    signup_err_upper:'La contraseña debe contener al menos una letra mayúscula.',
+    signup_err_special:'La contraseña debe contener al menos un carácter especial.',
+    signup_err_conn:'Error de conexión. Por favor inténtelo de nuevo.', signup_err_default:'Error de registro.',
+    or:'o',
   }
 };
 
-let _lang = 'pl';
+let _lang = 'en';
 
-function t(k){ return (T[_lang]||T.pl)[k] || (T.pl[k]) || k; }
+function t(k){ return (T[_lang]||T.en)[k] || T.en[k] || k; }
 
 function applyI18n(lang) {
   _lang = lang;
@@ -664,11 +1103,12 @@ function applyI18n(lang) {
     const v = t(el.dataset.i18nPh);
     if(v !== undefined) el.placeholder = v;
   });
-  // update lang switcher buttons
-  ['pl','en'].forEach(l => {
-    document.getElementById('lBtn-'+l)?.classList.toggle('active', l===lang);
-    document.getElementById('mmBtn-'+l)?.classList.toggle('active', l===lang);
-  });
+  // update lang switcher selects
+  const _sel = document.getElementById('langSelect');
+  if (_sel) _sel.value = lang;
+  const _msel = document.getElementById('mmLangSelect');
+  if (_msel) _msel.value = lang;
+  updatePriceDisplay();
   localStorage.setItem('lang', lang);
 }
 
@@ -680,12 +1120,70 @@ function setLang(lang) {
   }
 }
 
-// detect: saved preference → browser language → default pl
+function detectLocalPrice(){
+  const loc=(navigator.language||'').toLowerCase();
+  const MAP=[
+    ['en-us',{sym:'$',amount:'13',before:true}],
+    ['en-gb',{sym:'£',amount:'10',before:true}],
+    ['en-au',{sym:'A$',amount:'20',before:true}],
+    ['en-ca',{sym:'C$',amount:'18',before:true}],
+    ['en',   {sym:'$',amount:'13',before:true}],
+    ['de',{sym:'€',amount:'12',before:false}],
+    ['fr',{sym:'€',amount:'12',before:false}],
+    ['it',{sym:'€',amount:'12',before:false}],
+    ['es',{sym:'€',amount:'12',before:false}],
+    ['nl',{sym:'€',amount:'12',before:false}],
+    ['pt',{sym:'€',amount:'12',before:false}],
+    ['fi',{sym:'€',amount:'12',before:false}],
+    ['sk',{sym:'€',amount:'12',before:false}],
+    ['cs',{sym:'Kč',amount:'300',before:false}],
+    ['hu',{sym:'Ft',amount:'5 000',before:false}],
+    ['ro',{sym:'lei',amount:'60',before:false}],
+    ['sv',{sym:'kr',amount:'140',before:false}],
+    ['no',{sym:'kr',amount:'145',before:false}],
+    ['da',{sym:'kr',amount:'90',before:false}],
+  ];
+  for(const [p,info] of MAP){
+    if(loc===p||loc.startsWith(p+'-'))return info;
+  }
+  return {sym:'zł',amount:'50',before:false,exact:true};
+}
+
+function updatePriceDisplay(){
+  const p=detectLocalPrice();
+  const period=t('price_period');
+  const approx=p.exact?'':'~';
+  const el=document.getElementById('priceDisplay');
+  if(el){
+    el.innerHTML=p.before
+      ?`<sup>${approx}${p.sym}</sup>${p.amount}<sub>${period}</sub>`
+      :`${approx}${p.amount}<sup>${p.sym}</sup><sub>${period}</sub>`;
+  }
+  const subEl=document.querySelector('[data-i18n="signup_sub"]');
+  if(subEl){
+    const ps=p.exact?'50 zł':(p.before?`~${p.sym}${p.amount}`:`~${p.amount} ${p.sym}`);
+    const TEMPLATES={
+      pl:`14 dni za darmo, potem ${ps} / mies. Anuluj kiedy chcesz.`,
+      en:`14 days free, then ${ps}/mo. Cancel any time.`,
+      de:`14 Tage kostenlos, dann ${ps}/Mon. Jederzeit kündbar.`,
+      fr:`14 jours gratuits, puis ${ps}/mois. Résiliez à tout moment.`,
+      nl:`14 dagen gratis, dan ${ps}/mnd. Op elk moment opzegbaar.`,
+      cs:`14 dní zdarma, poté ${ps}/měs. Zrušte kdykoli.`,
+      ro:`14 zile gratuit, apoi ${ps}/lună. Anulați oricând.`,
+      es:`14 días gratis, luego ${ps}/mes. Cancele en cualquier momento.`,
+    };
+    subEl.textContent=TEMPLATES[_lang]||TEMPLATES.en;
+  }
+}
+
+// detect: saved preference → browser language → default en
 (function(){
+  const SUPPORTED = Object.keys(T); // ['pl','en'] — extend T to add more languages
   const saved = localStorage.getItem('lang');
-  const nav = (navigator.language||navigator.userLanguage||'pl').toLowerCase();
-  const detected = saved ? saved : (nav.startsWith('pl') ? 'pl' : 'en');
-  applyI18n(detected);
+  if (saved && SUPPORTED.includes(saved)) { applyI18n(saved); return; }
+  const nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  const match = SUPPORTED.find(l => nav === l || nav.startsWith(l + '-'));
+  applyI18n(match || 'en');
 })();
 
 /* ════════ helpers ════════ */

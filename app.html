@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -627,14 +627,16 @@
 
     <div class="set-group">
       <div class="set-label" data-i18n="set_lang">Język / Language</div>
-      <div class="set-seg" id="setLang">
-        <button class="set-opt" data-val="pl" onclick="setLang('pl')">
-          <span class="so-ico" style="font-weight:800;font-size:.85rem;letter-spacing:-.02em">PL</span><span class="so-txt"><span class="so-name">Polski</span></span>
-        </button>
-        <button class="set-opt" data-val="en" onclick="setLang('en')">
-          <span class="so-ico" style="font-weight:800;font-size:.85rem;letter-spacing:-.02em">EN</span><span class="so-txt"><span class="so-name">English</span></span>
-        </button>
-      </div>
+      <select id="setLangSel" onchange="setLang(this.value)" style="width:100%;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:.88rem;font-family:inherit;cursor:pointer;outline:none">
+        <option value="en">English</option>
+        <option value="pl">Polski</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="nl">Nederlands</option>
+        <option value="cs">Čeština</option>
+        <option value="ro">Română</option>
+        <option value="es">Español</option>
+      </select>
     </div>
 
     <div class="modal-btns">
@@ -751,8 +753,9 @@ try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s
 // ═══════════════════════════════════════════════════════
 // SETTINGS (navigation, units, language)
 // ═══════════════════════════════════════════════════════
-const SETTINGS = { nav:'standard', units:'metric', lang:'pl' };
+const SETTINGS = { nav:'standard', units:'metric', lang:'en' };
 try{const _ss=JSON.parse(localStorage.getItem('appSettings'));if(_ss){if(_ss.nav)SETTINGS.nav=_ss.nav;if(_ss.units)SETTINGS.units=_ss.units;if(_ss.lang)SETTINGS.lang=_ss.lang;}}catch(e){}
+try{const _l=localStorage.getItem('lang');if(_l&&Object.prototype.hasOwnProperty.call(I18N,_l))SETTINGS.lang=_l;}catch(e){}
 function _saveSettings(){try{localStorage.setItem('appSettings',JSON.stringify(SETTINGS));}catch(e){}}
 
 // Orbit drag multipliers based on navigation style.
@@ -899,9 +902,303 @@ const I18N = {
     mprev_hint:'Click face = always on top',
     mbtn_save:'Save', mbtn_del:'Delete', mbtn_cancel:'Cancel',
     mbtn_restore:'Restore default boxes',
+  },
+  de:{
+    tab_pallet:'Palette', tab_trailer:'Sattelauflieger', tab_container:'Container',
+    settings_title:'Einstellungen',
+    set_nav:'3D-Ansicht-Steuerung', set_units:'Maßeinheiten', set_lang:'Sprache / Language', set_done:'Fertig',
+    nav_standard_n:'Standard', nav_standard_d:'Nach oben ziehen = Ansicht kippt nach oben',
+    nav_invy_n:'Invertierte vertikale Achse', nav_invy_d:'Nach oben ziehen = Ansicht kippt nach unten',
+    nav_invx_n:'Invertierte horizontale Achse', nav_invx_d:'Nach links ziehen = Drehung nach rechts',
+    unit_metric_n:'Europäisch (mm)', unit_metric_d:'Millimeter, Kilogramm',
+    unit_imperial_n:'Amerikanisch (in)', unit_imperial_d:'Zoll, Pfund',
+    st_packages:'Pakete', st_pallets:'Paletten', st_layers:'Schichten', st_height:'Höhe', st_perlayer:'/ Schicht', st_left:'Übrig',
+    st_floor:'Bodenfläche', st_notfit:'Passt nicht',
+    save_pallet:'💾 Palette speichern', save_pallet_set:'💾 Set von {n} Paletten speichern',
+    hint_touch:'Tippen: drehen · 2 Finger: zoom',
+    man_hint_place:'Palette antippen, um ein Paket zu platzieren',
+    bap_left:'← Nach links', bap_right:'Nach rechts →', bap_back:'↑ Nach hinten', bap_front:'Nach vorne ↓',
+    bap_auto:'⚡ Auto platzieren', bap_drag:'✋ Verschieben', bap_rotate:'⟳ Drehen', bap_remove:'✕ Entfernen', bap_center:'⊕ Auf Palette zentrieren',
+    amo_rotate:'⟳ 90° drehen', amo_overhang:'Kann über den Boden hinausragen', amo_place:'✓ Platzieren', amo_exit:'✕ Hinzufügemodus beenden',
+    sec_packages:'Pakete', sec_params:'Parameter', sec_paldims:'Palettenabmessungen',
+    add_pkg:'+ Neues Paket hinzufügen', calc:'Berechnen & visualisieren',
+    rot_orient:'Ausrichtung',
+    veh_arrange:'Ladung automatisch anordnen',
+    veh_move_hint:'Über neue Position bewegen und klicken',
+    handle_label:'Pakete auswählen & berechnen',
+    lbl_maxh:'Max. Höhe (mm)', lbl_margin:'Rand (mm / Seite)',
+    lbl_maxpal:'Max. Paletten (Überschuss zur nächsten)',
+    pal_edit:'✏️ Abmessungen bearbeiten', pal_close:'▲ Abmessungen ausblenden',
+    lbl_palw:'Breite (mm)', lbl_pald:'Länge (mm)', lbl_palh:'Palettenhöhe (mm)',
+    pal_half:'Halb 800×600',
+    man_undo:'↩ Rückgängig', man_clear:'🗑 Löschen', man_fill:'⬛ Füllen', man_remove_btn:'✕ Entfernen',
+    man_qty:'Menge:', man_add_one:'+ Manuell hinzufügen', man_orient:'↑ Ausrichtung',
+    veh_handle_trailer:'Sattelauflieger – Einstellungen', veh_handle_container:'Container – Einstellungen',
+    veh_type_trailer:'Aufliegertyp', veh_type_container:'Containertyp (Innenabmessungen)',
+    lbl_int_len:'Innenlänge (mm)', lbl_int_w:'Innenbreite (mm)', lbl_int_h:'Innenhöhe (mm)',
+    veh_pal_load:'Zu ladende Paletten',
+    veh_no_pals:'Keine gespeicherten Paletten.<br>Berechnen Sie ein Layout auf dem Tab <b>Palette</b> und klicken Sie auf „💾 Palette speichern".',
+    veh_loose:'Lose Pakete', veh_stack_opts:'Stapeloptionen',
+    veh_load_on_pal:'Pakete auf Paletten laden (wenn Platz vorhanden)',
+    veh_higher:'Lose Pakete können höher als Paletten sein',
+    veh_stack_pal:'Paletten können übereinander gestapelt werden',
+    fp_title:'Oberfläche', fp_hint:'Fläche klicken · ziehen zum Drehen', fp_close:'Schließen',
+    modal_new:'Neues Element', modal_edit:'Element bearbeiten',
+    mtype_box:'📦 Karton', mtype_cyl:'🛢 Rolle/Fass',
+    mlbl_name:'Name', mlbl_dims_box:'Abmessungen mm — L × B × H', mlbl_dims_cyl:'Abmessungen mm — Dm × H',
+    mlbl_color:'Etikettenfarbe', mlbl_weight:'Gewicht (kg, optional)',
+    mph_name:'z.B. Karton XL', mph_len:'Länge', mph_wid:'Breite', mph_hgt:'Höhe', mph_weight:'0 = unbekannt',
+    mprev_hint:'Fläche klicken = immer oben',
+    mbtn_save:'Speichern', mbtn_del:'Löschen', mbtn_cancel:'Abbrechen',
+    mbtn_restore:'Standardpakete wiederherstellen',
+  },
+  fr:{
+    tab_pallet:'Palette', tab_trailer:'Semi-remorque', tab_container:'Conteneur',
+    settings_title:'Paramètres',
+    set_nav:'Commandes vue 3D', set_units:'Unités de mesure', set_lang:'Langue / Language', set_done:'Terminé',
+    nav_standard_n:'Standard', nav_standard_d:"Glisser vers le haut = vue s'incline vers le haut",
+    nav_invy_n:'Axe vertical inversé', nav_invy_d:"Glisser vers le haut = vue s'incline vers le bas",
+    nav_invx_n:'Axe horizontal inversé', nav_invx_d:'Glisser à gauche = rotation à droite',
+    unit_metric_n:'Européen (mm)', unit_metric_d:'Millimètres, kilogrammes',
+    unit_imperial_n:'Américain (in)', unit_imperial_d:'Pouces, livres',
+    st_packages:'Boîtes', st_pallets:'Palettes', st_layers:'Couches', st_height:'Hauteur', st_perlayer:'/ couche', st_left:'Restant',
+    st_floor:'Sol utilisé', st_notfit:'Ne rentre pas',
+    save_pallet:'💾 Sauvegarder palette', save_pallet_set:'💾 Sauvegarder {n} palettes',
+    hint_touch:'Toucher: tourner · 2 doigts: zoom',
+    man_hint_place:'Toucher la palette pour placer une boîte',
+    bap_left:'← À gauche', bap_right:'À droite →', bap_back:"↑ Vers l'arrière", bap_front:"Vers l'avant ↓",
+    bap_auto:'⚡ Placement auto', bap_drag:'✋ Déplacer', bap_rotate:'⟳ Rotation', bap_remove:'✕ Supprimer', bap_center:'⊕ Centrer sur palette',
+    amo_rotate:'⟳ Rotation 90°', amo_overhang:'Peut dépasser la base', amo_place:'✓ Placer', amo_exit:'✕ Quitter mode ajout',
+    sec_packages:'Boîtes', sec_params:'Paramètres', sec_paldims:'Dimensions de la palette',
+    add_pkg:'+ Ajouter une boîte', calc:'Calculer & visualiser',
+    rot_orient:'Orientation',
+    veh_arrange:'Arranger la charge automatiquement',
+    veh_move_hint:'Déplacer vers un nouvel emplacement et cliquer',
+    handle_label:'Sélectionner boîtes & calculer',
+    lbl_maxh:'Hauteur max. (mm)', lbl_margin:'Marge (mm / côté)',
+    lbl_maxpal:'Max. palettes (excédent à la suivante)',
+    pal_edit:'✏️ Modifier dimensions', pal_close:'▲ Masquer dimensions',
+    lbl_palw:'Largeur (mm)', lbl_pald:'Longueur (mm)', lbl_palh:'Hauteur palette (mm)',
+    pal_half:'Demi 800×600',
+    man_undo:'↩ Annuler', man_clear:'🗑 Effacer', man_fill:'⬛ Remplir', man_remove_btn:'✕ Supprimer',
+    man_qty:'qté:', man_add_one:'+ Ajouter manuellement', man_orient:'↑ Orientation',
+    veh_handle_trailer:'Semi-remorque – paramètres', veh_handle_container:'Conteneur – paramètres',
+    veh_type_trailer:'Type de semi-remorque', veh_type_container:'Type de conteneur (dimensions internes)',
+    lbl_int_len:'Longueur int. (mm)', lbl_int_w:'Largeur int. (mm)', lbl_int_h:'Hauteur int. (mm)',
+    veh_pal_load:'Palettes à charger',
+    veh_no_pals:'Pas de palettes sauvegardées.<br>Calculez une disposition sur l\'onglet <b>Palette</b> et cliquez sur « 💾 Sauvegarder palette ».',
+    veh_loose:'Boîtes en vrac', veh_stack_opts:"Options d'empilement",
+    veh_load_on_pal:'Charger boîtes sur palettes (si place disponible)',
+    veh_higher:'Les boîtes en vrac peuvent être plus hautes que les palettes',
+    veh_stack_pal:'Les palettes peuvent être empilées les unes sur les autres',
+    fp_title:'Face du dessus', fp_hint:'Cliquer face · glisser pour tourner', fp_close:'Fermer',
+    modal_new:'Nouvel élément', modal_edit:'Modifier élément',
+    mtype_box:'📦 Boîte', mtype_cyl:'🛢 Rouleau/Tonneau',
+    mlbl_name:'Nom', mlbl_dims_box:'Dimensions mm — L × l × H', mlbl_dims_cyl:'Dimensions mm — Dia × H',
+    mlbl_color:'Couleur étiquette', mlbl_weight:'Poids (kg, optionnel)',
+    mph_name:'ex. Boîte XL', mph_len:'Long.', mph_wid:'Larg.', mph_hgt:'Haut.', mph_weight:'0 = inconnu',
+    mprev_hint:'Cliquer face = toujours en haut',
+    mbtn_save:'Sauvegarder', mbtn_del:'Supprimer', mbtn_cancel:'Annuler',
+    mbtn_restore:'Restaurer boîtes par défaut',
+  },
+  nl:{
+    tab_pallet:'Pallet', tab_trailer:'Oplegger', tab_container:'Container',
+    settings_title:'Instellingen',
+    set_nav:'3D-weergavebesturing', set_units:'Maateenheden', set_lang:'Taal / Language', set_done:'Klaar',
+    nav_standard_n:'Standaard', nav_standard_d:'Omhoog slepen = weergave kantelt omhoog',
+    nav_invy_n:'Omgekeerde verticale as', nav_invy_d:'Omhoog slepen = weergave kantelt omlaag',
+    nav_invx_n:'Omgekeerde horizontale as', nav_invx_d:'Naar links slepen = rechts draaien',
+    unit_metric_n:'Europees (mm)', unit_metric_d:'Millimeter, kilogram',
+    unit_imperial_n:'Amerikaans (in)', unit_imperial_d:'Inches, ponden',
+    st_packages:'Dozen', st_pallets:'Pallets', st_layers:'Lagen', st_height:'Hoogte', st_perlayer:'/ laag', st_left:'Over',
+    st_floor:'Vloer gebruikt', st_notfit:'Past niet',
+    save_pallet:'💾 Pallet opslaan', save_pallet_set:'💾 Set van {n} pallets opslaan',
+    hint_touch:'Aanraken: draaien · 2 vingers: zoom',
+    man_hint_place:'Tik op pallet om een doos te plaatsen',
+    bap_left:'← Naar links', bap_right:'Naar rechts →', bap_back:'↑ Naar achteren', bap_front:'Naar voren ↓',
+    bap_auto:'⚡ Auto plaatsen', bap_drag:'✋ Verplaatsen', bap_rotate:'⟳ Draaien', bap_remove:'✕ Verwijderen', bap_center:'⊕ Centreren op pallet',
+    amo_rotate:'⟳ 90° draaien', amo_overhang:'Mag over de basis hangen', amo_place:'✓ Plaatsen', amo_exit:'✕ Toevoegmodus verlaten',
+    sec_packages:'Dozen', sec_params:'Parameters', sec_paldims:'Palletafmetingen',
+    add_pkg:'+ Nieuwe doos toevoegen', calc:'Berekenen & visualiseren',
+    rot_orient:'Oriëntatie',
+    veh_arrange:'Lading automatisch rangschikken',
+    veh_move_hint:'Beweeg naar nieuwe plek en klik',
+    handle_label:'Dozen kiezen & berekenen',
+    lbl_maxh:'Max. hoogte (mm)', lbl_margin:'Marge (mm / zijde)',
+    lbl_maxpal:'Max. pallets (overschot naar volgende)',
+    pal_edit:'✏️ Afmetingen bewerken', pal_close:'▲ Afmetingen verbergen',
+    lbl_palw:'Breedte (mm)', lbl_pald:'Lengte (mm)', lbl_palh:'Pallethoogte (mm)',
+    pal_half:'Half 800×600',
+    man_undo:'↩ Ongedaan maken', man_clear:'🗑 Wissen', man_fill:'⬛ Vullen', man_remove_btn:'✕ Verwijderen',
+    man_qty:'aantal:', man_add_one:'+ Handmatig toevoegen', man_orient:'↑ Oriëntatie',
+    veh_handle_trailer:'Oplegger – instellingen', veh_handle_container:'Container – instellingen',
+    veh_type_trailer:'Opleggertype', veh_type_container:'Containertype (interne afmetingen)',
+    lbl_int_len:'Int. lengte (mm)', lbl_int_w:'Int. breedte (mm)', lbl_int_h:'Int. hoogte (mm)',
+    veh_pal_load:'Te laden pallets',
+    veh_no_pals:'Geen opgeslagen pallets.<br>Bereken een indeling op het tabblad <b>Pallet</b> en klik op „💾 Pallet opslaan".',
+    veh_loose:'Losse dozen', veh_stack_opts:'Stapeloptimalisatie',
+    veh_load_on_pal:'Dozen op pallets laden (indien ruimte)',
+    veh_higher:'Losse dozen kunnen hoger zijn dan pallets',
+    veh_stack_pal:'Pallets kunnen op elkaar gestapeld worden',
+    fp_title:'Bovenste vlak', fp_hint:'Klik vlak · slepen om te draaien', fp_close:'Sluiten',
+    modal_new:'Nieuw item', modal_edit:'Item bewerken',
+    mtype_box:'📦 Doos', mtype_cyl:'🛢 Rol/Vat',
+    mlbl_name:'Naam', mlbl_dims_box:'Afmetingen mm — L × B × H', mlbl_dims_cyl:'Afmetingen mm — Dia × H',
+    mlbl_color:'Labelkleur', mlbl_weight:'Gewicht (kg, optioneel)',
+    mph_name:'bijv. Doos XL', mph_len:'Len.', mph_wid:'Brd.', mph_hgt:'Hgt.', mph_weight:'0 = onbekend',
+    mprev_hint:'Klik vlak = altijd bovenop',
+    mbtn_save:'Opslaan', mbtn_del:'Verwijderen', mbtn_cancel:'Annuleren',
+    mbtn_restore:'Standaarddozen herstellen',
+  },
+  cs:{
+    tab_pallet:'Paleta', tab_trailer:'Návěs', tab_container:'Kontejner',
+    settings_title:'Nastavení',
+    set_nav:'Ovládání 3D pohledu', set_units:'Jednotky míry', set_lang:'Jazyk / Language', set_done:'Hotovo',
+    nav_standard_n:'Standardní', nav_standard_d:'Táhněte nahoru = pohled se nakloní nahoru',
+    nav_invy_n:'Obrácená svislá osa', nav_invy_d:'Táhněte nahoru = pohled se nakloní dolů',
+    nav_invx_n:'Obrácená vodorovná osa', nav_invx_d:'Táhněte doleva = otočení doprava',
+    unit_metric_n:'Evropský (mm)', unit_metric_d:'Milimetry, kilogramy',
+    unit_imperial_n:'Americký (in)', unit_imperial_d:'Palce, libry',
+    st_packages:'Balíků', st_pallets:'Palet', st_layers:'Vrstev', st_height:'Výška', st_perlayer:'/ vrstvu', st_left:'Zbytek',
+    st_floor:'Podlaha', st_notfit:'Nevejde se',
+    save_pallet:'💾 Uložit paletu', save_pallet_set:'💾 Uložit sadu {n} palet',
+    hint_touch:'Dotyk: otáčejte · 2 prsty: zoom',
+    man_hint_place:'Klepnutím na paletu umístěte balík',
+    bap_left:'← Doleva', bap_right:'Doprava →', bap_back:'↑ Dozadu', bap_front:'Dopředu ↓',
+    bap_auto:'⚡ Automaticky umístit', bap_drag:'✋ Přesunout', bap_rotate:'⟳ Otočit', bap_remove:'✕ Odebrat', bap_center:'⊕ Vystředit na paletě',
+    amo_rotate:'⟳ Otočit o 90°', amo_overhang:'Může přesahovat základnu', amo_place:'✓ Umístit', amo_exit:'✕ Ukončit režim přidávání',
+    sec_packages:'Balíky', sec_params:'Parametry', sec_paldims:'Rozměry palety',
+    add_pkg:'+ Přidat nový balík', calc:'Vypočítat & vizualizovat',
+    rot_orient:'Orientace',
+    veh_arrange:'Automaticky uspořádat náklad',
+    veh_move_hint:'Přesuňte nad nové místo a klikněte',
+    handle_label:'Vybrat balíky & vypočítat',
+    lbl_maxh:'Max. výška (mm)', lbl_margin:'Okraj (mm / strana)',
+    lbl_maxpal:'Max. palet (přebytek na další)',
+    pal_edit:'✏️ Upravit rozměry', pal_close:'▲ Skrýt rozměry',
+    lbl_palw:'Šířka (mm)', lbl_pald:'Délka (mm)', lbl_palh:'Výška palety (mm)',
+    pal_half:'Polovina 800×600',
+    man_undo:'↩ Zpět', man_clear:'🗑 Vymazat', man_fill:'⬛ Vyplnit', man_remove_btn:'✕ Odebrat',
+    man_qty:'ks:', man_add_one:'+ Přidat ručně', man_orient:'↑ Orientace',
+    veh_handle_trailer:'Návěs – nastavení', veh_handle_container:'Kontejner – nastavení',
+    veh_type_trailer:'Typ návěsu', veh_type_container:'Typ kontejneru (vnitřní rozměry)',
+    lbl_int_len:'Vnitřní délka (mm)', lbl_int_w:'Vnitřní šířka (mm)', lbl_int_h:'Vnitřní výška (mm)',
+    veh_pal_load:'Palety k naložení',
+    veh_no_pals:'Žádné uložené palety.<br>Vypočítejte rozmístění na kartě <b>Paleta</b> a klikněte na „💾 Uložit paletu".',
+    veh_loose:'Volné balíky', veh_stack_opts:'Možnosti skládání',
+    veh_load_on_pal:'Naložit balíky na palety (pokud je místo)',
+    veh_higher:'Volné balíky mohou být vyšší než palety',
+    veh_stack_pal:'Palety lze skládat na sebe',
+    fp_title:'Horní stěna', fp_hint:'Kliknout na stěnu · táhnout k otočení', fp_close:'Zavřít',
+    modal_new:'Nová položka', modal_edit:'Upravit položku',
+    mtype_box:'📦 Krabice', mtype_cyl:'🛢 Válec/Soudek',
+    mlbl_name:'Název', mlbl_dims_box:'Rozměry mm — D × Š × V', mlbl_dims_cyl:'Rozměry mm — Pr × V',
+    mlbl_color:'Barva štítku', mlbl_weight:'Hmotnost (kg, volitelně)',
+    mph_name:'např. Krabice XL', mph_len:'Délka', mph_wid:'Šířka', mph_hgt:'Výška', mph_weight:'0 = neznámá',
+    mprev_hint:'Kliknout na stěnu = vždy nahoře',
+    mbtn_save:'Uložit', mbtn_del:'Smazat', mbtn_cancel:'Zrušit',
+    mbtn_restore:'Obnovit výchozí krabice',
+  },
+  ro:{
+    tab_pallet:'Paletă', tab_trailer:'Semiremorcă', tab_container:'Container',
+    settings_title:'Setări',
+    set_nav:'Comenzi vedere 3D', set_units:'Unități de măsură', set_lang:'Limbă / Language', set_done:'Gata',
+    nav_standard_n:'Standard', nav_standard_d:'Tragere în sus = vedere se înclină în sus',
+    nav_invy_n:'Axă verticală inversată', nav_invy_d:'Tragere în sus = vedere se înclină în jos',
+    nav_invx_n:'Axă orizontală inversată', nav_invx_d:'Tragere stânga = rotire dreapta',
+    unit_metric_n:'European (mm)', unit_metric_d:'Milimetri, kilograme',
+    unit_imperial_n:'American (in)', unit_imperial_d:'Inci, livre',
+    st_packages:'Colete', st_pallets:'Paleți', st_layers:'Straturi', st_height:'Înălțime', st_perlayer:'/ strat', st_left:'Rămas',
+    st_floor:'Podea folosită', st_notfit:'Nu încape',
+    save_pallet:'💾 Salvează paleta', save_pallet_set:'💾 Salvează set de {n} palete',
+    hint_touch:'Atingere: rotire · 2 degete: zoom',
+    man_hint_place:'Atingeți paleta pentru a plasa un colet',
+    bap_left:'← La stânga', bap_right:'La dreapta →', bap_back:'↑ Spre spate', bap_front:'Spre față ↓',
+    bap_auto:'⚡ Plasare automată', bap_drag:'✋ Mutare', bap_rotate:'⟳ Rotire', bap_remove:'✕ Eliminare', bap_center:'⊕ Centrare pe paletă',
+    amo_rotate:'⟳ Rotire 90°', amo_overhang:'Poate depăși baza', amo_place:'✓ Plasează', amo_exit:'✕ Ieșire din modul adăugare',
+    sec_packages:'Colete', sec_params:'Parametri', sec_paldims:'Dimensiuni paletă',
+    add_pkg:'+ Adaugă colet nou', calc:'Calculează & vizualizează',
+    rot_orient:'Orientare',
+    veh_arrange:'Aranjare automată a încărcăturii',
+    veh_move_hint:'Mutați peste un loc nou și faceți clic',
+    handle_label:'Alegeți colete & calculați',
+    lbl_maxh:'Înălțime max. (mm)', lbl_margin:'Margine (mm / parte)',
+    lbl_maxpal:'Max. palete (excedent la următoarea)',
+    pal_edit:'✏️ Editare dimensiuni', pal_close:'▲ Ascunde dimensiuni',
+    lbl_palw:'Lățime (mm)', lbl_pald:'Lungime (mm)', lbl_palh:'Înălțime paletă (mm)',
+    pal_half:'Jumătate 800×600',
+    man_undo:'↩ Anulare', man_clear:'🗑 Șterge', man_fill:'⬛ Completare', man_remove_btn:'✕ Eliminare',
+    man_qty:'buc.:', man_add_one:'+ Adaugă manual', man_orient:'↑ Orientare',
+    veh_handle_trailer:'Semiremorcă – setări', veh_handle_container:'Container – setări',
+    veh_type_trailer:'Tip semiremorcă', veh_type_container:'Tip container (dimensiuni interioare)',
+    lbl_int_len:'Lungime int. (mm)', lbl_int_w:'Lățime int. (mm)', lbl_int_h:'Înălțime int. (mm)',
+    veh_pal_load:'Palete de încărcat',
+    veh_no_pals:'Nicio paletă salvată.<br>Calculați un aranjament pe fila <b>Paletă</b> și faceți clic pe „💾 Salvează paleta".',
+    veh_loose:'Colete vrac', veh_stack_opts:'Opțiuni stivuire',
+    veh_load_on_pal:'Încărcați colete pe palete (dacă există spațiu)',
+    veh_higher:'Coletele vrac pot fi mai înalte decât paletele',
+    veh_stack_pal:'Paletele pot fi stivuite una peste alta',
+    fp_title:'Față de sus', fp_hint:'Clic față · tragere pentru rotire', fp_close:'Închide',
+    modal_new:'Element nou', modal_edit:'Editare element',
+    mtype_box:'📦 Cutie', mtype_cyl:'🛢 Rolă/Butoi',
+    mlbl_name:'Nume', mlbl_dims_box:'Dimensiuni mm — L × l × Î', mlbl_dims_cyl:'Dimensiuni mm — Dia × Î',
+    mlbl_color:'Culoare etichetă', mlbl_weight:'Greutate (kg, opțional)',
+    mph_name:'ex. Cutie XL', mph_len:'Lung.', mph_wid:'Lăț.', mph_hgt:'Înăl.', mph_weight:'0 = necunoscut',
+    mprev_hint:'Clic față = mereu sus',
+    mbtn_save:'Salvează', mbtn_del:'Șterge', mbtn_cancel:'Anulare',
+    mbtn_restore:'Restaurează cutii implicite',
+  },
+  es:{
+    tab_pallet:'Palé', tab_trailer:'Semirremolque', tab_container:'Contenedor',
+    settings_title:'Configuración',
+    set_nav:'Controles vista 3D', set_units:'Unidades de medida', set_lang:'Idioma / Language', set_done:'Listo',
+    nav_standard_n:'Estándar', nav_standard_d:'Arrastrar arriba = vista se inclina hacia arriba',
+    nav_invy_n:'Eje vertical invertido', nav_invy_d:'Arrastrar arriba = vista se inclina hacia abajo',
+    nav_invx_n:'Eje horizontal invertido', nav_invx_d:'Arrastrar izquierda = girar a la derecha',
+    unit_metric_n:'Europeo (mm)', unit_metric_d:'Milímetros, kilogramos',
+    unit_imperial_n:'Americano (in)', unit_imperial_d:'Pulgadas, libras',
+    st_packages:'Cajas', st_pallets:'Palés', st_layers:'Capas', st_height:'Altura', st_perlayer:'/ capa', st_left:'Quedan',
+    st_floor:'Suelo usado', st_notfit:'No cabe',
+    save_pallet:'💾 Guardar palé', save_pallet_set:'💾 Guardar conjunto de {n} palés',
+    hint_touch:'Tocar: rotar · 2 dedos: zoom',
+    man_hint_place:'Toca el palé para colocar una caja',
+    bap_left:'← A la izquierda', bap_right:'A la derecha →', bap_back:'↑ Hacia atrás', bap_front:'Hacia adelante ↓',
+    bap_auto:'⚡ Colocación auto', bap_drag:'✋ Mover', bap_rotate:'⟳ Rotar', bap_remove:'✕ Eliminar', bap_center:'⊕ Centrar en palé',
+    amo_rotate:'⟳ Rotar 90°', amo_overhang:'Puede sobresalir de la base', amo_place:'✓ Colocar', amo_exit:'✕ Salir del modo añadir',
+    sec_packages:'Cajas', sec_params:'Parámetros', sec_paldims:'Dimensiones del palé',
+    add_pkg:'+ Añadir nueva caja', calc:'Calcular & visualizar',
+    rot_orient:'Orientación',
+    veh_arrange:'Organizar carga automáticamente',
+    veh_move_hint:'Mover sobre nuevo lugar y hacer clic',
+    handle_label:'Elegir cajas & calcular',
+    lbl_maxh:'Altura máx. (mm)', lbl_margin:'Margen (mm / lado)',
+    lbl_maxpal:'Máx. palés (excedente al siguiente)',
+    pal_edit:'✏️ Editar dimensiones', pal_close:'▲ Ocultar dimensiones',
+    lbl_palw:'Anchura (mm)', lbl_pald:'Longitud (mm)', lbl_palh:'Altura palé (mm)',
+    pal_half:'Mitad 800×600',
+    man_undo:'↩ Deshacer', man_clear:'🗑 Borrar', man_fill:'⬛ Rellenar', man_remove_btn:'✕ Eliminar',
+    man_qty:'cant.:', man_add_one:'+ Añadir manualmente', man_orient:'↑ Orientación',
+    veh_handle_trailer:'Semirremolque – configuración', veh_handle_container:'Contenedor – configuración',
+    veh_type_trailer:'Tipo de semirremolque', veh_type_container:'Tipo de contenedor (dimensiones internas)',
+    lbl_int_len:'Longitud int. (mm)', lbl_int_w:'Anchura int. (mm)', lbl_int_h:'Altura int. (mm)',
+    veh_pal_load:'Palés a cargar',
+    veh_no_pals:'No hay palés guardados.<br>Calcule una distribución en la pestaña <b>Palé</b> y haga clic en „💾 Guardar palé".',
+    veh_loose:'Cajas sueltas', veh_stack_opts:'Opciones de apilamiento',
+    veh_load_on_pal:'Cargar cajas en palés (si hay espacio)',
+    veh_higher:'Las cajas sueltas pueden ser más altas que los palés',
+    veh_stack_pal:'Los palés pueden apilarse unos sobre otros',
+    fp_title:'Cara superior', fp_hint:'Clic cara · arrastrar para rotar', fp_close:'Cerrar',
+    modal_new:'Nuevo elemento', modal_edit:'Editar elemento',
+    mtype_box:'📦 Caja', mtype_cyl:'🛢 Rollo/Barril',
+    mlbl_name:'Nombre', mlbl_dims_box:'Dimensiones mm — L × A × Al', mlbl_dims_cyl:'Dimensiones mm — Dia × Al',
+    mlbl_color:'Color de etiqueta', mlbl_weight:'Peso (kg, opcional)',
+    mph_name:'p.ej. Caja XL', mph_len:'Long.', mph_wid:'Anch.', mph_hgt:'Alt.', mph_weight:'0 = desconocido',
+    mprev_hint:'Clic cara = siempre arriba',
+    mbtn_save:'Guardar', mbtn_del:'Eliminar', mbtn_cancel:'Cancelar',
+    mbtn_restore:'Restaurar cajas predeterminadas',
   }
 };
-function t(key){return (I18N[SETTINGS.lang]&&I18N[SETTINGS.lang][key])||I18N.pl[key]||key;}
+function t(key){return (I18N[SETTINGS.lang]&&I18N[SETTINGS.lang][key])||I18N.en[key]||key;}
 
 function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{
@@ -933,13 +1230,13 @@ function _markActive(containerId,val){
 function openSettings(){
   _markActive('setNav',SETTINGS.nav);
   _markActive('setUnits',SETTINGS.units);
-  _markActive('setLang',SETTINGS.lang);
+  const _lsel=document.getElementById('setLangSel');if(_lsel)_lsel.value=SETTINGS.lang;
   document.getElementById('settingsModal').classList.remove('hidden');
 }
 function closeSettings(){document.getElementById('settingsModal').classList.add('hidden');}
 function setNavStyle(v){SETTINGS.nav=v;_saveSettings();_markActive('setNav',v);}
 function setUnits(v){SETTINGS.units=v;_saveSettings();_markActive('setUnits',v);refreshAllDisplays();}
-function setLang(v){SETTINGS.lang=v;_saveSettings();_markActive('setLang',v);applyI18n();refreshAllDisplays();}
+function setLang(v){SETTINGS.lang=v;_saveSettings();try{localStorage.setItem('lang',v);}catch(e){} const _lsel=document.getElementById('setLangSel');if(_lsel)_lsel.value=v;applyI18n();refreshAllDisplays();}
 window.openSettings=openSettings;window.closeSettings=closeSettings;
 window.setNavStyle=setNavStyle;window.setUnits=setUnits;window.setLang=setLang;
 
@@ -951,8 +1248,7 @@ function refreshAllDisplays(){
   try{['naczepa','kontener'].forEach(tp=>{if(t3v&&t3v[tp]){_lastVDims[tp]=null;drawVehicle3D(tp);}});}catch(e){}
 }
 function palLabel(W,D){
-  const base=SETTINGS.lang==='en'?'Pallet':'Paleta';
-  return `${base} ${fmtLen(W)}×${fmtLen(D)}`;
+  return `${t('tab_pallet')} ${fmtLen(W)}×${fmtLen(D)}`;
 }
 
 // ─── SAVED PALLETS ───
