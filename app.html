@@ -715,7 +715,8 @@ const DEFAULT_PKGS = [
 ];
 const BUILTIN_IDS = new Set(DEFAULT_PKGS.map(p=>p.id));
 
-function _pkgsLocalKey() { return 'pkgs_custom'; }
+let _currentUserId = null;
+function _pkgsLocalKey() { return 'pkgs_custom' + (_currentUserId ? '_' + _currentUserId : ''); }
 function _loadCustomFromStorage() { try{ const r=localStorage.getItem(_pkgsLocalKey()); if(r){ const p=JSON.parse(r); if(Array.isArray(p)) return p; } }catch(e){} return []; }
 function _saveCustomToStorage(custom) { try{localStorage.setItem(_pkgsLocalKey(),JSON.stringify(custom));}catch(e){} }
 
@@ -1253,8 +1254,9 @@ function palLabel(W,D){
 
 // ─── SAVED PALLETS ───
 const SPAL_COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#06b6d4','#f97316','#ec4899','#84cc16'];
-function _loadSavedPallets(){try{return JSON.parse(localStorage.getItem('savedPallets_v2'))||[];}catch(e){return[];}}
-function _storeSavedPallets(){try{localStorage.setItem('savedPallets_v2',JSON.stringify(savedPallets));}catch(e){}}
+function _palKey(){return 'savedPallets_v2' + (_currentUserId ? '_' + _currentUserId : '');}
+function _loadSavedPallets(){try{return JSON.parse(localStorage.getItem(_palKey()))||[];}catch(e){return[];}}
+function _storeSavedPallets(){try{localStorage.setItem(_palKey(),JSON.stringify(savedPallets));}catch(e){}}
 async function _savePalletToServer(p){try{await fetch('/api/pallets',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});}catch(e){}}
 async function _deletePalletFromServer(id){try{await fetch('/api/pallets/'+id,{method:'DELETE',credentials:'include'});}catch(e){}}
 async function syncPalletsFromServer(){
@@ -4623,6 +4625,10 @@ function showToast(msg){
     const u=await res.json();
     const el=document.getElementById('userNameBadge');
     if(el&&u.name)el.textContent=u.name.split(' ')[0];
+    // scope localStorage to this user so data never leaks across accounts
+    _currentUserId = u.id || null;
+    // remove old unscoped keys that could contain another user's data
+    try{localStorage.removeItem('pkgs_custom');localStorage.removeItem('savedPallets_v2');}catch(e){}
     syncPkgsFromServer();
     syncPalletsFromServer();
     // Warn if trial is about to expire
