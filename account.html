@@ -70,8 +70,7 @@
 </main>
 
 <script>
-// Add language codes here when expanding AT with new translations
-const SUPPORTED_LANGS = ['en', 'pl'];
+const SUPPORTED_LANGS = ['en', 'pl', 'de', 'fr', 'nl', 'cs', 'ro', 'es'];
 
 function detectLang() {
   const saved = localStorage.getItem('lang');
@@ -168,6 +167,132 @@ const AT = {
     portal_err_try: 'Try again.',
     portal_err_conn: 'Connection error.',
     err_prefix: 'Error: ',
+  },
+  de: {
+    nav_calc: 'Rechner →', nav_home: 'Startseite', loading: 'Kontodaten werden geladen…',
+    err_conn: 'Verbindungsfehler. Seite neu laden.',
+    badge_trial: 'Testphase', badge_expired: 'Abgelaufen', badge_active: 'Aktiv',
+    badge_past_due: 'Überfällig', badge_inactive: 'Inaktiv',
+    alert_success: '✓ Abonnement aktiviert — Sie können den Rechner verwenden!',
+    alert_expired: '⚠ Ihr Zugang ist abgelaufen. Aktivieren Sie ein Abonnement, um fortzufahren.',
+    card_title: 'Ihr Konto', card_sub: 'Abonnement und Abrechnung verwalten',
+    label_name: 'Vollständiger Name', label_email: 'E-Mail', label_sub: 'Abonnement', label_status: 'Status',
+    btn_open_calc: 'Rechner öffnen →', btn_portal: 'Abrechnung und Zahlungen verwalten', btn_logout: 'Abmelden',
+    pw_section: 'Passwort ändern', pw_current: 'Aktuelles Passwort', pw_new: 'Neues Passwort',
+    pw_ph_current: '••••••••', pw_ph_new: 'Mind. 8 Zeichen', pw_ok: '✓ Passwort geändert.',
+    pw_save: 'Neues Passwort speichern', pw_err_empty: 'Bitte geben Sie ein neues Passwort ein.',
+    pw_err_len: 'Das Passwort muss mindestens 8 Zeichen lang sein.',
+    pw_err_upper: 'Das Passwort muss mindestens einen Großbuchstaben enthalten.',
+    pw_err_special: 'Das Passwort muss mindestens ein Sonderzeichen enthalten.',
+    pw_saving: 'Speichern…', pw_err_conn: 'Verbindungsfehler.', pw_err_default: 'Fehler.',
+    sub_redirecting: 'Weiterleitung zur Zahlung…', sub_err_try: 'Erneut versuchen.', sub_err_conn: 'Verbindungsfehler.',
+    portal_opening: 'Portal wird geöffnet…', portal_err_try: 'Erneut versuchen.', portal_err_conn: 'Verbindungsfehler.',
+    err_prefix: 'Fehler: ',
+  },
+  fr: {
+    nav_calc: 'Calculateur →', nav_home: 'Accueil', loading: 'Chargement des données du compte…',
+    err_conn: 'Erreur de connexion. Actualisez la page.',
+    badge_trial: 'Essai gratuit', badge_expired: 'Expiré', badge_active: 'Actif',
+    badge_past_due: 'En retard', badge_inactive: 'Inactif',
+    alert_success: '✓ Abonnement activé — vous pouvez utiliser le calculateur !',
+    alert_expired: '⚠ Votre accès a expiré. Activez un abonnement pour continuer.',
+    card_title: 'Votre compte', card_sub: 'Gérer votre abonnement et facturation',
+    label_name: 'Nom complet', label_email: 'E-mail', label_sub: 'Abonnement', label_status: 'Statut',
+    btn_open_calc: 'Ouvrir le calculateur →', btn_portal: 'Gérer la facturation et les paiements', btn_logout: 'Se déconnecter',
+    pw_section: 'Changer le mot de passe', pw_current: 'Mot de passe actuel', pw_new: 'Nouveau mot de passe',
+    pw_ph_current: '••••••••', pw_ph_new: 'Min. 8 caractères', pw_ok: '✓ Mot de passe modifié.',
+    pw_save: 'Enregistrer le nouveau mot de passe', pw_err_empty: 'Veuillez saisir un nouveau mot de passe.',
+    pw_err_len: 'Le mot de passe doit comporter au moins 8 caractères.',
+    pw_err_upper: 'Le mot de passe doit contenir au moins une lettre majuscule.',
+    pw_err_special: 'Le mot de passe doit contenir au moins un caractère spécial.',
+    pw_saving: 'Enregistrement…', pw_err_conn: 'Erreur de connexion.', pw_err_default: 'Erreur.',
+    sub_redirecting: 'Redirection vers le paiement…', sub_err_try: 'Réessayer.', sub_err_conn: 'Erreur de connexion.',
+    portal_opening: 'Ouverture du portail…', portal_err_try: 'Réessayer.', portal_err_conn: 'Erreur de connexion.',
+    err_prefix: 'Erreur : ',
+  },
+  nl: {
+    nav_calc: 'Rekenmachine →', nav_home: 'Startpagina', loading: 'Accountgegevens laden…',
+    err_conn: 'Verbindingsfout. Ververs de pagina.',
+    badge_trial: 'Gratis proefperiode', badge_expired: 'Verlopen', badge_active: 'Actief',
+    badge_past_due: 'Achterstallig', badge_inactive: 'Inactief',
+    alert_success: '✓ Abonnement geactiveerd — u kunt de rekenmachine gebruiken!',
+    alert_expired: '⚠ Uw toegang is verlopen. Activeer een abonnement om door te gaan.',
+    card_title: 'Uw account', card_sub: 'Abonnement en facturering beheren',
+    label_name: 'Volledige naam', label_email: 'E-mail', label_sub: 'Abonnement', label_status: 'Status',
+    btn_open_calc: 'Rekenmachine openen →', btn_portal: 'Facturering en betalingen beheren', btn_logout: 'Uitloggen',
+    pw_section: 'Wachtwoord wijzigen', pw_current: 'Huidig wachtwoord', pw_new: 'Nieuw wachtwoord',
+    pw_ph_current: '••••••••', pw_ph_new: 'Min. 8 tekens', pw_ok: '✓ Wachtwoord gewijzigd.',
+    pw_save: 'Nieuw wachtwoord opslaan', pw_err_empty: 'Voer een nieuw wachtwoord in.',
+    pw_err_len: 'Het wachtwoord moet minimaal 8 tekens bevatten.',
+    pw_err_upper: 'Het wachtwoord moet minimaal één hoofdletter bevatten.',
+    pw_err_special: 'Het wachtwoord moet minimaal één speciaal teken bevatten.',
+    pw_saving: 'Opslaan…', pw_err_conn: 'Verbindingsfout.', pw_err_default: 'Fout.',
+    sub_redirecting: 'Doorsturen naar betaling…', sub_err_try: 'Opnieuw proberen.', sub_err_conn: 'Verbindingsfout.',
+    portal_opening: 'Portaal openen…', portal_err_try: 'Opnieuw proberen.', portal_err_conn: 'Verbindingsfout.',
+    err_prefix: 'Fout: ',
+  },
+  cs: {
+    nav_calc: 'Kalkulačka →', nav_home: 'Domů', loading: 'Načítání dat účtu…',
+    err_conn: 'Chyba připojení. Obnovte stránku.',
+    badge_trial: 'Zkušební období', badge_expired: 'Vypršelo', badge_active: 'Aktivní',
+    badge_past_due: 'Po splatnosti', badge_inactive: 'Neaktivní',
+    alert_success: '✓ Předplatné aktivováno — můžete používat kalkulačku!',
+    alert_expired: '⚠ Váš přístup vypršel. Aktivujte předplatné pro pokračování.',
+    card_title: 'Váš účet', card_sub: 'Správa předplatného a fakturace',
+    label_name: 'Celé jméno', label_email: 'E-mail', label_sub: 'Předplatné', label_status: 'Stav',
+    btn_open_calc: 'Otevřít kalkulačku →', btn_portal: 'Spravovat fakturaci a platby', btn_logout: 'Odhlásit se',
+    pw_section: 'Změnit heslo', pw_current: 'Aktuální heslo', pw_new: 'Nové heslo',
+    pw_ph_current: '••••••••', pw_ph_new: 'Min. 8 znaků', pw_ok: '✓ Heslo bylo změněno.',
+    pw_save: 'Uložit nové heslo', pw_err_empty: 'Zadejte nové heslo.',
+    pw_err_len: 'Heslo musí mít alespoň 8 znaků.',
+    pw_err_upper: 'Heslo musí obsahovat alespoň jedno velké písmeno.',
+    pw_err_special: 'Heslo musí obsahovat alespoň jeden speciální znak.',
+    pw_saving: 'Ukládání…', pw_err_conn: 'Chyba připojení.', pw_err_default: 'Chyba.',
+    sub_redirecting: 'Přesměrování na platbu…', sub_err_try: 'Zkuste znovu.', sub_err_conn: 'Chyba připojení.',
+    portal_opening: 'Otevírání portálu…', portal_err_try: 'Zkuste znovu.', portal_err_conn: 'Chyba připojení.',
+    err_prefix: 'Chyba: ',
+  },
+  ro: {
+    nav_calc: 'Calculator →', nav_home: 'Acasă', loading: 'Se încarcă datele contului…',
+    err_conn: 'Eroare de conexiune. Reîncărcați pagina.',
+    badge_trial: 'Perioadă de probă', badge_expired: 'Expirat', badge_active: 'Activ',
+    badge_past_due: 'Restanță', badge_inactive: 'Inactiv',
+    alert_success: '✓ Abonament activat — puteți folosi calculatorul!',
+    alert_expired: '⚠ Accesul dvs. a expirat. Activați un abonament pentru a continua.',
+    card_title: 'Contul dvs.', card_sub: 'Gestionați abonamentul și facturarea',
+    label_name: 'Nume complet', label_email: 'E-mail', label_sub: 'Abonament', label_status: 'Stare',
+    btn_open_calc: 'Deschideți calculatorul →', btn_portal: 'Gestionați facturarea și plățile', btn_logout: 'Deconectare',
+    pw_section: 'Schimbați parola', pw_current: 'Parola curentă', pw_new: 'Parolă nouă',
+    pw_ph_current: '••••••••', pw_ph_new: 'Min. 8 caractere', pw_ok: '✓ Parola a fost schimbată.',
+    pw_save: 'Salvați parola nouă', pw_err_empty: 'Introduceți o parolă nouă.',
+    pw_err_len: 'Parola trebuie să aibă cel puțin 8 caractere.',
+    pw_err_upper: 'Parola trebuie să conțină cel puțin o literă mare.',
+    pw_err_special: 'Parola trebuie să conțină cel puțin un caracter special.',
+    pw_saving: 'Se salvează…', pw_err_conn: 'Eroare de conexiune.', pw_err_default: 'Eroare.',
+    sub_redirecting: 'Redirecționare către plată…', sub_err_try: 'Încercați din nou.', sub_err_conn: 'Eroare de conexiune.',
+    portal_opening: 'Se deschide portalul…', portal_err_try: 'Încercați din nou.', portal_err_conn: 'Eroare de conexiune.',
+    err_prefix: 'Eroare: ',
+  },
+  es: {
+    nav_calc: 'Calculadora →', nav_home: 'Inicio', loading: 'Cargando datos de la cuenta…',
+    err_conn: 'Error de conexión. Recargue la página.',
+    badge_trial: 'Período de prueba', badge_expired: 'Vencido', badge_active: 'Activo',
+    badge_past_due: 'Vencido con deuda', badge_inactive: 'Inactivo',
+    alert_success: '✓ Suscripción activada — ¡puede usar la calculadora!',
+    alert_expired: '⚠ Su acceso ha vencido. Active una suscripción para continuar.',
+    card_title: 'Su cuenta', card_sub: 'Gestione su suscripción y facturación',
+    label_name: 'Nombre completo', label_email: 'E-mail', label_sub: 'Suscripción', label_status: 'Estado',
+    btn_open_calc: 'Abrir calculadora →', btn_portal: 'Gestionar facturación y pagos', btn_logout: 'Cerrar sesión',
+    pw_section: 'Cambiar contraseña', pw_current: 'Contraseña actual', pw_new: 'Nueva contraseña',
+    pw_ph_current: '••••••••', pw_ph_new: 'Mín. 8 caracteres', pw_ok: '✓ Contraseña cambiada.',
+    pw_save: 'Guardar nueva contraseña', pw_err_empty: 'Introduzca una nueva contraseña.',
+    pw_err_len: 'La contraseña debe tener al menos 8 caracteres.',
+    pw_err_upper: 'La contraseña debe contener al menos una letra mayúscula.',
+    pw_err_special: 'La contraseña debe contener al menos un carácter especial.',
+    pw_saving: 'Guardando…', pw_err_conn: 'Error de conexión.', pw_err_default: 'Error.',
+    sub_redirecting: 'Redirigiendo al pago…', sub_err_try: 'Inténtelo de nuevo.', sub_err_conn: 'Error de conexión.',
+    portal_opening: 'Abriendo portal…', portal_err_try: 'Inténtelo de nuevo.', portal_err_conn: 'Error de conexión.',
+    err_prefix: 'Error: ',
   }
 };
 
@@ -175,7 +300,13 @@ function at(key) { return ((AT[LANG] || AT.en)[key]) ?? AT.en[key] ?? key; }
 
 function pluralDays(n) {
   if (LANG === 'pl') return n === 1 ? '1 dzień' : `${n} dni`;
-  return n === 1 ? '1 day' : `${n} days`; // EN default for unknown langs
+  if (LANG === 'de') return n === 1 ? '1 Tag' : `${n} Tage`;
+  if (LANG === 'fr') return n === 1 ? '1 jour' : `${n} jours`;
+  if (LANG === 'nl') return n === 1 ? '1 dag' : `${n} dagen`;
+  if (LANG === 'cs') return n === 1 ? '1 den' : n < 5 ? `${n} dny` : `${n} dní`;
+  if (LANG === 'ro') return n === 1 ? '1 zi' : `${n} zile`;
+  if (LANG === 'es') return n === 1 ? '1 día' : `${n} días`;
+  return n === 1 ? '1 day' : `${n} days`;
 }
 
 function localSubscribePrice() {
@@ -219,7 +350,8 @@ async function loadAccount() {
   }
 
   const sub = user.subscription;
-  const dateLocale = LANG === 'pl' ? 'pl-PL' : 'en-US';
+  const LOCALE_MAP = {pl:'pl-PL',de:'de-DE',fr:'fr-FR',nl:'nl-NL',cs:'cs-CZ',ro:'ro-RO',es:'es-ES'};
+  const dateLocale = LOCALE_MAP[LANG] || 'en-US';
 
   let badgeHtml, statusLine;
   if (sub.status === 'trial') {
