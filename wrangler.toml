@@ -22,3 +22,7 @@ TRIAL_DAYS = "14"
 
 [assets]
 directory = "."
+
+[observability.logs]
+enabled = true
+invocation_logs = true
