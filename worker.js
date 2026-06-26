@@ -502,6 +502,11 @@ export default {
     }
 
     // ── Static assets ──
-    return env.ASSETS.fetch(request);
+    const res = await env.ASSETS.fetch(request);
+    const newRes = new Response(res.body, res);
+    newRes.headers.set('Content-Security-Policy', 'upgrade-insecure-requests');
+    newRes.headers.set('X-Content-Type-Options', 'nosniff');
+    newRes.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    return newRes;
   }
 };
