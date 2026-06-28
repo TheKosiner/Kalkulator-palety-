@@ -2684,10 +2684,16 @@ function buildOrientationHints(res, maxH, margin) {
   return hints;
 }
 
-// Shift each pallet's placements so the loaded area is centred on that pallet.
-// Only moves x/z — never affects y, count, or layers. Safe to apply after any
-// packing run. Each pallet's boxes are centred independently.
-function centrePlacements(placements) {
+// Close internal gaps and centre each pallet's load.
+// 1) Group boxes into rigid connected components (a "tower"/cluster of touching
+//    boxes). Boxes within the margin spacing stay in one component; a real empty
+//    gap separates components.
+// 2) Gravity-compact whole components toward the origin (X then Z) so the empty
+//    strip in the middle disappears. Each component moves as one rigid block, so
+//    every box keeps the same support underneath it — nothing can start floating.
+// 3) Centre the compacted bounding box on the pallet.
+// Only moves x/z — never affects y, count, or layers.
+function centrePlacements(placements, margin = 0) {
   if (!placements.length) return placements;
   const byPallet = new Map();
   placements.forEach(p => {
@@ -2696,15 +2702,56 @@ function centrePlacements(placements) {
     byPallet.get(pi).push(p);
   });
   const out = [];
-  for (const [pi, grp] of byPallet) {
+  const EPS = 1, GAP = margin * 2;
+  for (const [pi, grp0] of byPallet) {
     const ox = pi * (PAL.W + PAL_GAP);
-    const lx0 = Math.min(...grp.map(p => p.x - ox));
-    const lx1 = Math.max(...grp.map(p => p.x - ox + p.w));
-    const lz0 = Math.min(...grp.map(p => p.z));
-    const lz1 = Math.max(...grp.map(p => p.z + p.d));
+    const grp = grp0.map(p => ({...p, x: p.x - ox})); // pallet-local coords
+
+    // ── union into rigid connected components ──
+    const n = grp.length, parent = [...Array(n).keys()];
+    const find = a => { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
+    const near = (a, b) =>
+      a.x < b.x + b.w + GAP + EPS && b.x < a.x + a.w + GAP + EPS &&
+      a.z < b.z + b.d + GAP + EPS && b.z < a.z + a.d + GAP + EPS;
+    for (let i = 0; i < n; i++)
+      for (let j = i + 1; j < n; j++)
+        if (near(grp[i], grp[j])) parent[find(i)] = find(j);
+    const comps = new Map();
+    for (let i = 0; i < n; i++) {
+      const r = find(i);
+      if (!comps.has(r)) comps.set(r, []);
+      comps.get(r).push(grp[i]);
+    }
+    const compList = [...comps.values()].map(boxes => ({
+      boxes,
+      x0: Math.min(...boxes.map(b => b.x)), x1: Math.max(...boxes.map(b => b.x + b.w)),
+      z0: Math.min(...boxes.map(b => b.z)), z1: Math.max(...boxes.map(b => b.z + b.d)),
+    }));
+
+    // ── gravity-compact components toward 0 (rigid moves preserve support) ──
+    const gravity = (lo, hi, pLo, pHi, key) => {
+      const sorted = [...compList].sort((a, b) => a[lo] - b[lo]);
+      for (let i = 0; i < sorted.length; i++) {
+        const c = sorted[i];
+        let limit = 0;
+        for (let k = 0; k < i; k++) {
+          const d = sorted[k];
+          if (c[pLo] < d[pHi] - EPS && d[pLo] < c[pHi] - EPS) // overlap in perp. axis
+            limit = Math.max(limit, d[hi] + GAP);
+        }
+        const shift = limit - c[lo];
+        if (shift < -EPS) { c.boxes.forEach(b => b[key] += shift); c[lo] += shift; c[hi] += shift; }
+      }
+    };
+    gravity('x0', 'x1', 'z0', 'z1', 'x');
+    gravity('z0', 'z1', 'x0', 'x1', 'z');
+
+    // ── centre the compacted bounding box on the pallet ──
+    const lx0 = Math.min(...grp.map(p => p.x)), lx1 = Math.max(...grp.map(p => p.x + p.w));
+    const lz0 = Math.min(...grp.map(p => p.z)), lz1 = Math.max(...grp.map(p => p.z + p.d));
     const sx = (PAL.W - (lx1 - lx0)) / 2 - lx0;
     const sz = (PAL.D - (lz1 - lz0)) / 2 - lz0;
-    grp.forEach(p => out.push({...p, x: p.x + sx, z: p.z + sz}));
+    grp.forEach(p => out.push({...p, x: p.x + sx + ox, z: p.z + sz}));
   }
   return out;
 }
@@ -2770,7 +2817,7 @@ window.calculate=function(){
 
   const numPallets=allPlacements.length>0?Math.max(...allPlacements.map(p=>p.palletIdx))+1:1;
   const totalLeft=leftover.reduce((s,l)=>s+l.qty,0);
-  res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements),numPallets,
+  res={...res,count:allPlacements.length,placements:centrePlacements(allPlacements,margin),numPallets,
        groups:[...groupAccum.values()],leftover};
 
   document.getElementById('rTotal').textContent=res.count;
