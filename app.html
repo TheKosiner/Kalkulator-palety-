@@ -2684,14 +2684,13 @@ function buildOrientationHints(res, maxH, margin) {
   return hints;
 }
 
-// Close internal gaps and centre each pallet's load.
-// 1) Group boxes into rigid connected components (a "tower"/cluster of touching
-//    boxes). Boxes within the margin spacing stay in one component; a real empty
-//    gap separates components.
-// 2) Gravity-compact whole components toward the origin (X then Z) so the empty
-//    strip in the middle disappears. Each component moves as one rigid block, so
-//    every box keeps the same support underneath it — nothing can start floating.
-// 3) Centre the compacted bounding box on the pallet.
+// Close gaps (including internal holes) and centre each pallet's load.
+// Per-box gravity toward the origin (X then Z): every box slides toward 0 until it
+// rests against another box, BUT only if it stays fully supported (a box top at its
+// own underside, or the pallet floor) and doesn't overlap anything. Processing
+// bottom-up over several passes lets lower layers compact first so upper boxes can
+// then follow into the freed space — internal middle gaps disappear without any box
+// ever floating. Finally the compacted bounding box is centred on the pallet.
 // Only moves x/z — never affects y, count, or layers.
 function centrePlacements(placements, margin = 0) {
   if (!placements.length) return placements;
@@ -2707,44 +2706,53 @@ function centrePlacements(placements, margin = 0) {
     const ox = pi * (PAL.W + PAL_GAP);
     const grp = grp0.map(p => ({...p, x: p.x - ox})); // pallet-local coords
 
-    // ── union into rigid connected components ──
-    const n = grp.length, parent = [...Array(n).keys()];
-    const find = a => { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
-    const near = (a, b) =>
-      a.x < b.x + b.w + GAP + EPS && b.x < a.x + a.w + GAP + EPS &&
-      a.z < b.z + b.d + GAP + EPS && b.z < a.z + a.d + GAP + EPS;
-    for (let i = 0; i < n; i++)
-      for (let j = i + 1; j < n; j++)
-        if (near(grp[i], grp[j])) parent[find(i)] = find(j);
-    const comps = new Map();
-    for (let i = 0; i < n; i++) {
-      const r = find(i);
-      if (!comps.has(r)) comps.set(r, []);
-      comps.get(r).push(grp[i]);
-    }
-    const compList = [...comps.values()].map(boxes => ({
-      boxes,
-      x0: Math.min(...boxes.map(b => b.x)), x1: Math.max(...boxes.map(b => b.x + b.w)),
-      z0: Math.min(...boxes.map(b => b.z)), z1: Math.max(...boxes.map(b => b.z + b.d)),
-    }));
+    // does box b at (x,z) collide with any other box (3D)?
+    const overlaps = (b, x, z) => grp.some(q => q !== b &&
+      x < q.x + q.w - EPS && q.x < x + b.w - EPS &&
+      z < q.z + q.d - EPS && q.z < z + b.d - EPS &&
+      b.y < q.y + q.h - EPS && q.y < b.y + b.h - EPS);
 
-    // ── gravity-compact components toward 0 (rigid moves preserve support) ──
-    const gravity = (lo, hi, pLo, pHi, key) => {
-      const sorted = [...compList].sort((a, b) => a[lo] - b[lo]);
-      for (let i = 0; i < sorted.length; i++) {
-        const c = sorted[i];
-        let limit = 0;
-        for (let k = 0; k < i; k++) {
-          const d = sorted[k];
-          if (c[pLo] < d[pHi] - EPS && d[pLo] < c[pHi] - EPS) // overlap in perp. axis
-            limit = Math.max(limit, d[hi] + GAP);
+    // is box b at (x,z) fully supported (pallet floor, or box tops at its underside)?
+    const supported = (b, x, z) => {
+      if (b.y <= PAL.H + EPS) return true; // resting on the pallet
+      const sups = grp.filter(q => q !== b && Math.abs(q.y + q.h - b.y) < EPS &&
+        x < q.x + q.w - EPS && q.x < x + b.w - EPS &&
+        z < q.z + q.d - EPS && q.z < z + b.d - EPS);
+      if (!sups.length) return false;
+      const xs = new Set([x, x + b.w]), zs = new Set([z, z + b.d]);
+      sups.forEach(q => {
+        [q.x, q.x + q.w].forEach(v => { if (v > x && v < x + b.w) xs.add(v); });
+        [q.z, q.z + q.d].forEach(v => { if (v > z && v < z + b.d) zs.add(v); });
+      });
+      const sx = [...xs].sort((a, c) => a - c), sz = [...zs].sort((a, c) => a - c);
+      for (let i = 0; i < sx.length - 1; i++)
+        for (let j = 0; j < sz.length - 1; j++) {
+          const px = (sx[i] + sx[i + 1]) / 2, pz = (sz[j] + sz[j + 1]) / 2;
+          if (!sups.some(q => px >= q.x && px <= q.x + q.w && pz >= q.z && pz <= q.z + q.d))
+            return false; // a sub-cell of the footprint has nothing under it
         }
-        const shift = limit - c[lo];
-        if (shift < -EPS) { c.boxes.forEach(b => b[key] += shift); c[lo] += shift; c[hi] += shift; }
+      return true;
+    };
+
+    // slide every box toward 0 along one axis, resting against the nearest blocker
+    const gravity = (key, size, pk, ps) => {
+      const sorted = [...grp].sort((a, b) => a.y - b.y || a[key] - b[key]);
+      for (const b of sorted) {
+        let rest = 0;
+        for (const q of grp) {
+          if (q === b) continue;
+          if (!(b[pk] < q[pk] + q[ps] - EPS && q[pk] < b[pk] + b[ps] - EPS)) continue; // perp. overlap
+          if (!(b.y < q.y + q.h - EPS && q.y < b.y + b.h - EPS)) continue;            // height overlap
+          if (q[key] + q[size] <= b[key] + EPS) rest = Math.max(rest, q[key] + q[size] + GAP);
+        }
+        if (rest < b[key] - EPS) {
+          const old = b[key];
+          b[key] = rest;
+          if (overlaps(b, b.x, b.z) || !supported(b, b.x, b.z)) b[key] = old; // revert if unsafe
+        }
       }
     };
-    gravity('x0', 'x1', 'z0', 'z1', 'x');
-    gravity('z0', 'z1', 'x0', 'x1', 'z');
+    for (let pass = 0; pass < 4; pass++) { gravity('x', 'w', 'z', 'd'); gravity('z', 'd', 'x', 'w'); }
 
     // ── centre the compacted bounding box on the pallet ──
     const lx0 = Math.min(...grp.map(p => p.x)), lx1 = Math.max(...grp.map(p => p.x + p.w));
