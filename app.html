@@ -738,17 +738,16 @@ async function syncPkgsFromServer() {
     if (!res.ok) return;
     const serverPkgs = await res.json();
     if (!Array.isArray(serverPkgs)) return;
-    const localCustom = _loadCustomFromStorage();
-    const serverIds = new Set(serverPkgs.map(p=>p.id));
-    const localOnly = localCustom.filter(p=>!serverIds.has(p.id));
-    for (const p of localOnly) await savePkgToServer(p);
-    const merged = [...serverPkgs, ...localOnly];
-    _saveCustomToStorage(merged);
-    PKGS = [...DEFAULT_PKGS.map(p=>({...p,dims:[...p.dims]})), ...merged];
+    // Server is the single source of truth per user — never push local items to
+    // the current account (that leaked one user's data into another's account).
+    _saveCustomToStorage(serverPkgs);
+    PKGS = [...DEFAULT_PKGS.map(p=>({...p,dims:[...p.dims]})), ...serverPkgs];
     _afterPkgsChanged();
   } catch(e) {}
 }
-let PKGS = [...DEFAULT_PKGS.map(p=>({...p,dims:[...p.dims]})), ..._loadCustomFromStorage()];
+// Start with built-in packages only; the logged-in user's custom packages are
+// loaded by syncPkgsFromServer() once we know which account is active.
+let PKGS = [...DEFAULT_PKGS.map(p=>({...p,dims:[...p.dims]}))];
 const PAL = { W:1200, D:800, H:144 };
 try{const _s=JSON.parse(localStorage.getItem('palDims'));if(_s?.W>0&&_s?.D>0&&_s?.H>0){PAL.W=+_s.W;PAL.D=+_s.D;PAL.H=+_s.H;}}catch(e){}
 
@@ -1266,16 +1265,16 @@ async function syncPalletsFromServer(){
     if(!res.ok)return;
     const server=await res.json();
     if(!Array.isArray(server))return;
-    const serverIds=new Set(server.map(p=>p.id));
-    const local=_loadSavedPallets();
-    const localOnly=local.filter(p=>!serverIds.has(p.id));
-    for(const p of localOnly) await _savePalletToServer(p);
-    savedPallets=[...server,...localOnly];
+    // Server is the single source of truth per user — never push local pallets to
+    // the current account (that leaked one user's data into another's account).
+    savedPallets=server;
     _storeSavedPallets();
     buildVehicleSavedLists();
   }catch(e){}
 }
-let savedPallets=_loadSavedPallets();
+// Start empty; the logged-in user's saved pallets are loaded by
+// syncPalletsFromServer() once we know which account is active.
+let savedPallets=[];
 function saveCurrPallet(){
   if(!lastRes||!lastRes.count){alert('Najpierw oblicz układ paczek.');return;}
   const nPal=lastRes.numPallets||1;
