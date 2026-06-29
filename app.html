@@ -521,16 +521,12 @@
 
     <!-- PARAMS -->
     <div class="stitle" style="margin-top:14px" data-i18n="sec_params">Parametry</div>
-    <div class="ctrl-row">
-      <div>
-        <label class="lbl" data-i18n="lbl_maxh">Max. wysokość (mm)</label>
-        <input type="number" id="maxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
-      </div>
-      <div>
-        <label class="lbl" data-i18n="lbl_margin">Margines (mm / stronę)</label>
-        <input type="number" id="margin" value="0" min="0" max="200" step="5" inputmode="numeric"/>
-      </div>
+    <div class="ctrl-full">
+      <label class="lbl" data-i18n="lbl_maxh">Max. wysokość (mm)</label>
+      <input type="number" id="maxH" value="1800" min="200" max="3500" step="50" inputmode="numeric"/>
     </div>
+    <!-- margin option removed; kept hidden at 0 so packing stays gap-free -->
+    <input type="hidden" id="margin" value="0"/>
     <div class="ctrl-full">
       <label class="lbl" data-i18n="lbl_maxpal">Maks. liczba palet (nadmiar na kolejne)</label>
       <input type="number" id="maxPallets" value="1" min="1" max="20" inputmode="numeric"/>
