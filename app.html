@@ -2706,6 +2706,9 @@ function centrePlacements(placements, margin = 0) {
     const ox = pi * (PAL.W + PAL_GAP);
     const grp = grp0.map(p => ({...p, x: p.x - ox})); // pallet-local coords
 
+    // lowest box bottom = the pallet-floor layer (offset by margin, so derive it)
+    const floorY = grp.length ? Math.min(...grp.map(p => p.y)) : PAL.H;
+
     // does box b at (x,z) collide with any other box (3D)?
     const overlaps = (b, x, z) => grp.some(q => q !== b &&
       x < q.x + q.w - EPS && q.x < x + b.w - EPS &&
@@ -2713,9 +2716,11 @@ function centrePlacements(placements, margin = 0) {
       b.y < q.y + q.h - EPS && q.y < b.y + b.h - EPS);
 
     // is box b at (x,z) fully supported (pallet floor, or box tops at its underside)?
+    // Margin leaves a 2*margin gap in Y between stacked boxes, so allow that slack.
     const supported = (b, x, z) => {
-      if (b.y <= PAL.H + EPS) return true; // resting on the pallet
-      const sups = grp.filter(q => q !== b && Math.abs(q.y + q.h - b.y) < EPS &&
+      if (b.y <= floorY + EPS) return true; // resting on the pallet
+      const sups = grp.filter(q => q !== b &&
+        (b.y - (q.y + q.h)) >= -EPS && (b.y - (q.y + q.h)) <= GAP + EPS &&
         x < q.x + q.w - EPS && q.x < x + b.w - EPS &&
         z < q.z + q.d - EPS && q.z < z + b.d - EPS);
       if (!sups.length) return false;
