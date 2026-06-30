@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Jak optymalnie załadować naczepę i kontener? Poradnik | Pallet3D</title>
+  <meta name="description" content="Ile palet wchodzi do naczepy i kontenera 40 stóp, jak rozłożyć wagę na osie i jak uniknąć pustych przestrzeni. Praktyczny poradnik załadunku z kalkulatorem 3D."/>
+  <meta name="robots" content="index, follow, max-image-preview:large"/>
+  <meta name="theme-color" content="#070d1a"/>
+  <link rel="canonical" href="https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html"/>
+  <meta property="og:type" content="article"/>
+  <meta property="og:site_name" content="Pallet3D"/>
+  <meta property="og:title" content="Jak optymalnie załadować naczepę i kontener?"/>
+  <meta property="og:description" content="Ile palet wchodzi do naczepy i kontenera 40', jak rozłożyć wagę na osie i jak uniknąć pustych przestrzeni."/>
+  <meta property="og:url" content="https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html"/>
+  <meta property="og:image" content="https://pallet3d.com/logo-full.png"/>
+  <meta property="og:locale" content="pl_PL"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="icon" type="image/png" href="/favicon.png"/>
+  <link rel="apple-touch-icon" href="/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Jak optymalnie załadować naczepę i kontener?",
+    "description": "Ile palet wchodzi do naczepy i kontenera 40 stóp, jak rozłożyć wagę na osie i jak uniknąć pustych przestrzeni.",
+    "image": "https://pallet3d.com/logo-full.png",
+    "author": { "@type": "Organization", "name": "Pallet3D" },
+    "publisher": { "@type": "Organization", "name": "Pallet3D", "logo": { "@type": "ImageObject", "url": "https://pallet3d.com/logo-full.png" } },
+    "datePublished": "2026-06-30",
+    "dateModified": "2026-06-30",
+    "mainEntityOfPage": "https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html",
+    "inLanguage": "pl"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Strona główna", "item": "https://pallet3d.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://pallet3d.com/blog/" },
+      { "@type": "ListItem", "position": 3, "name": "Jak załadować naczepę i kontener", "item": "https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html" }
+    ]
+  }
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#070d1a;--surface:#111a2e;--surface-2:#18233c;--border:#1d2a44;--border-2:#2e405f;--text:#eef2f8;--text-2:#93a5be;--text-3:#56688a;--accent:#3b82f6;--accent-h:#60a5fa;--r:12px}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.7}
+    a{color:var(--accent-h);text-decoration:none}
+    nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:16px;padding:14px 24px;background:rgba(7,13,26,.82);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}
+    nav .logo img{height:28px;display:block}
+    nav .spacer{flex:1}
+    nav a.cta{background:var(--accent);color:#fff;padding:9px 18px;border-radius:9px;font-weight:700;font-size:.85rem}
+    nav a.lnk{color:var(--text-2);font-weight:600;font-size:.85rem}
+    article{max-width:720px;margin:0 auto;padding:48px 24px 80px}
+    .crumb{font-size:.8rem;color:var(--text-3);margin-bottom:20px}
+    h1{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-.02em;line-height:1.18;margin-bottom:14px;color:#fff}
+    .meta{color:var(--text-3);font-size:.85rem;margin-bottom:32px}
+    article h2{font-size:1.4rem;font-weight:700;margin:36px 0 12px;color:#fff;letter-spacing:-.01em}
+    article h3{font-size:1.1rem;font-weight:700;margin:24px 0 8px;color:#fff}
+    article p{color:var(--text-2);margin-bottom:16px}
+    article ul,article ol{color:var(--text-2);margin:0 0 16px 22px}
+    article li{margin-bottom:7px}
+    article strong{color:var(--text)}
+    .box{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r);padding:18px 20px;margin:22px 0}
+    .box .t{font-weight:700;color:#fff;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin:18px 0;font-size:.92rem}
+    th,td{border:1px solid var(--border-2);padding:9px 12px;text-align:left;color:var(--text-2)}
+    th{background:var(--surface-2);color:#fff;font-weight:600}
+    .cta-block{background:linear-gradient(135deg,rgba(59,130,246,.14),rgba(129,140,248,.1));border:1px solid var(--border-2);border-radius:16px;padding:28px;margin:40px 0 0;text-align:center}
+    .cta-block h2{margin-top:0}
+    .cta-block a{display:inline-block;background:var(--accent);color:#fff;padding:13px 28px;border-radius:10px;font-weight:700;margin-top:8px}
+    footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;color:var(--text-3);font-size:.82rem}
+    footer a{color:var(--text-2)}
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="logo" href="https://pallet3d.com" aria-label="Pallet3D"><img src="/logo-full.png" alt="Pallet3D"/></a>
+    <div class="spacer"></div>
+    <a class="lnk" href="/blog/">Blog</a>
+    <a class="cta" href="/app.html">Uruchom kalkulator</a>
+  </nav>
+  <article>
+    <div class="crumb"><a href="https://pallet3d.com">Strona główna</a> › <a href="/blog/">Blog</a> › Jak załadować naczepę i kontener</div>
+    <h1>Jak optymalnie załadować naczepę i kontener</h1>
+    <div class="meta">Transport · ok. 6 min czytania</div>
+
+    <p>Dobrze zaplanowany załadunek to mniej kursów, niższy koszt transportu na jednostkę i bezpieczniejszy towar. W tym poradniku pokazujemy, <strong>ile palet wchodzi do naczepy i kontenera</strong>, jak rozłożyć ciężar na osie i jak wyeliminować puste przestrzenie.</p>
+
+    <h2>Ile palet wchodzi do standardowej naczepy?</h2>
+    <p>Typowa <strong>naczepa firankowa</strong> ma przestrzeń ładunkową ok. <strong>13,6 m długości × 2,45 m szerokości</strong>. To pozwala ustawić:</p>
+    <table>
+      <tr><th>Ustawienie palet EUR</th><th>Liczba na podłodze</th></tr>
+      <tr><td>Wzdłuż (1200 mm w głąb)</td><td>ok. 33 palety EUR</td></tr>
+      <tr><td>W poprzek (800 mm w głąb)</td><td>ok. 33–34 palety EUR</td></tr>
+      <tr><td>Palety przemysłowe 1200×1000</td><td>ok. 26 palet</td></tr>
+    </table>
+    <p>Jeśli wysokość i waga towaru pozwalają na <strong>piętrowanie</strong>, liczba miejsc paletowych podwaja się — to najprostszy sposób na zwiększenie wykorzystania naczepy.</p>
+
+    <h2>Ile palet wchodzi do kontenera?</h2>
+    <table>
+      <tr><th>Kontener</th><th>Palety EUR</th><th>Palety 1200×1000</th></tr>
+      <tr><td>20' (ok. 5,9 × 2,35 m)</td><td>ok. 11</td><td>ok. 9–10</td></tr>
+      <tr><td>40' (ok. 12,0 × 2,35 m)</td><td>ok. 23–24</td><td>ok. 20–21</td></tr>
+    </table>
+    <p>Wąskie gardło kontenera to <strong>szerokość 2,35 m</strong> — dwie palety EUR ustawione wzdłuż (2 × 800 mm) zostawiają wolny pas, który warto wypełnić paczkami luzem.</p>
+
+    <h2>Rozkład wagi na osie</h2>
+    <p>Sama liczba palet to nie wszystko — liczy się też, <strong>gdzie</strong> postawisz cięższy towar:</p>
+    <ul>
+      <li><strong>Cięższe palety bliżej środka</strong> i nad osiami, lżejsze na końcach.</li>
+      <li>Unikaj koncentracji masy z jednej strony — grozi przekroczeniem nacisku na oś.</li>
+      <li>W kontenerze rozkładaj ciężar równomiernie na całej długości, by uniknąć przeciążenia jednego końca.</li>
+    </ul>
+
+    <h2>Jak uniknąć pustych przestrzeni</h2>
+    <ul>
+      <li><strong>Mieszaj rozmiary mądrze</strong> — większe i cięższe na dół, mniejsze wypełniają luki i górne warstwy.</li>
+      <li><strong>Wykorzystaj pas resztkowy</strong> przy szerokości — paczki luzem zamiast powietrza.</li>
+      <li><strong>Planuj piętrowanie</strong> tam, gdzie towar i wysokość na to pozwalają.</li>
+      <li><strong>Najpierw policz, potem ładuj</strong> — symulacja 3D pokazuje puste miejsca, zanim pojawią się na rampie.</li>
+    </ul>
+
+    <div class="box">
+      <div class="t">Wskazówka</div>
+      Wszystkie powyższe liczby to wartości orientacyjne dla idealnego ułożenia. Realny układ zależy od wymiarów Twojego towaru — dlatego warto go zasymulować przed załadunkiem.
+    </div>
+
+    <div class="cta-block">
+      <h2>Zaplanuj załadunek naczepy i kontenera</h2>
+      <p>Pallet3D rozmieszcza palety i paczki w naczepie oraz kontenerze w 3D i pokazuje stopień wypełnienia. Wypróbuj 14 dni za darmo.</p>
+      <a href="/app.html">Uruchom kalkulator →</a>
+    </div>
+  </article>
+  <footer>
+    © 2026 Pallet3D · <a href="https://pallet3d.com">pallet3d.com</a> · <a href="/blog/">Więcej poradników</a>
+  </footer>
+</body>
+</html>
