@@ -15,4 +15,24 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://pallet3d.com/?lang=es"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://pallet3d.com/"/>
   </url>
+  <url>
+    <loc>https://pallet3d.com/blog/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://pallet3d.com/blog/ile-kartonow-na-palete-euro.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://pallet3d.com/blog/paletyzacja-zasady-ukladania.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
