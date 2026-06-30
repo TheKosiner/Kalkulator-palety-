@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /$
+Allow: /index.html
+Disallow: /app.html
+Disallow: /app
+Disallow: /account.html
+Disallow: /api/
+
+Sitemap: https://pallet3d.com/sitemap.xml
