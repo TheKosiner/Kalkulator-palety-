@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>How many boxes fit on a EUR pallet? Formula and examples | Pallet3D</title>
+  <meta name="description" content="EUR pallet dimensions (1200×800 mm), a simple formula for the number of boxes per layer and per stack, and the most common palletization mistakes. Calculate your layout in 3D for free."/>
+  <meta name="robots" content="index, follow, max-image-preview:large"/>
+  <meta name="theme-color" content="#070d1a"/>
+  <link rel="canonical" href="https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html"/>
+  <meta property="og:type" content="article"/>
+  <meta property="og:site_name" content="Pallet3D"/>
+  <meta property="og:title" content="How many boxes fit on a EUR pallet? Formula and examples"/>
+  <meta property="og:description" content="EUR pallet dimensions, the formula for the number of boxes per layer and per stack, and the most common palletization mistakes."/>
+  <meta property="og:url" content="https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html"/>
+  <meta property="og:image" content="https://pallet3d.com/logo-full.png"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="icon" type="image/png" href="/favicon.png"/>
+  <link rel="apple-touch-icon" href="/favicon.png"/>
+  <link rel="alternate" hreflang="pl" href="https://pallet3d.com/blog/ile-kartonow-na-palete-euro.html"/>
+  <link rel="alternate" hreflang="en" href="https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html"/>
+  <link rel="alternate" hreflang="x-default" href="https://pallet3d.com/blog/ile-kartonow-na-palete-euro.html"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How many boxes fit on a EUR pallet? Formula and examples",
+    "description": "EUR pallet dimensions, the formula for the number of boxes per layer and per stack, and the most common palletization mistakes.",
+    "image": "https://pallet3d.com/logo-full.png",
+    "author": { "@type": "Organization", "name": "Pallet3D" },
+    "publisher": { "@type": "Organization", "name": "Pallet3D", "logo": { "@type": "ImageObject", "url": "https://pallet3d.com/logo-full.png" } },
+    "datePublished": "2026-06-30",
+    "dateModified": "2026-06-30",
+    "mainEntityOfPage": "https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html",
+    "inLanguage": "en"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://pallet3d.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://pallet3d.com/blog/en/" },
+      { "@type": "ListItem", "position": 3, "name": "How many boxes on a EUR pallet", "item": "https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html" }
+    ]
+  }
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#070d1a;--surface:#111a2e;--surface-2:#18233c;--border:#1d2a44;--border-2:#2e405f;--text:#eef2f8;--text-2:#93a5be;--text-3:#56688a;--accent:#3b82f6;--accent-h:#60a5fa;--r:12px}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.7}
+    a{color:var(--accent-h);text-decoration:none}
+    nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:16px;padding:14px 24px;background:rgba(7,13,26,.82);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}
+    nav .logo img{height:28px;display:block}
+    nav .spacer{flex:1}
+    nav a.cta{background:var(--accent);color:#fff;padding:9px 18px;border-radius:9px;font-weight:700;font-size:.85rem}
+    nav a.lnk{color:var(--text-2);font-weight:600;font-size:.85rem}
+    article{max-width:720px;margin:0 auto;padding:48px 24px 80px}
+    .crumb{font-size:.8rem;color:var(--text-3);margin-bottom:20px}
+    h1{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-.02em;line-height:1.18;margin-bottom:14px;color:#fff}
+    .meta{color:var(--text-3);font-size:.85rem;margin-bottom:32px}
+    article h2{font-size:1.4rem;font-weight:700;margin:36px 0 12px;color:#fff;letter-spacing:-.01em}
+    article h3{font-size:1.1rem;font-weight:700;margin:24px 0 8px;color:#fff}
+    article p{color:var(--text-2);margin-bottom:16px}
+    article ul,article ol{color:var(--text-2);margin:0 0 16px 22px}
+    article li{margin-bottom:7px}
+    article strong{color:var(--text)}
+    .box{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r);padding:18px 20px;margin:22px 0}
+    .box .t{font-weight:700;color:#fff;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin:18px 0;font-size:.92rem}
+    th,td{border:1px solid var(--border-2);padding:9px 12px;text-align:left;color:var(--text-2)}
+    th{background:var(--surface-2);color:#fff;font-weight:600}
+    .cta-block{background:linear-gradient(135deg,rgba(59,130,246,.14),rgba(129,140,248,.1));border:1px solid var(--border-2);border-radius:16px;padding:28px;margin:40px 0 0;text-align:center}
+    .cta-block h2{margin-top:0}
+    .cta-block a{display:inline-block;background:var(--accent);color:#fff;padding:13px 28px;border-radius:10px;font-weight:700;margin-top:8px}
+    footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;color:var(--text-3);font-size:.82rem}
+    footer a{color:var(--text-2)}
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="logo" href="https://pallet3d.com/?lang=en" aria-label="Pallet3D"><img src="/logo-full.png" alt="Pallet3D"/></a>
+    <div class="spacer"></div>
+    <select onchange="location.href=this.value" aria-label="Language" style="background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.8rem;font-weight:600;padding:6px 8px;cursor:pointer;color-scheme:dark">
+      <option value="https://pallet3d.com/blog/ile-kartonow-na-palete-euro.html">PL</option>
+      <option value="https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html" selected>EN</option>
+    </select>
+    <a class="lnk" href="/blog/en/">Blog</a>
+    <a class="cta" href="/app.html">Run calculator</a>
+  </nav>
+  <article>
+    <div class="crumb"><a href="https://pallet3d.com/?lang=en">Home</a> › <a href="/blog/en/">Blog</a> › How many boxes on a EUR pallet</div>
+    <h1>How many boxes fit on a EUR pallet?</h1>
+    <div class="meta">Palletization · approx. 5 min read</div>
+
+    <p>This is one of the most common questions in warehouse logistics: <strong>how many boxes fit on a EUR pallet</strong>? The answer depends on the box dimensions and the maximum allowed load height, but you can work it out in a few seconds. In this guide we show a simple formula, ready-made examples, and the mistakes that most often waste space.</p>
+
+    <h2>EUR pallet dimensions</h2>
+    <p>A standard <strong>Euro pallet (EUR/EPAL)</strong> measures <strong>1200 × 800 mm</strong>, and the pallet itself is about 144 mm tall. The maximum load height depends on the carrier and the means of transport — most commonly <strong>1800–2200 mm</strong> including the pallet is assumed.</p>
+    <div class="box">
+      <div class="t">Usable area</div>
+      1200 mm × 800 mm = <strong>960,000 mm²</strong> (0.96 m²) per layer.
+    </div>
+
+    <h2>The formula for the number of boxes</h2>
+    <p>We calculate the number of boxes in two steps — first how many fit in a single layer, then how many layers fit within the height:</p>
+    <ol>
+      <li><strong>Boxes per layer</strong> = (1200 ÷ box length) × (800 ÷ box width) — rounding down.</li>
+      <li><strong>Number of layers</strong> = (max. height − 144) ÷ box height — rounding down.</li>
+      <li><strong>Total</strong> = boxes per layer × number of layers.</li>
+    </ol>
+    <p>The key is to check <strong>both orientations</strong> of the box (lengthwise and crosswise). Sometimes rotating the box 90° lets you fit one more row.</p>
+
+    <h3>Example: a 400 × 300 × 300 mm box</h3>
+    <table>
+      <tr><th>Step</th><th>Calculation</th><th>Result</th></tr>
+      <tr><td>Per layer</td><td>(1200÷400) × (800÷300) = 3 × 2</td><td>6 pcs</td></tr>
+      <tr><td>Layers (max. 1800 mm)</td><td>(1800−144) ÷ 300</td><td>5 layers</td></tr>
+      <tr><td>Total</td><td>6 × 5</td><td><strong>30 boxes</strong></td></tr>
+    </table>
+    <p>If we rotated the box (300 × 400), a layer would hold (1200÷300) × (800÷400) = 4 × 2 = <strong>8 pieces</strong> — that's 40 boxes instead of 30. That's why it always pays to compare the variants.</p>
+
+    <h2>The most common mistakes that waste space</h2>
+    <ul>
+      <li><strong>A single box orientation</strong> — skipping the 90° rotation can cost as much as 20–30% of the pallet's capacity.</li>
+      <li><strong>Exceeding the pallet footprint</strong> — goods sticking out beyond 1200 × 800 mm are often rejected by carriers and get damaged in transit.</li>
+      <li><strong>Margins that are too large</strong> — a few millimeters of slack on each box add up to an entire lost column.</li>
+      <li><strong>No layer interlocking</strong> — stacking "in columns" without interlocking reduces stability, even though it gives even counts.</li>
+    </ul>
+
+    <h2>Calculate it automatically</h2>
+    <p>Manual counting works fine for a single box type. When you have <strong>different sizes, weights, and stacking</strong>, an algorithm does it far faster and more accurately. The Pallet3D calculator arranges boxes on the pallet in 3D, automatically picks the orientation, and instantly shows how many pieces fit.</p>
+
+    <div class="cta-block">
+      <h2>Calculate your pallet layout in 3D</h2>
+      <p>Enter your box dimensions and find the optimal layout in seconds — 14 days free.</p>
+      <a href="/app.html">Run calculator →</a>
+    </div>
+  </article>
+  <footer>
+    © 2026 Pallet3D · <a href="https://pallet3d.com">pallet3d.com</a> · <a href="/blog/en/">More guides</a>
+  </footer>
+</body>
+</html>

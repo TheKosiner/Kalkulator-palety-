@@ -35,4 +35,8 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+  <url><loc>https://pallet3d.com/blog/en/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://pallet3d.com/blog/en/paletyzacja-zasady-ukladania.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 </urlset>
