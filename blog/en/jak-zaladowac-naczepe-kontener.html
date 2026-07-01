@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>How to optimally load a trailer and container? Guide | Pallet3D</title>
+  <meta name="description" content="How many pallets fit in a trailer and a 40-foot container, how to distribute weight across the axles, and how to avoid empty space. A practical loading guide with a 3D calculator."/>
+  <meta name="robots" content="index, follow, max-image-preview:large"/>
+  <meta name="theme-color" content="#070d1a"/>
+  <link rel="canonical" href="https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html"/>
+  <meta property="og:type" content="article"/>
+  <meta property="og:site_name" content="Pallet3D"/>
+  <meta property="og:title" content="How to optimally load a trailer and container?"/>
+  <meta property="og:description" content="How many pallets fit in a trailer and a 40' container, how to distribute weight across the axles, and how to avoid empty space."/>
+  <meta property="og:url" content="https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html"/>
+  <meta property="og:image" content="https://pallet3d.com/logo-full.png"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="icon" type="image/png" href="/favicon.png"/>
+  <link rel="apple-touch-icon" href="/favicon.png"/>
+  <link rel="alternate" hreflang="pl" href="https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html"/>
+  <link rel="alternate" hreflang="en" href="https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html"/>
+  <link rel="alternate" hreflang="x-default" href="https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to optimally load a trailer and container?",
+    "description": "How many pallets fit in a trailer and a 40-foot container, how to distribute weight across the axles, and how to avoid empty space.",
+    "image": "https://pallet3d.com/logo-full.png",
+    "author": { "@type": "Organization", "name": "Pallet3D" },
+    "publisher": { "@type": "Organization", "name": "Pallet3D", "logo": { "@type": "ImageObject", "url": "https://pallet3d.com/logo-full.png" } },
+    "datePublished": "2026-06-30",
+    "dateModified": "2026-06-30",
+    "mainEntityOfPage": "https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html",
+    "inLanguage": "en"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://pallet3d.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://pallet3d.com/blog/en/" },
+      { "@type": "ListItem", "position": 3, "name": "How to load a trailer and container", "item": "https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html" }
+    ]
+  }
+  </script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#070d1a;--surface:#111a2e;--surface-2:#18233c;--border:#1d2a44;--border-2:#2e405f;--text:#eef2f8;--text-2:#93a5be;--text-3:#56688a;--accent:#3b82f6;--accent-h:#60a5fa;--r:12px}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.7}
+    a{color:var(--accent-h);text-decoration:none}
+    nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:16px;padding:14px 24px;background:rgba(7,13,26,.82);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.06)}
+    nav .logo img{height:28px;display:block}
+    nav .spacer{flex:1}
+    nav a.cta{background:var(--accent);color:#fff;padding:9px 18px;border-radius:9px;font-weight:700;font-size:.85rem}
+    nav a.lnk{color:var(--text-2);font-weight:600;font-size:.85rem}
+    article{max-width:720px;margin:0 auto;padding:48px 24px 80px}
+    .crumb{font-size:.8rem;color:var(--text-3);margin-bottom:20px}
+    h1{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-.02em;line-height:1.18;margin-bottom:14px;color:#fff}
+    .meta{color:var(--text-3);font-size:.85rem;margin-bottom:32px}
+    article h2{font-size:1.4rem;font-weight:700;margin:36px 0 12px;color:#fff;letter-spacing:-.01em}
+    article h3{font-size:1.1rem;font-weight:700;margin:24px 0 8px;color:#fff}
+    article p{color:var(--text-2);margin-bottom:16px}
+    article ul,article ol{color:var(--text-2);margin:0 0 16px 22px}
+    article li{margin-bottom:7px}
+    article strong{color:var(--text)}
+    .box{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r);padding:18px 20px;margin:22px 0}
+    .box .t{font-weight:700;color:#fff;margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin:18px 0;font-size:.92rem}
+    th,td{border:1px solid var(--border-2);padding:9px 12px;text-align:left;color:var(--text-2)}
+    th{background:var(--surface-2);color:#fff;font-weight:600}
+    .cta-block{background:linear-gradient(135deg,rgba(59,130,246,.14),rgba(129,140,248,.1));border:1px solid var(--border-2);border-radius:16px;padding:28px;margin:40px 0 0;text-align:center}
+    .cta-block h2{margin-top:0}
+    .cta-block a{display:inline-block;background:var(--accent);color:#fff;padding:13px 28px;border-radius:10px;font-weight:700;margin-top:8px}
+    footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;color:var(--text-3);font-size:.82rem}
+    footer a{color:var(--text-2)}
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="logo" href="https://pallet3d.com/?lang=en" aria-label="Pallet3D"><img src="/logo-full.png" alt="Pallet3D"/></a>
+    <div class="spacer"></div>
+    <select onchange="location.href=this.value" aria-label="Language" style="background:var(--surface-2);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.8rem;font-weight:600;padding:6px 8px;cursor:pointer;color-scheme:dark">
+      <option value="https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html">PL</option>
+      <option value="https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html" selected>EN</option>
+    </select>
+    <a class="lnk" href="/blog/en/">Blog</a>
+    <a class="cta" href="/app.html">Run calculator</a>
+  </nav>
+  <article>
+    <div class="crumb"><a href="https://pallet3d.com/?lang=en">Home</a> › <a href="/blog/en/">Blog</a> › How to load a trailer and container</div>
+    <h1>How to optimally load a trailer and container</h1>
+    <div class="meta">Transport · approx. 6 min read</div>
+
+    <p>A well-planned load means fewer trips, a lower transport cost per unit, and safer goods. In this guide we show <strong>how many pallets fit in a trailer and a container</strong>, how to distribute the weight across the axles, and how to eliminate empty space.</p>
+
+    <h2>How many pallets fit in a standard trailer?</h2>
+    <p>A typical <strong>curtain-side trailer</strong> has a load space of about <strong>13.6 m long × 2.45 m wide</strong>. That allows you to position:</p>
+    <table>
+      <tr><th>EUR pallet arrangement</th><th>Number on the floor</th></tr>
+      <tr><td>Lengthwise (1200 mm deep)</td><td>approx. 33 EUR pallets</td></tr>
+      <tr><td>Crosswise (800 mm deep)</td><td>approx. 33–34 EUR pallets</td></tr>
+      <tr><td>Industrial pallets 1200×1000</td><td>approx. 26 pallets</td></tr>
+    </table>
+    <p>If the height and weight of the goods allow <strong>double-stacking</strong>, the number of pallet spaces doubles — that's the simplest way to increase trailer utilization.</p>
+
+    <h2>How many pallets fit in a container?</h2>
+    <table>
+      <tr><th>Container</th><th>EUR pallets</th><th>1200×1000 pallets</th></tr>
+      <tr><td>20' (approx. 5.9 × 2.35 m)</td><td>approx. 11</td><td>approx. 9–10</td></tr>
+      <tr><td>40' (approx. 12.0 × 2.35 m)</td><td>approx. 23–24</td><td>approx. 20–21</td></tr>
+    </table>
+    <p>The container's bottleneck is its <strong>2.35 m width</strong> — two EUR pallets placed lengthwise (2 × 800 mm) leave a free strip that is worth filling with loose parcels.</p>
+
+    <h2>Weight distribution across the axles</h2>
+    <p>The number of pallets isn't everything — <strong>where</strong> you place the heavier goods matters too:</p>
+    <ul>
+      <li><strong>Heavier pallets closer to the center</strong> and over the axles, lighter ones at the ends.</li>
+      <li>Avoid concentrating mass on one side — it risks exceeding the axle load.</li>
+      <li>In a container, distribute the weight evenly along the entire length to avoid overloading one end.</li>
+    </ul>
+
+    <h2>How to avoid empty space</h2>
+    <ul>
+      <li><strong>Mix sizes wisely</strong> — larger and heavier items on the bottom, smaller ones fill the gaps and the upper layers.</li>
+      <li><strong>Use the leftover strip</strong> along the width — loose parcels instead of air.</li>
+      <li><strong>Plan double-stacking</strong> wherever the goods and the height allow it.</li>
+      <li><strong>Calculate first, then load</strong> — a 3D simulation reveals empty spaces before they show up at the loading dock.</li>
+    </ul>
+
+    <div class="box">
+      <div class="t">Tip</div>
+      All the figures above are approximate values for an ideal arrangement. The real layout depends on the dimensions of your goods — which is why it's worth simulating it before loading.
+    </div>
+
+    <div class="cta-block">
+      <h2>Plan your trailer and container load</h2>
+      <p>Pallet3D arranges pallets and parcels in the trailer and container in 3D and shows the fill rate. Try it free for 14 days.</p>
+      <a href="/app.html">Run calculator →</a>
+    </div>
+  </article>
+  <footer>
+    © 2026 Pallet3D · <a href="https://pallet3d.com">pallet3d.com</a> · <a href="/blog/en/">More guides</a>
+  </footer>
+</body>
+</html>
