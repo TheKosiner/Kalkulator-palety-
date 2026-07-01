@@ -3911,16 +3911,39 @@ function arrangeVehicle(type){
   // Using availW (not vs.W) makes the second pallet in a row pick the wider orientation
   // to fill the gap — e.g. 800 + 1200 = 2000mm in a 2350mm container instead of 800+800=1600mm.
   // When counts are equal, prefer the larger palW to minimise leftover gap.
-  function _bestO(up,availW){
+  // preferLock=true (start of a fresh row) overrides the local per-row-count pick with
+  // rowOrientLock — see below for why a per-row-only comparison is wrong.
+  function _bestO(up,availW,preferLock){
     const f1=up.w<=availW+0.5,f2=up.d<=availW+0.5;
     if(!f1&&!f2)return null;
     if(f1&&f2){
+      if(preferLock){
+        const lock=rowOrientLock.get(`${Math.round(up.w)}_${Math.round(up.d)}`);
+        if(lock==='rotated')return{palW:up.d,palD:up.w,rotated:true};
+        if(lock==='normal')return{palW:up.w,palD:up.d,rotated:false};
+      }
       const n1=Math.floor(availW/up.w)||1,n2=Math.floor(availW/up.d)||1;
       if(n2>n1)return{palW:up.d,palD:up.w,rotated:true};
       if(n1>n2)return{palW:up.w,palD:up.d,rotated:false};
       return up.w>=up.d?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
     }
     return f1?{palW:up.w,palD:up.d,rotated:false}:{palW:up.d,palD:up.w,rotated:true};
+  }
+
+  // Which row orientation to use when STARTING a fresh row (the choice that fixes
+  // the row's depth for the rest of the vehicle's length, hence the total row count).
+  // Picking by "most pallets in THIS row" alone is wrong: a narrower-but-deeper
+  // orientation can fit more pallets per row yet fewer ROWS along the length, for a
+  // lower grand total (e.g. 3/row × 11 rows = 33 vs 2/row × 17 rows = 34 — the
+  // 3-per-row choice looks better locally but is worse overall). Compare the true
+  // vehicle-wide total for each orientation instead, once per pallet footprint.
+  const rowOrientLock=new Map();
+  for(const up of unitPallets){
+    const key=`${Math.round(up.w)}_${Math.round(up.d)}`;
+    if(rowOrientLock.has(key))continue;
+    const totalNormal=Math.floor(vs.W/up.w)*Math.floor(vs.L/up.d);
+    const totalRotated=Math.floor(vs.W/up.d)*Math.floor(vs.L/up.w);
+    rowOrientLock.set(key,totalRotated>totalNormal?'rotated':(totalNormal>totalRotated?'normal':null));
   }
 
   // Packing strategy:
@@ -3964,8 +3987,8 @@ function arrangeVehicle(type){
     // Row-based packing with _bestO: fills left→right, starts a new row when current row is full.
     let curZ=vs.L,rowUsedX=0,rowDepth=0;
     for(const up of unitPallets){
-      let o=_bestO(up,vs.W-rowUsedX);
-      if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W);if(!o){leftover++;continue;}}
+      let o=_bestO(up,vs.W-rowUsedX,rowUsedX===0);
+      if(!o){curZ-=rowDepth;rowUsedX=0;rowDepth=0;o=_bestO(up,vs.W,true);if(!o){leftover++;continue;}}
       if(curZ-o.palD<-0.5){
         // width-optimal orientation too deep — try flipped before giving up
         const oR={palW:o.palD,palD:o.palW,rotated:!o.rotated};
@@ -3973,7 +3996,7 @@ function arrangeVehicle(type){
         else if(rowUsedX>0){
           // try a fresh row with both orientations
           curZ-=rowDepth;rowUsedX=0;rowDepth=0;
-          o=_bestO(up,vs.W);
+          o=_bestO(up,vs.W,true);
           if(!o){leftover++;continue;}
           if(curZ-o.palD<-0.5){
             const oR2={palW:o.palD,palD:o.palW,rotated:!o.rotated};
