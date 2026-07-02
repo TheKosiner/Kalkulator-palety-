@@ -23,6 +23,7 @@ TRIAL_DAYS = "14"
 [assets]
 directory = "."
 binding = "ASSETS"
+not_found_handling = "404-page"
 
 [observability.logs]
 enabled = true
