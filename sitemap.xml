@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://pallet3d.com/</loc>
+    <loc>https://pallet3d.com/</loc><lastmod>2026-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="pl" href="https://pallet3d.com/?lang=pl"/>
@@ -16,27 +16,27 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://pallet3d.com/"/>
   </url>
   <url>
-    <loc>https://pallet3d.com/blog/</loc>
+    <loc>https://pallet3d.com/blog/</loc><lastmod>2026-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pallet3d.com/blog/ile-kartonow-na-palete-euro.html</loc>
+    <loc>https://pallet3d.com/blog/ile-kartonow-na-palete-euro.html</loc><lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html</loc>
+    <loc>https://pallet3d.com/blog/jak-zaladowac-naczepe-kontener.html</loc><lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pallet3d.com/blog/paletyzacja-zasady-ukladania.html</loc>
+    <loc>https://pallet3d.com/blog/paletyzacja-zasady-ukladania.html</loc><lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-  <url><loc>https://pallet3d.com/blog/en/</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://pallet3d.com/blog/en/paletyzacja-zasady-ukladania.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://pallet3d.com/blog/en/</loc><lastmod>2026-07-02</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://pallet3d.com/blog/en/ile-kartonow-na-palete-euro.html</loc><lastmod>2026-07-02</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://pallet3d.com/blog/en/jak-zaladowac-naczepe-kontener.html</loc><lastmod>2026-07-02</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://pallet3d.com/blog/en/paletyzacja-zasady-ukladania.html</loc><lastmod>2026-07-02</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
 </urlset>

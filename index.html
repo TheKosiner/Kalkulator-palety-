@@ -31,8 +31,10 @@
   <meta property="og:title" content="Pallet3D — Kalkulator załadunku palet, naczep i kontenerów 3D"/>
   <meta property="og:description" content="Inteligentny kalkulator załadunku palet, naczep i kontenerów w 3D. Algorytm optymalnego upakowania kartonów. Wypróbuj 14 dni za darmo."/>
   <meta property="og:url" content="https://pallet3d.com/"/>
-  <meta property="og:image" content="https://pallet3d.com/logo-full.png"/>
-  <meta property="og:image:alt" content="Pallet3D"/>
+  <meta property="og:image" content="https://pallet3d.com/og-image.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="Pallet3D — kalkulator załadunku palet, naczep i kontenerów 3D"/>
   <meta property="og:locale" content="pl_PL"/>
   <meta property="og:locale:alternate" content="en_US"/>
   <meta property="og:locale:alternate" content="de_DE"/>
@@ -46,7 +48,7 @@
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="Pallet3D — Kalkulator załadunku palet, naczep i kontenerów 3D"/>
   <meta name="twitter:description" content="Inteligentny kalkulator załadunku palet, naczep i kontenerów w 3D. Wypróbuj 14 dni za darmo."/>
-  <meta name="twitter:image" content="https://pallet3d.com/logo-full.png"/>
+  <meta name="twitter:image" content="https://pallet3d.com/og-image.png"/>
 
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="apple-touch-icon" href="favicon.png"/>
@@ -113,7 +115,7 @@
     :root{
       --bg:#070d1a;--bg-2:#0a1222;--surface:#111a2e;--surface-2:#18233c;--surface-3:#21304f;
       --border:#1d2a44;--border-2:#2e405f;
-      --text:#eef2f8;--text-2:#93a5be;--text-3:#56688a;
+      --text:#eef2f8;--text-2:#93a5be;--text-3:#7d90ad;
       --accent:#3b82f6;--accent-h:#60a5fa;--accent-2:#818cf8;
       --accent-dim:rgba(59,130,246,.13);--accent-glow:rgba(59,130,246,.3);
       --green:#34d399;--orange:#fbbf24;
@@ -139,10 +141,12 @@
     .btn-ghost:hover{color:var(--text);border-color:var(--text-3)}
     .btn-primary{padding:10px 22px;background:var(--accent);border:none;border-radius:var(--r);font-size:.85rem;font-weight:700;cursor:pointer;color:#fff;transition:all .2s;box-shadow:0 2px 16px var(--accent-glow)}
     .btn-primary:hover{background:var(--accent-h);box-shadow:0 4px 24px rgba(96,165,250,.4);transform:translateY(-1px)}
-    .nav-burger{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;padding:4px 10px}
+    .nav-burger{display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;padding:8px 12px;min-width:44px;min-height:44px}
+    /* keyboard focus indicator (buttons/links/summaries have no visible default on dark bg) */
+    button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible{outline:2px solid var(--accent-h);outline-offset:2px;border-radius:4px}
     /* language switcher */
     .lang-sw{display:flex;align-items:center}
-    .lang-sw select{background:#111a2e;border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.75rem;font-weight:700;cursor:pointer;padding:5px 8px;letter-spacing:.04em;font-family:inherit;outline:none;transition:border-color .15s;color-scheme:dark}
+    .lang-sw select{background:#111a2e;border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-size:.85rem;font-weight:700;cursor:pointer;padding:7px 10px;letter-spacing:.04em;font-family:inherit;outline:none;transition:border-color .15s;color-scheme:dark}
     .lang-sw select:hover,.lang-sw select:focus{border-color:var(--accent)}
     .lang-sw select option{background:#111a2e;color:var(--text)}
 
@@ -151,7 +155,7 @@
     .mobile-menu.open{opacity:1;pointer-events:all}
     .mobile-menu a{font-size:1.4rem;font-weight:700;color:var(--text-2)}
     .mobile-menu a:active{color:var(--accent-h)}
-    .mobile-menu .mm-close{position:absolute;top:18px;right:24px;font-size:2rem;background:none;border:none;color:var(--text-2);cursor:pointer}
+    .mobile-menu .mm-close{position:absolute;top:12px;right:16px;font-size:2rem;background:none;border:none;color:var(--text-2);cursor:pointer;min-width:48px;min-height:48px}
     .mm-lang{display:flex;margin-top:10px}
     .mm-lang select{background:rgba(255,255,255,.06);border:1px solid var(--border-2);border-radius:8px;color:var(--text-2);font-size:.85rem;font-weight:700;cursor:pointer;padding:8px 12px;font-family:inherit;outline:none;width:100%}
 
@@ -280,7 +284,7 @@
     .mb.open{opacity:1;pointer-events:all}
     .modal{background:var(--surface);border:1px solid var(--border-2);border-radius:20px;width:100%;max-width:420px;padding:34px;position:relative;transform:translateY(24px) scale(.96);transition:transform .25s cubic-bezier(.2,.9,.3,1.2)}
     .mb.open .modal{transform:none}
-    .m-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text-3);font-size:1.4rem;cursor:pointer}
+    .m-close{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--text-3);font-size:1.4rem;cursor:pointer;min-width:44px;min-height:44px}
     .m-close:hover{color:var(--text)}
     .m-title{font-size:1.25rem;font-weight:800;margin-bottom:6px}
     .m-sub{font-size:.85rem;color:var(--text-2);margin-bottom:24px}
@@ -334,7 +338,7 @@
 
 <!-- ═══ NAV ═══ -->
 <nav id="nav">
-  <a class="nav-logo" href="https://pallet3d.com" aria-label="Pallet3D"><img src="logo-full.png" alt="Pallet3D"/></a>
+  <a class="nav-logo" href="https://pallet3d.com" aria-label="Pallet3D"><img src="logo-full.png" alt="Pallet3D" width="702" height="150"/></a>
   <div class="nav-links">
     <a href="#jak-dziala" data-i18n="nav_how">Jak to działa</a>
     <a href="#funkcje" data-i18n="nav_features">Funkcje</a>
@@ -359,17 +363,19 @@
     <button class="btn-ghost" onclick="openModal('login')" data-i18n="nav_login">Zaloguj się</button>
     <button class="btn-primary" onclick="openModal('signup')" data-i18n="nav_signup">Załóż konto</button>
   </div>
-  <button class="nav-burger" onclick="document.getElementById('mm').classList.add('open')" aria-label="Menu">☰</button>
+  <button class="nav-burger" onclick="document.getElementById('mm').classList.add('open');document.body.style.overflow='hidden'" aria-label="Menu">☰</button>
 </nav>
 
 <!-- mobile menu -->
 <div class="mobile-menu" id="mm">
-  <button class="mm-close" onclick="document.getElementById('mm').classList.remove('open')" aria-label="Close">×</button>
+  <button class="mm-close" onclick="mmClose()" aria-label="Close">×</button>
   <a href="#jak-dziala" onclick="mmClose()" data-i18n="nav_how">Jak to działa</a>
   <a href="#funkcje" onclick="mmClose()" data-i18n="nav_features">Funkcje</a>
   <a href="#pojazdy" onclick="mmClose()" data-i18n="nav_vehicles">Naczepy i kontenery</a>
   <a href="#cennik" onclick="mmClose()" data-i18n="nav_pricing">Cennik</a>
+  <a href="/blog/" data-i18n="nav_blog">Blog</a>
   <a href="#kontakt" onclick="mmClose()" data-i18n="nav_contact">Kontakt</a>
+  <button class="btn-ghost" style="padding:12px 38px;font-size:.95rem" onclick="mmClose();openModal('login')" data-i18n="nav_login">Zaloguj się</button>
   <button class="btn-primary" style="padding:14px 38px;font-size:1rem" onclick="mmClose();openModal('signup')" data-i18n="nav_signup">Załóż konto</button>
   <div class="mm-lang">
     <select id="mmLangSelect" onchange="setLang(this.value)" aria-label="Language">
@@ -514,17 +520,17 @@
   <div class="section-inner" style="max-width:560px">
     <h2 class="rv" style="text-align:center;margin-bottom:8px" data-i18n="contact_h2">Kontakt</h2>
     <p class="rv" style="text-align:center;color:var(--text-2);margin-bottom:32px" data-i18n="contact_sub">Masz pytanie lub potrzebujesz pomocy? Napisz do nas.</p>
-    <div class="rv" style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px 24px">
-      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_name">Imię i nazwisko</label>
-        <input id="ctxName" type="text" data-i18n-ph="contact_name_ph" placeholder="Jan Kowalski" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
-      <div style="margin-bottom:14px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_email_lbl">Adres e-mail</label>
-        <input id="ctxEmail" type="email" data-i18n-ph="contact_email_ph" placeholder="jan@firma.pl" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
-      <div style="margin-bottom:18px"><label style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_msg_lbl">Wiadomość</label>
-        <textarea id="ctxMsg" rows="5" data-i18n-ph="contact_msg_ph" placeholder="Opisz swoje pytanie..." style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea></div>
-      <div id="ctxErr" style="color:#f87171;font-size:.82rem;margin-bottom:10px;display:none"></div>
-      <div id="ctxOk" style="color:#4ade80;font-size:.82rem;margin-bottom:10px;display:none" data-i18n="contact_ok">Wiadomość wysłana! Odpiszemy wkrótce.</div>
-      <button id="ctxBtn" onclick="sendContact()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:600;cursor:pointer" data-i18n="contact_btn">Wyślij wiadomość</button>
-    </div>
+    <form class="rv" onsubmit="sendContact();return false" style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:28px 24px">
+      <div style="margin-bottom:14px"><label for="ctxName" style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_name">Imię i nazwisko</label>
+        <input id="ctxName" name="name" type="text" required data-i18n-ph="contact_name_ph" placeholder="Jan Kowalski" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
+      <div style="margin-bottom:14px"><label for="ctxEmail" style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_email_lbl">Adres e-mail</label>
+        <input id="ctxEmail" name="email" type="email" required data-i18n-ph="contact_email_ph" placeholder="jan@firma.pl" style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box"/></div>
+      <div style="margin-bottom:18px"><label for="ctxMsg" style="font-size:.8rem;color:var(--text-2);display:block;margin-bottom:5px" data-i18n="contact_msg_lbl">Wiadomość</label>
+        <textarea id="ctxMsg" name="message" rows="5" required data-i18n-ph="contact_msg_ph" placeholder="Opisz swoje pytanie..." style="width:100%;padding:10px 13px;background:var(--surface);border:1px solid var(--border-2);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea></div>
+      <div id="ctxErr" role="alert" style="color:#f87171;font-size:.82rem;margin-bottom:10px;display:none"></div>
+      <div id="ctxOk" role="status" style="color:#4ade80;font-size:.82rem;margin-bottom:10px;display:none" data-i18n="contact_ok">Wiadomość wysłana! Odpiszemy wkrótce.</div>
+      <button id="ctxBtn" type="submit" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:600;cursor:pointer" data-i18n="contact_btn">Wyślij wiadomość</button>
+    </form>
   </div>
 </section>
 
@@ -557,7 +563,7 @@
   <div class="foot">
     <div class="foot-top">
       <div class="foot-brand">
-        <a class="nav-logo" href="https://pallet3d.com" style="flex:none" aria-label="Pallet3D"><img src="logo-full.png" alt="Pallet3D"/></a>
+        <a class="nav-logo" href="https://pallet3d.com" style="flex:none" aria-label="Pallet3D"><img src="logo-full.png" alt="Pallet3D" width="702" height="150"/></a>
         <p data-i18n="foot_desc">Profesjonalne narzędzie do optymalizacji załadunku palet, naczep i kontenerów. Szybko, precyzyjnie, wizualnie.</p>
       </div>
       <div class="foot-col"><h4 data-i18n="foot_product">Produkt</h4>
@@ -584,14 +590,14 @@
 </footer>
 
 <!-- ═══ MODALS ═══ -->
-<div class="mb" id="loginModal" onclick="if(event.target===this)closeModal('loginModal')">
+<div class="mb" id="loginModal" role="dialog" aria-modal="true" aria-label="Logowanie" onclick="if(event.target===this)closeModal('loginModal')">
   <div class="modal">
     <button class="m-close" onclick="closeModal('loginModal')">×</button>
     <div class="m-title" data-i18n="login_title">Zaloguj się</div>
     <p class="m-sub" data-i18n="login_sub">Witaj z powrotem! Wprowadź swoje dane.</p>
     <div class="fg"><label data-i18n="login_email">E-mail</label><input id="loginEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
     <div class="fg"><label data-i18n="login_pass">Hasło</label><input id="loginPassword" type="password" data-i18n-ph="login_pass_ph" placeholder="Twoje hasło" autocomplete="current-password"/></div>
-    <div id="loginErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
+    <div id="loginErr" role="alert" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
     <div id="loginVerifyMsg" style="display:none;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;border-radius:8px;padding:10px 14px;font-size:.82rem;margin-bottom:8px">
       <span data-i18n="login_verify_msg">Sprawdź skrzynkę i kliknij link weryfikacyjny.</span> <a href="#" id="resendLink" style="color:#fbbf24;font-weight:700;text-decoration:underline" data-i18n="login_resend">Wyślij ponownie</a>
     </div>
@@ -604,7 +610,7 @@
     <div class="m-foot"><span data-i18n="login_no_acc">Nie masz konta?</span> <a href="#" onclick="switchModal('loginModal','signupModal');return false" data-i18n="login_reg">Zarejestruj się</a></div>
   </div>
 </div>
-<div class="mb" id="signupModal" onclick="if(event.target===this)closeModal('signupModal')">
+<div class="mb" id="signupModal" role="dialog" aria-modal="true" aria-label="Rejestracja" onclick="if(event.target===this)closeModal('signupModal')">
   <div class="modal">
     <button class="m-close" onclick="closeModal('signupModal')">×</button>
     <div class="m-title" data-i18n="signup_title">Utwórz konto</div>
@@ -615,8 +621,8 @@
     </div>
     <div class="fg"><label data-i18n="signup_email">E-mail</label><input id="regEmail" type="email" placeholder="jan@firma.pl" autocomplete="email"/></div>
     <div class="fg"><label data-i18n="signup_pass">Hasło</label><input id="regPassword" type="password" data-i18n-ph="signup_pass_ph" placeholder="Min. 8 znaków" autocomplete="new-password"/></div>
-    <div id="regErr" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
-    <div id="regSuccess" style="display:none;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399;border-radius:8px;padding:12px 14px;font-size:.84rem;text-align:center" data-i18n="signup_success">
+    <div id="regErr" role="alert" style="color:#f87171;font-size:.8rem;margin-bottom:8px;display:none"></div>
+    <div id="regSuccess" role="status" style="display:none;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399;border-radius:8px;padding:12px 14px;font-size:.84rem;text-align:center" data-i18n="signup_success">
       ✓ Konto utworzone! Sprawdź skrzynkę e-mail i kliknij link weryfikacyjny.
     </div>
     <button class="m-submit" id="regSubmit" onclick="doRegister(this)" data-i18n="signup_btn">Utwórz konto i zacznij próbę</button>
@@ -1466,12 +1472,15 @@ function updatePriceDisplay(){
 
 /* ════════ helpers ════════ */
 function openModal(which){
-  document.getElementById(which==='signup'?'signupModal':'loginModal').classList.add('open');
+  const m=document.getElementById(which==='signup'?'signupModal':'loginModal');
+  m.classList.add('open');
   document.body.style.overflow='hidden';
+  // move keyboard focus into the dialog
+  setTimeout(()=>{const f=m.querySelector('input,button');if(f)f.focus();},60);
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
 function switchModal(a,b){closeModal(a);setTimeout(()=>{document.getElementById(b).classList.add('open');document.body.style.overflow='hidden';},160);}
-function mmClose(){document.getElementById('mm').classList.remove('open');}
+function mmClose(){document.getElementById('mm').classList.remove('open');document.body.style.overflow='';}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('loginModal');closeModal('signupModal');mmClose();}});
 
 function showErr(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.style.display=msg?'block':'none';}}
@@ -1793,7 +1802,15 @@ if (hasGSAP && typeof ScrollTrigger !== 'undefined') gsap.registerPlugin(ScrollT
 
 /* ════════ GSAP entrance + scroll animations ════════ */
 (function(){
-  if(!hasGSAP){document.querySelectorAll('.rv').forEach(el=>el.style.opacity=1);return;}
+  if(!hasGSAP){
+    document.querySelectorAll('.rv').forEach(el=>el.style.opacity=1);
+    // nav is hidden via translateY(-100%) and normally revealed by GSAP — reveal it manually
+    const nv=document.getElementById('nav');if(nv)nv.style.transform='none';
+    const hb=document.getElementById('heroBadge'),hs=document.getElementById('heroSub');
+    if(hb)hb.style.opacity=1;if(hs)hs.style.opacity=1;
+    document.querySelectorAll('#heroTitle .word').forEach(el=>el.style.opacity=1);
+    return;
+  }
   if(reduceMotion){gsap.set('.rv',{opacity:1});gsap.set('#nav',{y:0});return;}
 
   gsap.to('#nav',{y:0,duration:.7,ease:'power3.out',delay:.15});

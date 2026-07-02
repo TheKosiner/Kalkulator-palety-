@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex"/>
+  <title>404 — Nie znaleziono strony | Pallet3D</title>
+  <link rel="icon" type="image/png" href="/favicon.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#070d1a;--surface:#111a2e;--border-2:#2e405f;--text:#eef2f8;--text-2:#93a5be;--accent:#3b82f6;--accent-h:#60a5fa}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;-webkit-font-smoothing:antialiased;text-align:center}
+    img.logo{height:34px;margin-bottom:40px}
+    .code{font-size:clamp(4rem,14vw,7rem);font-weight:800;letter-spacing:-.04em;line-height:1;background:linear-gradient(135deg,#3b82f6,#818cf8);-webkit-background-clip:text;background-clip:text;color:transparent}
+    h1{font-size:clamp(1.2rem,3vw,1.6rem);font-weight:800;margin:14px 0 10px}
+    p{color:var(--text-2);max-width:440px;line-height:1.65;margin-bottom:28px}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+    a.btn{display:inline-block;padding:13px 26px;border-radius:10px;font-weight:700;font-size:.92rem;text-decoration:none;transition:all .15s}
+    a.primary{background:var(--accent);color:#fff}
+    a.primary:hover{background:var(--accent-h)}
+    a.ghost{background:transparent;color:var(--text-2);border:1px solid var(--border-2)}
+    a.ghost:hover{color:var(--text);border-color:var(--text-2)}
+  </style>
+</head>
+<body>
+  <a href="/"><img class="logo" src="/logo-full.png" alt="Pallet3D" width="702" height="150"/></a>
+  <div class="code">404</div>
+  <h1>Nie znaleziono strony</h1>
+  <p>Strona, której szukasz, nie istnieje albo została przeniesiona. Sprawdź adres lub wróć na stronę główną.</p>
+  <div class="actions">
+    <a class="btn primary" href="/">Strona główna</a>
+    <a class="btn ghost" href="/app.html">Otwórz kalkulator</a>
+    <a class="btn ghost" href="/blog/">Blog</a>
+  </div>
+</body>
+</html>

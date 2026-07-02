@@ -10,3 +10,7 @@ worker.js
 wrangler.toml
 schema.sql
 *.map
+logo.png
+migrate_packages.sql
+migrate_saved_pallets.sql
+wipe_user_data.sql
